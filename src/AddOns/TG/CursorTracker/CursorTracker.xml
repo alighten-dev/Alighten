@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<Trackers>
+  <Outer>
+    <Enabled>true</Enabled>
+    <Thickness>2.00</Thickness>
+    <Radius>15.00</Radius>
+  </Outer>
+  <Inner>
+    <Enabled>true</Enabled>
+    <Thickness>2.00</Thickness>
+    <Filled>false</Filled>
+  </Inner>
+  <Color>#FFFFA500</Color>
+  <Opacity>1.00</Opacity>
+</Trackers>
