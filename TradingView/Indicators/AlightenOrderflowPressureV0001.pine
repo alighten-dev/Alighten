@@ -1,0 +1,245 @@
+//@version=6
+indicator("Alighten Orderflow Pressure V0001", overlay=false, format=format.price)
+
+import TradingView/ta/8
+
+//==================================================
+// INPUTS
+//==================================================
+groupSrc = "Delta Source (requestVolumeDelta)"
+anchorInput = input.timeframe("1D", "Anchor period", group=groupSrc)
+
+lowerTimeframeTooltip = "Uses lower-timeframe data to approximate up/down volume for delta.\n\nHigher lower-TF gives more history but less precision."
+useCustomTimeframeInput = input.bool(false, "Use custom timeframe", tooltip=lowerTimeframeTooltip, group=groupSrc)
+lowerTimeframeInput     = input.timeframe("1", "Lower timeframe", tooltip=lowerTimeframeTooltip, group=groupSrc)
+
+var string lowerTimeframe = switch
+    useCustomTimeframeInput => lowerTimeframeInput
+    timeframe.isseconds     => "1S"
+    timeframe.isintraday    => "1"
+    timeframe.isdaily       => "5"
+    => "60"
+
+groupCore = "Pressure Model"
+lenRVOL      = input.int(20, "RVOL Lookback", minval=5, group=groupCore)
+zLen         = input.int(50, "Z-Score Lookback", minval=20, group=groupCore)
+smoothLen    = input.int(5,  "Pressure Smoothing (EMA)", minval=1, group=groupCore)
+
+// Component weights (keep these simple; default is balanced)
+wDelta   = input.float(0.60, "Weight: Delta", step=0.05, group=groupCore)
+wCLV     = input.float(0.25, "Weight: CLV (close-in-range)", step=0.05, group=groupCore)
+wDisp    = input.float(0.15, "Weight: Displacement (body/ATR)", step=0.05, group=groupCore)
+
+clipZ    = input.float(3.0, "Z Clip (winsorize)", step=0.25, minval=1.0, group=groupCore)
+
+groupQual = "Quality / Confidence"
+minRVOL       = input.float(1.2, "Min RVOL (confidence)", step=0.1, group=groupQual)
+regLength     = input.int(30, "Pressure Slope Regression Length (N)", minval=10, group=groupQual)
+minR2         = input.float(0.30, "Min R²", minval=0.0, maxval=1.0, group=groupQual)
+flipConfirm   = input.int(1, "Flip Confirm Bars", minval=1, group=groupQual)
+slopeEps      = input.float(0.0, "Slope Epsilon (deadband)", step=0.0001, group=groupQual)
+
+groupMarks = "Absorption / Exhaustion Marks"
+showMarks     = input.bool(true, "Show marks", group=groupMarks)
+absorbRVOL    = input.float(1.5, "Absorption: Min RVOL", step=0.1, group=groupMarks)
+absorbZ       = input.float(1.2, "Absorption: Min |zΔ|", step=0.1, group=groupMarks)
+absorbBodyATR = input.float(0.25, "Absorption: Max |Body|/ATR", step=0.05, group=groupMarks)
+exhaustZ      = input.float(1.8, "Exhaustion: Min |zΔ| prior bar", step=0.1, group=groupMarks)
+
+groupViz = "Visual"
+showCvdCandles = input.bool(false, "Show CVD candles", group=groupViz)
+showRegimeBg   = input.bool(true,  "Regime background", group=groupViz)
+regimeBgOp     = input.int(92, "BG Opacity (higher = lighter)", minval=0, maxval=100, group=groupViz)
+bandOpacity    = input.int(70, "Band Opacity", minval=0, maxval=100, group=groupViz)
+showHUD        = input.bool(false, "Show simple HUD (last bar)", group=groupViz)
+scaleMult      = input.float(100.0, "Plot Scale Multiplier", step=10.0, minval=1.0, group=groupViz)
+
+
+//==================================================
+// DELTA / CVD (TradingView engine)
+//==================================================
+[cvdOpen, cvdHigh, cvdLow, cvdLast] = ta.requestVolumeDelta(lowerTimeframe, anchorInput)
+
+// Per-bar delta proxy from CVD candle
+barDelta = cvdLast - cvdOpen
+
+// Optional CVD candles
+colCvd = cvdLast >= cvdOpen ? color.teal : color.red
+plotcandle(
+     showCvdCandles ? cvdOpen : na,
+     showCvdCandles ? cvdHigh : na,
+     showCvdCandles ? cvdLow  : na,
+     showCvdCandles ? cvdLast : na,
+     "CVD",
+     color=colCvd,
+     bordercolor=colCvd,
+     wickcolor=colCvd
+)
+
+//==================================================
+// CORE FEATURES (Pressure Components)
+//==================================================
+// RVOL
+vAvg = ta.sma(volume, lenRVOL)
+rvol = vAvg > 0 ? volume / vAvg : 1.0
+
+// CLV (close in range) centered to [-1, +1]
+rngSafe = math.max(high - low, syminfo.mintick)
+clv01   = (close - low) / rngSafe
+clvC    = 2.0 * clv01 - 1.0  // -1..+1
+
+// Displacement (signed) normalized by ATR (auction "result")
+atr = ta.atr(14)
+disp = atr > 0 ? (close - open) / atr : 0.0  // signed
+
+// Z-scores (robust-ish, then clipped)
+deltaMean = ta.sma(barDelta, zLen)
+deltaStd  = ta.stdev(barDelta, zLen)
+zDelta    = deltaStd > 0 ? (barDelta - deltaMean) / deltaStd : 0.0
+
+dispMean  = ta.sma(disp, zLen)
+dispStd   = ta.stdev(disp, zLen)
+zDisp     = dispStd > 0 ? (disp - dispMean) / dispStd : 0.0
+
+zDeltaC = math.max(-clipZ, math.min(clipZ, zDelta))
+zDispC  = math.max(-clipZ, math.min(clipZ, zDisp))
+
+//==================================================
+// PRESSURE COMPOSITE
+//==================================================
+pressureRaw = wDelta * zDeltaC + wCLV * clvC + wDisp * zDispC
+pressure    = ta.ema(pressureRaw, smoothLen)
+
+// Optional: compress to a more stable band (-1..+1-ish)
+pressureScaled = pressure / clipZ
+
+//==================================================
+// QUALITY / REGIME (your bias-style state machine, but on pressure slope)
+//==================================================
+// Linear regression slope + R² over pressureScaled
+float slope = na
+float r2    = na
+
+if bar_index >= regLength
+    float N   = regLength
+    float Sx  = (N - 1.0) * N / 2.0
+    float Sxx = (N - 1.0) * N * (2.0 * N - 1.0) / 6.0
+    float denomVarX = N * Sxx - Sx * Sx
+
+    float Sy  = 0.0
+    float Syy = 0.0
+    float Sxy = 0.0
+
+    for i = 0 to regLength - 1
+        float x = i
+        float y = pressureScaled[regLength - 1 - i]  // oldest at x=0
+        Sy  += y
+        Syy += y * y
+        Sxy += x * y
+
+    float denom  = denomVarX
+    float _slope = 0.0
+    float _r2    = 0.0
+
+    if denom > 0
+        float numSlope = N * Sxy - Sx * Sy
+        _slope := numSlope / denom
+
+        float denomR = (N * Syy - Sy * Sy) * denom
+        if denomR > 0
+            _r2 := (numSlope * numSlope) / denomR
+
+    slope := _slope
+    r2    := _r2
+
+// Confidence: combine RVOL gate + R² gate (0..1)
+rvolScore = math.max(0.0, math.min(1.0, (rvol - 1.0) / math.max(0.0001, (minRVOL - 1.0))))
+r2Score   = na(r2) ? 0.0 : math.max(0.0, math.min(1.0, (r2 - minR2) / math.max(0.0001, (1.0 - minR2))))
+confidence = rvolScore * r2Score
+
+// Regime state machine (BUY / SELL / NEUTRAL) based on slope sign + quality
+var int regime = 0
+var int oppCount = 0
+
+qualified = (rvol >= minRVOL) and (not na(r2)) and (r2 >= minR2)
+
+if bar_index < regLength or na(slope) or na(r2)
+    regime := regime
+else
+    int desired = 0
+    if qualified
+        if slope > math.abs(slopeEps)
+            desired := 1
+        if slope < -math.abs(slopeEps)
+            desired := -1
+
+    if desired == 0
+        oppCount := 0
+    else if regime == desired
+        oppCount := 0
+    else
+        oppCount += 1
+        if oppCount >= flipConfirm
+            regime := desired
+            oppCount := 0
+
+//==================================================
+// ABSORPTION / EXHAUSTION (confirmation “warnings”)
+//==================================================
+bodyATR = atr > 0 ? math.abs(close - open) / atr : 0.0
+
+// Absorption: effort high (rvol), delta extreme, but result weak (small body/ATR) and/or close not at edge
+absBull = showMarks and (rvol >= absorbRVOL) and (zDelta >= absorbZ) and (bodyATR <= absorbBodyATR) and (clv01 < 0.65)
+absBear = showMarks and (rvol >= absorbRVOL) and (-zDelta >= absorbZ) and (bodyATR <= absorbBodyATR) and (clv01 > 0.35)
+
+// Exhaustion: prior bar extreme zΔ then current zΔ flips sign and price impulse flips
+exh = showMarks and (math.abs(zDelta[1]) >= exhaustZ) and (math.sign(zDelta) == -math.sign(zDelta[1])) and (math.sign(close - close[1]) == -math.sign(close[1] - close[2]))
+
+//==================================================
+// VISUALS (single-line band + fill to zero; regime background)
+//==================================================
+hline(0, "Zero", color=color.new(color.gray, 80))
+
+bgcolor(showRegimeBg
+     ? (regime > 0 ? color.new(color.lime, regimeBgOp)
+       : regime < 0 ? color.new(color.red,  regimeBgOp)
+       : na)
+     : na)
+
+// Color by sign of pressureScaled (best for confirmation timing)
+bandCol = pressureScaled >= 0 ? color.new(color.lime, 0) : color.new(color.red, 0)
+fillCol = pressureScaled >= 0 ? color.new(color.lime, bandOpacity) : color.new(color.red, bandOpacity)
+
+// Main pressure band
+
+zeroLine = plot(0, "", color=color.new(color.gray, 100))
+//pLine = plot(pressureScaled, "Orderflow Pressure", color=bandCol, linewidth=2)
+pLine = plot(pressureScaled * scaleMult, "Orderflow Pressure", color=bandCol, linewidth=2)
+
+fill(zeroLine, pLine, color=fillCol)
+
+// Optional: show slope (quality trend) lightly
+//plot(slope, "Pressure Slope", color=color.new(color.white, 55), linewidth=1)
+plot(slope * scaleMult, "Pressure Slope", color=color.new(color.white, 55), linewidth=1)
+
+// Marks
+plotshape(absBull, "Absorption (bull)", style=shape.circle, location=location.top, color=color.new(color.yellow, 0), text="", textcolor=color.black, size=size.tiny)
+plotshape(absBear, "Absorption (bear)", style=shape.circle, location=location.top, color=color.new(color.orange, 0), text="", textcolor=color.black, size=size.tiny)
+plotshape(exh,     "Exhaustion",        style=shape.circle, location=location.bottom, color=color.new(color.purple, 0), text="", textcolor=color.white, size=size.tiny)
+
+// “Unqualified” dot (confidence gate)
+//plotshape(showMarks and not qualified and bar_index >= regLength, "UNQUAL", style=shape.circle, location=location.bottom, color=color.new(color.gray, 0), size=size.tiny)
+//plotshape(showMarks and not qualified and bar_index >= regLength,"UNQUAL",style=shape.circle,location=location.top,color=color.new(color.gray, 1),size=size.tiny)
+
+//==================================================
+// SIMPLE HUD (optional, last bar only)
+//==================================================
+if barstate.islast and showHUD
+    var label hud = na
+    label.delete(hud)
+    txt =
+         "Pressure: " + str.tostring(pressureScaled, "#.00") + "\n" +
+         "Regime: "   + (regime > 0 ? "BUY" : regime < 0 ? "SELL" : "NEUTRAL") + "\n" +
+         "zΔ: "       + str.tostring(zDelta, "#.00") + "  RVOL: " + str.tostring(rvol, "#.00") + "\n" +
+         "R²: "       + str.tostring(r2, "#.00") + "  Conf: " + str.tostring(confidence, "#.00")
+    hud := label.new(bar_index, pressureScaled, txt, style=label.style_label_left, textcolor=color.white, color=color.new(color.black, 0))

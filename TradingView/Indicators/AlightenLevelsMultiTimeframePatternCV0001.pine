@@ -1,0 +1,448 @@
+//@version=6
+indicator("Alighten Pattern C V0001",
+     overlay=true,
+     max_labels_count=500,
+     max_lines_count=500)
+
+//======================
+// Inputs (mapped from NT concepts)
+//======================
+barsToProcess                 = input.int(400, "BarsToProcess (window)", minval=0)
+enablePatternCSignal          = input.bool(true, "Enable Pattern C Signal")
+enablePatternCLevels          = input.bool(true, "Enable Pattern C Levels (OG ray)")
+requirePivotForSignal         = input.bool(false, "Require pivot on signal bar (low for long, high for short)")
+markerOffsetTicks             = input.int(2, "Marker offset (ticks)", minval=0)
+maxPivotStore                 = input.int(400, "Max pivots stored", minval=50, maxval=2000)
+maxPairsToScan                = input.int(150, "Max pivot pairs to scan", minval=10, maxval=500)
+
+// ZigZag Styling
+showZigZag                    = input.bool(true, "Show ZigZag", group="ZigZag")
+zigZagColor                   = input.color(color.yellow, "ZigZag Color", group="ZigZag")
+zigZagWidth                   = input.int(2, "ZigZag Width", minval=1, maxval=10, group="ZigZag")
+zigZagStyleOpp                = input.string("Solid", "ZigZag Style", options=["Solid", "Dashed", "Dotted"], group="ZigZag")
+
+epsTicks                      = 0.5
+mintick                       = syminfo.mintick
+eps                           = mintick * epsTicks
+markerOffset                  = mintick * markerOffsetTicks
+
+//======================
+// Pivot storage (NT: pivotTimes/pivotPrices/pivotIsHigh/pivotGuidePrices)
+//======================
+var pivotTime      = array.new_int()
+var pivotPrice     = array.new_float()
+var pivotIsHigh    = array.new_bool()
+var pivotGuide     = array.new_float()
+var pivotBarIndex  = array.new_int()
+
+// ZigZag lines storage
+var pivotLines     = array.new_line()
+
+// One-shot per OG key (OG pivot bar index -> last signaled bar index)
+var map<int, int> lastSigByOg = map.new<int, int>()
+
+// For OG rays: OG pivot bar index -> line id
+var map<int, line> ogLineByOg = map.new<int, line>()
+
+
+// Utility: cap arrays
+f_trim_pivots() =>
+    while array.size(pivotBarIndex) > maxPivotStore
+        array.shift(pivotTime)
+        array.shift(pivotPrice)
+        array.shift(pivotIsHigh)
+        array.shift(pivotGuide)
+        array.shift(pivotBarIndex)
+        // Trim lines too
+        if array.size(pivotLines) > 0
+            ln = array.shift(pivotLines)
+            line.delete(ln)
+
+// Helper to resolve line style
+f_get_line_style(styleStr) =>
+    switch styleStr
+        "Solid"  => line.style_solid
+        "Dashed" => line.style_dashed
+        "Dotted" => line.style_dotted
+        => line.style_solid
+
+// Add/replace pivots like NT ProcessPivot/AddPivot/ReplaceLastPivot
+f_add_pivot(_t, _barIx, _price, _isHigh, _guide) =>
+    // 1. Draw line from previous pivot to this new one (if > 0 pivots exist before add)
+    int n = array.size(pivotBarIndex)
+    if showZigZag and n > 0
+        int prevIx = array.get(pivotBarIndex, n - 1)
+        int prevTime = array.get(pivotTime, n - 1)
+        float prevPrice = array.get(pivotPrice, n - 1)
+        
+        // Use xloc.bar_time for stable drawing
+        ln = line.new(prevTime, prevPrice, _t, _price, xloc=xloc.bar_time,
+             color=zigZagColor, 
+             width=zigZagWidth, 
+             style=f_get_line_style(zigZagStyleOpp))
+        array.push(pivotLines, ln)
+    
+    // 2. Add to arrays
+    array.push(pivotTime, _t)
+    array.push(pivotBarIndex, _barIx)
+    array.push(pivotPrice, _price)
+    array.push(pivotIsHigh, _isHigh)
+    array.push(pivotGuide, _guide)
+    f_trim_pivots()
+
+f_replace_last_pivot(_t, _barIx, _price, _isHigh, _guide) =>
+    int n = array.size(pivotBarIndex)
+    if n > 0
+        // Update arrays
+        array.set(pivotTime, n-1, _t)
+        array.set(pivotBarIndex, n-1, _barIx)
+        array.set(pivotPrice, n-1, _price)
+        array.set(pivotIsHigh, n-1, _isHigh)
+        array.set(pivotGuide, n-1, _guide)
+
+        // Update the line connected TO this pivot (if exists)
+        int numLines = array.size(pivotLines)
+        if showZigZag and numLines > 0
+            line lastLine = array.get(pivotLines, numLines - 1)
+            // Update x2, y2 with new time/price
+            line.set_x2(lastLine, _t)
+            line.set_y2(lastLine, _price)
+
+// NT: ProcessPivot wrapper (alternating pivots + replace-if-more-extreme)
+f_process_pivot(int _t, int _barIx, float _price, bool _isHigh, float _guide) =>
+    int n = array.size(pivotBarIndex)
+
+    // Default: do nothing
+    bool doAdd = false
+    bool doReplace = false
+
+    if n == 0
+        doAdd := true
+    else
+        bool lastIsHigh = array.get(pivotIsHigh, n - 1)
+        float lastPrice = array.get(pivotPrice,  n - 1)
+
+        if lastIsHigh == _isHigh
+            bool moreExtreme = (_isHigh and _price > lastPrice) or ((not _isHigh) and _price < lastPrice)
+            if moreExtreme
+                doReplace := true
+        else
+            doAdd := true
+
+    if doReplace
+        f_replace_last_pivot(_t, _barIx, _price, _isHigh, _guide)
+
+    if doAdd
+        f_add_pivot(_t, _barIx, _price, _isHigh, _guide)
+
+//======================
+// Detect pivot on the just-closed bar (NT: ProcessClosedBarPivot_BIP0 uses [1] vs [2])
+//======================
+f_process_closed_bar_pivot() =>
+    // ZigZag calculated on FULL history to ensure stability (matching "Codex" behavior)
+    // "BarsToProcess" only applies to the Pattern C scanning/signaling.
+    if bar_index >= 2
+        // --- everything that used to be below the return ---
+        bool currentGreen  = close >= open
+        bool currentRed    = close < open
+
+        bool previousGreen = close[1] >= open[1]
+        bool previousRed   = close[1] < open[1]
+
+        bool isHigh = high > high[1]
+        bool isLow  = low  < low[1]
+
+        float h0 = high
+        float l0 = low
+
+        float bodyHigh = math.max(open, close)
+        float bodyLow  = math.min(open, close)
+
+        bool createdPivot = false
+
+        // your 6 explicit zigzag cases
+        if (previousGreen and currentGreen and isHigh)
+            f_process_pivot(time, bar_index, h0, true, bodyHigh), createdPivot := true
+
+        if (previousRed and currentRed and isLow)
+            f_process_pivot(time, bar_index, l0, false, bodyLow), createdPivot := true
+
+        if (previousGreen and currentRed and isHigh)
+            f_process_pivot(time, bar_index, h0, true, bodyHigh), createdPivot := true
+
+        if (previousRed and currentGreen and isLow)
+            f_process_pivot(time, bar_index, l0, false, bodyLow), createdPivot := true
+
+        if (previousRed and currentGreen and isHigh)
+            f_process_pivot(time, bar_index, h0, true, bodyHigh), createdPivot := true
+
+        if (previousGreen and currentRed and isLow)
+            f_process_pivot(time, bar_index, l0, false, bodyLow), createdPivot := true
+
+
+
+
+
+//======================
+// Pivot lookup by bar index (for RequirePivotForSignal)
+//======================
+f_is_pivot_low_at_bar(_barIx) =>
+    bool ok = false
+    for i = 0 to array.size(pivotBarIndex) - 1
+        if array.get(pivotBarIndex, i) == _barIx
+            ok := not array.get(pivotIsHigh, i)
+    ok
+
+f_is_pivot_high_at_bar(_barIx) =>
+    bool ok = false
+    for i = 0 to array.size(pivotBarIndex) - 1
+        if array.get(pivotBarIndex, i) == _barIx
+            ok := array.get(pivotIsHigh, i)
+    ok
+
+//======================
+// Pattern C scan (closest port of ScanPatternCFromTriple_Long/Short)
+//======================
+f_scan_long_pair(_ogIdx, _supIdx) =>
+    // OG is a low pivot, Support is a high pivot
+    int ogBar   = array.get(pivotBarIndex, _ogIdx)
+    int tsBar   = array.get(pivotBarIndex, _supIdx)   // TrendStartIdx placeholder equals SupportIdx
+    float ogLevel = array.get(pivotGuide, _ogIdx)
+
+    // ---------------------------
+    // Early gating (no "exit" in Pine)
+    // ---------------------------
+    bool ok = true
+
+    // BarsToProcess gating (relative to current bar)
+    if barsToProcess > 0
+        int barsAgoOg = bar_index - ogBar
+        if (barsAgoOg < 0) or (barsAgoOg > barsToProcess)
+            ok := false
+
+    // One-shot per OG
+    if ok and map.contains(lastSigByOg, ogBar)
+        ok := false
+
+    // If gated out, return the "no signal" tuple immediately via branch
+    if not ok
+        [false, na, na, na, na]
+    else
+        // ---------------------------
+        // Scan logic
+        // ---------------------------
+        int startBar = math.max(tsBar, ogBar)
+
+        bool sawCloseBelow = false
+        bool eligible = false
+        int eligibleBarIx = na
+
+        bool inStreak = false
+        int lastWickBar = na
+
+        // scan forward from startBar to current bar_index
+        // NOTE: bounded loop for Pine performance
+        int maxScan = barsToProcess > 0 ? math.min(barsToProcess, 5000) : 5000
+        int begin   = math.max(startBar, bar_index - maxScan)
+
+        for b = begin to bar_index
+            int ago   = bar_index - b
+            float c   = close[ago]
+            float lo  = low[ago]
+            float o   = open[ago]
+
+            if not eligible
+                if not sawCloseBelow
+                    if c < ogLevel - eps
+                        sawCloseBelow := true
+                else
+                    if c > ogLevel + eps
+                        eligible := true
+                        eligibleBarIx := b
+
+            if not eligible
+                continue
+
+            // Critical NT fix: if RequirePivot=false, disallow signal on eligibility bar and earlier
+            if (not requirePivotForSignal) and (b <= eligibleBarIx)
+                continue
+
+            float bodyLow        = math.min(o, c)
+            bool wickTouches     = lo <= ogLevel + eps
+            bool bodyFullyAbove  = bodyLow >= ogLevel - eps
+
+            bool pivotOk = true
+            if requirePivotForSignal
+                pivotOk := f_is_pivot_low_at_bar(b)
+
+            bool isWickBar = wickTouches and bodyFullyAbove and pivotOk
+
+            if not inStreak
+                if isWickBar
+                    inStreak := true
+                    lastWickBar := b
+            else
+                if isWickBar
+                    lastWickBar := b
+                else
+                    break
+
+        if na(lastWickBar)
+            [false, na, na, na, na]
+        else
+            [true, ogBar, lastWickBar, ogLevel, low[bar_index - lastWickBar] - markerOffset]
+
+
+f_scan_short_pair(_ogIdx, _supIdx) =>
+    // OG is a high pivot, Support is a low pivot
+    int ogBar     = array.get(pivotBarIndex, _ogIdx)
+    int tsBar     = array.get(pivotBarIndex, _supIdx)
+    float ogLevel = array.get(pivotGuide, _ogIdx)
+
+    // ---------------------------
+    // Early gating (no "exit" in Pine)
+    // ---------------------------
+    bool ok = true
+
+    if barsToProcess > 0
+        int barsAgoOg = bar_index - ogBar
+        if (barsAgoOg < 0) or (barsAgoOg > barsToProcess)
+            ok := false
+
+    if ok and map.contains(lastSigByOg, ogBar)
+        ok := false
+
+    if not ok
+        [false, na, na, na, na]
+    else
+        // ---------------------------
+        // Scan logic
+        // ---------------------------
+        int startBar = math.max(tsBar, ogBar)
+
+        bool sawCloseAbove = false
+        bool eligible = false
+        int eligibleBarIx = na
+
+        bool inStreak = false
+        int lastWickBar = na
+
+        int maxScan = barsToProcess > 0 ? math.min(barsToProcess, 5000) : 5000
+        int begin   = math.max(startBar, bar_index - maxScan)
+
+        for b = begin to bar_index
+            int ago   = bar_index - b
+            float c   = close[ago]
+            float hi  = high[ago]
+            float o   = open[ago]
+
+            if not eligible
+                if not sawCloseAbove
+                    if c > ogLevel + eps
+                        sawCloseAbove := true
+                else
+                    if c < ogLevel - eps
+                        eligible := true
+                        eligibleBarIx := b
+
+            if not eligible
+                continue
+
+            // Critical NT fix: if RequirePivot=false, disallow signal on eligibility bar and earlier
+            if (not requirePivotForSignal) and (b <= eligibleBarIx)
+                continue
+
+            float bodyHigh       = math.max(o, c)
+            bool wickTouches     = hi >= ogLevel - eps
+            bool bodyFullyBelow  = bodyHigh <= ogLevel + eps
+
+            bool pivotOk = true
+            if requirePivotForSignal
+                pivotOk := f_is_pivot_high_at_bar(b)
+
+            bool isWickBar = wickTouches and bodyFullyBelow and pivotOk
+
+            if not inStreak
+                if isWickBar
+                    inStreak := true
+                    lastWickBar := b
+            else
+                if isWickBar
+                    lastWickBar := b
+                else
+                    break
+
+        if na(lastWickBar)
+            [false, na, na, na, na]
+        else
+            [true, ogBar, lastWickBar, ogLevel, high[bar_index - lastWickBar] + markerOffset]
+
+
+//======================
+// Main per-bar flow (approx. NT “heavy” only once per bar)
+//======================
+if barstate.isconfirmed
+    f_process_closed_bar_pivot()
+
+// Pattern C scanning: loop pivot pairs newest->older like NT
+var float sigNow = 0.0
+
+sigNow := 0.0
+
+if enablePatternCSignal or enablePatternCLevels
+    int n = array.size(pivotBarIndex)
+    if n >= 2
+        int scanned = 0
+        for i = n - 1 to 1
+            if scanned >= maxPairsToScan
+                break
+            int idx1 = i - 1  // OG pivot
+            int idx2 = i      // Support pivot
+
+            bool ogIsHigh = array.get(pivotIsHigh, idx1)
+            bool supIsHigh = array.get(pivotIsHigh, idx2)
+
+            bool longPair  = (not ogIsHigh) and supIsHigh
+            bool shortPair = ogIsHigh and (not supIsHigh)
+
+            if longPair
+                [ok, ogBar, entryBar, ogLevel, markerPrice] = f_scan_long_pair(idx1, idx2)
+                if ok
+                    // register one-shot
+                    map.put(lastSigByOg, ogBar, entryBar)
+
+                    if enablePatternCSignal
+                        // if the entryBar is current bar, set signal. otherwise we draw a label at entryBar.
+                        if entryBar == bar_index
+                            sigNow := 1
+                        // draw label at the entry bar
+                        label.new(entryBar, markerPrice, "C", style=label.style_label_up, textcolor=color.black, color=color.teal, size=size.tiny)
+
+                    if enablePatternCLevels
+                        // OG Level: create once, draw from OG to ENTRY (no extend)
+                        if not map.contains(ogLineByOg, ogBar)
+                            // Use x2=entryBar, extend=extend.none
+                            ln = line.new(ogBar, ogLevel, entryBar, ogLevel, extend=extend.none, color=color.teal, style=line.style_dashed)
+                            map.put(ogLineByOg, ogBar, ln)
+
+            if shortPair
+                [ok, ogBar, entryBar, ogLevel, markerPrice] = f_scan_short_pair(idx1, idx2)
+                if ok
+                    map.put(lastSigByOg, ogBar, entryBar)
+
+                    if enablePatternCSignal
+                        if entryBar == bar_index
+                            sigNow := -1
+                        label.new(entryBar, markerPrice, "C", style=label.style_label_down, textcolor=color.white, color=color.red, size=size.tiny)
+
+                    if enablePatternCLevels
+                        // OG Level: create once, draw from OG to ENTRY (no extend)
+                        if not map.contains(ogLineByOg, ogBar)
+                            // Use x2=entryBar, extend=extend.none
+                            ln = line.new(ogBar, ogLevel, entryBar, ogLevel, extend=extend.none, color=color.red, style=line.style_dashed)
+                            map.put(ogLineByOg, ogBar, ln)
+
+            scanned += 1
+
+// Output plot like NT PatternCSignalMA semantics (current bar)
+plot(sigNow, title="PatternCSignal", display=display.data_window)

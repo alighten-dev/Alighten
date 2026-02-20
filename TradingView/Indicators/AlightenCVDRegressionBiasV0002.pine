@@ -1,0 +1,268 @@
+//@version=6
+indicator("Alighten CVD Regression Bias V0002", overlay=false, format=format.volume)
+
+import TradingView/ta/8
+
+//==================================================
+// INPUTS
+//==================================================
+groupModel = "Model"
+regLength        = input.int(30,  "Regression Length (N)", minval=2, group=groupModel)
+minR2            = input.float(0.3, "Min R²", minval=0.0, maxval=1.0, group=groupModel)
+slopeEps         = input.float(0.0, "Slope Epsilon (deadband)", step=0.0001, group=groupModel)
+flipConfirmBars  = input.int(1,   "Flip Confirm Bars (X)", minval=1, group=groupModel)
+swingStrength    = input.int(3,   "Swing Strength", minval=1, group=groupModel)
+biasVisualScale  = input.float(0.8, "Bias Visual Scale", step=0.01, group=groupModel)
+
+forceTestBias    = input.bool(false, "Force Test Bias (debug)", group=groupModel)
+bypassR2         = input.bool(true,  "Bypass R² Gate", group=groupModel)
+bypassStructure  = input.bool(true,  "Bypass Structure Gate", group=groupModel)
+
+groupCvd = "CVD Source"
+anchorInput = input.timeframe("1D", "Anchor period", group=groupCvd)
+
+lowerTimeframeTooltip = "The indicator scans lower timeframe data to approximate up and down volume used in the delta calculation.\n\nHigher timeframes provide more historical data, but the data will be less precise."
+useCustomTimeframeInput = input.bool(false, "Use custom timeframe", tooltip=lowerTimeframeTooltip, group=groupCvd)
+lowerTimeframeInput = input.timeframe("1", "Timeframe", inline="ltf", tooltip=lowerTimeframeTooltip, group=groupCvd)
+
+groupViz = "Visual"
+showCvdCandles   = input.bool(false, "Show CVD candles", group=groupViz)
+showRegimeBg     = input.bool(true,  "Regime background", group=groupViz)
+regimeBgOpacity  = input.int(92,     "BG Opacity (higher = lighter)", minval=0, maxval=100, group=groupViz)
+
+showBiasBand     = input.bool(true,  "Show bias band", group=groupViz)
+bandOpacity      = input.int(70,     "Band Opacity", minval=0, maxval=100, group=groupViz)
+
+showSlope        = input.bool(true,  "Show slope", group=groupViz)
+showSlopeMA      = input.bool(false,  "Show slope EMA", group=groupViz)
+slopeMaLen       = input.int(8,      "Slope EMA length", minval=1, group=groupViz)
+showSlopeX       = input.bool(true,  "Mark slope zero-cross", group=groupViz)
+
+showBiasHist     = input.bool(false, "Show bias histogram", group=groupViz)   // off by default (band + bg is cleaner)
+
+showR2Lane       = input.bool(false,  "Show R² lane", group=groupViz)
+showR2Gate       = input.bool(true,  "Show Min R² gate", group=groupViz)
+r2LaneHeight     = input.float(0.25, "R² lane height (0..1)", minval=0.05, maxval=1.0, step=0.01, group=groupViz)
+r2LaneOffset     = input.float(-0.85, "R² lane vertical offset", step=0.01, group=groupViz)
+
+showQualDot      = input.bool(true,  "Show unqualified dot", group=groupViz)
+
+//==================================================
+// CVD SOURCE
+//==================================================
+var string lowerTimeframe = switch
+    useCustomTimeframeInput => lowerTimeframeInput
+    timeframe.isseconds     => "1S"
+    timeframe.isintraday    => "1"
+    timeframe.isdaily       => "5"
+    => "60"
+
+[cvdOpen, cvdHigh, cvdLow, cvdLast] = ta.requestVolumeDelta(lowerTimeframe, anchorInput)
+
+// Optional: show CVD candles (global-scope call; hide with na)
+colCvd = cvdLast >= cvdOpen ? color.teal : color.red
+
+plotcandle(
+     showCvdCandles ? cvdOpen : na,
+     showCvdCandles ? cvdHigh : na,
+     showCvdCandles ? cvdLow  : na,
+     showCvdCandles ? cvdLast : na,
+     "CVD",
+     color=colCvd,
+     bordercolor=colCvd,
+     wickcolor=colCvd
+)
+
+// Use cvdLast as the series we regress on (analogous to NT Input[])
+ySeries = cvdLast
+
+//==================================================
+// LINEAR REGRESSION SLOPE + R² (matches NT math)
+// x = 0..N-1 oldest->newest
+//==================================================
+float slope = na
+float r2    = na
+
+if bar_index >= regLength
+    float N   = regLength
+    float Sx  = (N - 1.0) * N / 2.0
+    float Sxx = (N - 1.0) * N * (2.0 * N - 1.0) / 6.0
+    float denomVarX = N * Sxx - Sx * Sx
+
+    float Sy  = 0.0
+    float Syy = 0.0
+    float Sxy = 0.0
+
+    for i = 0 to regLength - 1
+        float x = i
+        float y = ySeries[regLength - 1 - i]   // oldest at x=0
+        Sy  += y
+        Syy += y * y
+        Sxy += x * y
+
+    float denom  = denomVarX
+    float _slope = 0.0
+    float _r2    = 0.0
+
+    if denom > 0
+        float numSlope = N * Sxy - Sx * Sy
+        _slope := numSlope / denom
+
+        float denomR = (N * Syy - Sy * Sy) * denom
+        if denomR > 0
+            _r2 := (numSlope * numSlope) / denomR
+
+    slope := _slope
+    r2    := _r2
+
+// Slope-of-slope sign (for coloring slope line)
+float slopeOfSlope = na(slope) or na(slope[1]) ? na : (slope - slope[1])
+int sosSign = na(slopeOfSlope) ? 0 : slopeOfSlope > 0 ? 1 : slopeOfSlope < 0 ? -1 : 0
+color slopeCol = sosSign > 0 ? color.lime : sosSign < 0 ? color.red : color.rgb(30, 144, 255)
+
+//==================================================
+// SWING STRUCTURE (HH/HL or LH/LL) via pivots
+//==================================================
+ph = ta.pivothigh(high, swingStrength, swingStrength)
+pl = ta.pivotlow(low,  swingStrength, swingStrength)
+
+var float lastHigh1 = na
+var float lastHigh2 = na
+var float lastLow1  = na
+var float lastLow2  = na
+
+if not na(ph)
+    lastHigh2 := lastHigh1
+    lastHigh1 := ph
+
+if not na(pl)
+    lastLow2 := lastLow1
+    lastLow1 := pl
+
+bool upStructure   = not na(lastHigh1) and not na(lastHigh2) and not na(lastLow1) and not na(lastLow2) and (lastHigh1 > lastHigh2) and (lastLow1 > lastLow2)
+bool downStructure = not na(lastHigh1) and not na(lastHigh2) and not na(lastLow1) and not na(lastLow2) and (lastHigh1 < lastHigh2) and (lastLow1 < lastLow2)
+
+//==================================================
+// BIAS STATE MACHINE
+//==================================================
+var int currentBias = 0
+var int oppStrongCount = 0
+
+qualifiedR2     = (r2 >= minR2) or bypassR2
+qualifiedStruct = (upStructure or downStructure) or bypassStructure
+qualified       = qualifiedR2 and qualifiedStruct
+
+if bar_index < regLength or na(slope) or na(r2)
+    currentBias := currentBias
+else
+    if forceTestBias
+        int test = (bar_index % 20 < 10) ? 1 : -1
+        currentBias := test
+        oppStrongCount := 0
+    else
+        bool r2OK = qualifiedR2
+        bool upOK = upStructure or bypassStructure
+        bool dnOK = downStructure or bypassStructure
+
+        int desired = 0
+        if r2OK
+            if slope > math.abs(slopeEps) and upOK
+                desired := 1
+            if slope < -math.abs(slopeEps) and dnOK
+                desired := -1
+
+        if desired == 0
+            oppStrongCount := 0
+        else if currentBias == desired
+            oppStrongCount := 0
+        else
+            oppStrongCount += 1
+            if oppStrongCount >= flipConfirmBars
+                currentBias := desired
+                oppStrongCount := 0
+
+//==================================================
+// BIAS VISUAL (EMA(abs(slope)) with alpha = 2/(2N+1))
+//==================================================
+emaAbsSlope = ta.ema(math.abs(slope), 2 * regLength)
+biasVisual  = currentBias * emaAbsSlope * biasVisualScale
+
+//==================================================
+// PRETTY VISUALS
+//==================================================
+
+// Zero line (keep subtle)
+hline(0, "Zero", color=color.new(color.gray, 80))
+
+// Regime background
+bgcolor(showRegimeBg
+     ? (currentBias > 0 ? color.new(color.lime, regimeBgOpacity)
+       : currentBias < 0 ? color.new(color.red,  regimeBgOpacity)
+       : na)
+     : na)
+
+// Slope plots
+plot(showSlope ? slope : na, "LR_Slope", color=slopeCol, linewidth=2, style=plot.style_line)
+slopeMA = ta.ema(slope, slopeMaLen)
+plot(showSlope and showSlopeMA ? slopeMA : na, "Slope EMA", color=color.new(color.white, 55), linewidth=2, style=plot.style_line)
+
+// Slope zero-cross markers (no absolute y supported; use top/bottom markers)
+plotshape(showSlopeX and ta.crossover(slope, 0), title="Slope Up Cross",
+     style=shape.triangleup, size=size.tiny, location=location.bottom,
+     color=color.new(color.lime, 0), text="")
+
+plotshape(showSlopeX and ta.crossunder(slope, 0), title="Slope Down Cross",
+     style=shape.triangledown, size=size.tiny, location=location.top,
+     color=color.new(color.red, 0), text="")
+
+// --- Bias Band (single line + dynamic fill to zero) ---
+zeroLine = plot(0, "", style=plot.style_line, color=color.new(color.gray, 100))
+
+biasCol =
+     currentBias > 0 ? color.new(color.lime, 0) :
+     currentBias < 0 ? color.new(color.red,  0) :
+     color.new(color.gray, 0)
+
+fillCol =
+     currentBias > 0 ? color.new(color.lime, bandOpacity) :
+     currentBias < 0 ? color.new(color.red,  bandOpacity) :
+     color.new(color.gray, 90)
+
+// One series only: positive above, negative below
+biasLine = plot(showBiasBand ? biasVisual : na, "Bias Band",
+     style=plot.style_line,
+     linewidth=2,
+     color=biasCol)
+
+fill(zeroLine, biasLine, color = showBiasBand ? fillCol : na)
+
+
+
+
+// Optional bias histogram (if you still want discrete state visible)
+plot(showBiasHist ? currentBias : na, "Bias (hist)",
+     style=plot.style_histogram,
+     color = currentBias > 0 ? color.lime : currentBias < 0 ? color.red : color.new(color.gray, 0),
+     linewidth=2)
+
+// -------- R² "lane" (keeps R² readable without per-plot scaling) --------
+// Map r2 (0..1) into a small vertical lane around r2LaneOffset.
+r2Lane = r2LaneOffset + (nz(r2) * r2LaneHeight)
+r2GateLane = r2LaneOffset + (minR2 * r2LaneHeight)
+
+r2Plot = plot(showR2Lane ? r2Lane : na, "R² (lane)",
+     color=color.new(color.silver, 60),
+     linewidth=2,
+     style=plot.style_line)
+
+r2GatePlot = plot(showR2Lane and showR2Gate ? r2GateLane : na, "Min R² (lane)",
+     color=color.new(color.gray, 30),
+     linewidth=1,
+     style=plot.style_line)
+
+fill(r2Plot, r2GatePlot, color=(showR2Lane and showR2Gate) ? color.new(color.gray, 88) : na)
+
+// Unqualified dot (helps you see when gates are blocking bias)
+plotshape(showQualDot and not qualified and bar_index >= regLength, title="Not Qualified",
+     style=shape.circle, size=size.tiny, location=location.top,
+     color=color.new(color.gray, 0), text="")
