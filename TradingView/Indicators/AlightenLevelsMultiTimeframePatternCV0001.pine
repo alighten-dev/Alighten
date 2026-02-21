@@ -15,6 +15,10 @@ markerOffsetTicks             = input.int(2, "Marker offset (ticks)", minval=0)
 maxPivotStore                 = input.int(400, "Max pivots stored", minval=50, maxval=2000)
 maxPairsToScan                = input.int(150, "Max pivot pairs to scan", minval=10, maxval=500)
 
+// Alerts
+alertLongMessage  = input.string("{{ticker}} Pattern C Long Signal", "Long Alert Message", group="Alerts")
+alertShortMessage = input.string("{{ticker}} Pattern C Short Signal", "Short Alert Message", group="Alerts")
+
 // ZigZag Styling
 showZigZag                    = input.bool(true, "Show ZigZag", group="ZigZag")
 zigZagColor                   = input.color(color.yellow, "ZigZag Color", group="ZigZag")
@@ -446,3 +450,19 @@ if enablePatternCSignal or enablePatternCLevels
 
 // Output plot like NT PatternCSignalMA semantics (current bar)
 plot(sigNow, title="PatternCSignal", display=display.data_window)
+
+// ------------------------
+// Alerts
+// ------------------------
+bool isLongAlert  = sigNow == 1
+bool isShortAlert = sigNow == -1
+
+if isLongAlert
+    string finalLongMsg = str.replace_all(alertLongMessage, "{{ticker}}", syminfo.ticker)
+    alert(finalLongMsg, alert.freq_once_per_bar)
+if isShortAlert
+    string finalShortMsg = str.replace_all(alertShortMessage, "{{ticker}}", syminfo.ticker)
+    alert(finalShortMsg, alert.freq_once_per_bar)
+
+alertcondition(isLongAlert, title="Pattern C Long", message="Pattern C Long Signal Detected")
+alertcondition(isShortAlert, title="Pattern C Short", message="Pattern C Short Signal Detected")

@@ -1,0 +1,679 @@
+//@version=6
+indicator("Alighten Pattern A V0008", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// ------------------------
+// Inputs
+// ------------------------
+barsToProcess = input.int(400, "Bars To Process", minval=0, maxval=500000, group="ZigZag")
+maxStoredPivots = input.int(200, "Max Stored Pivots", minval=100, maxval=100000, group="ZigZag")
+
+// Pattern A toggles
+enablePatternASignal = input.bool(true, "Enable Pattern A Signals", group="Pattern A")
+enablePatternALevels = input.bool(true, "Enable Pattern A Levels", group="Pattern A")
+drawPatternA         = input.bool(true, "Draw Pattern A", group="Pattern A")
+signalFirstMatchOnly = input.bool(false, "Signal Only First Match Per Setup", group="Pattern A")
+plotPatternANonInvalidating = input.bool(true, "Plot Pattern A Signals As Historical (non-invalidating)", group="Pattern A")
+
+patternAMarkerSize       = input.string("normal", "Pattern A Marker Size", options=["tiny","small","normal","large","huge"], group="Pattern A")
+patternAMarkerOffsetTicks= input.int(5, "Pattern A Marker Offset Ticks", minval=1, maxval=50, group="Pattern A")
+patternALongColor        = input.color(color.lime, "Pattern A Long Color", group="Pattern A")
+patternAShortColor       = input.color(color.fuchsia, "Pattern A Short Color", group="Pattern A")
+patternALevelWidth       = input.int(2, "Pattern A Level Width", minval=1, maxval=10, group="Pattern A")
+patternALevelStyle       = input.string("dashed", "Pattern A Level Style", options=["solid","dashed","dotted"], group="Pattern A")
+maxPrimaryPivotsToScan   = input.int(0, "Pattern A Max Primary Pivots To Scan (0 = all, NT8)", minval=0, maxval=5000, group="Pattern A")
+maxSecondaryPivotsToScan = input.int(0, "Pattern A Max Secondary Pivots To Scan (0 = all, NT8)", minval=0, maxval=5000, group="Pattern A")
+maxSignalScanBars        = input.int(0, "Pattern A Max Signal Scan Bars (0 = all, NT8)", minval=0, maxval=5000, group="Pattern A")
+
+// Alerts
+alertLongMessage  = input.string("{{ticker}} Pattern A Long Signal", "Long Alert Message", group="Alerts")
+alertShortMessage = input.string("{{ticker}} Pattern A Short Signal", "Short Alert Message", group="Alerts")
+
+// ZigZag debug
+showZigZag  = input.bool(true, "Show ZigZag", group="ZigZag")
+zigZagColor = input.color(color.yellow, "ZigZag Color", group="ZigZag")
+zigZagWidth = input.int(1, "ZigZag Width", minval=1, maxval=10, group="ZigZag")
+zigZagStyle = input.string("dotted", "ZigZag Style", options=["solid","dashed","dotted"], group="ZigZag")
+
+// Runtime parity controls
+noSignalBar = -1000000000
+useNonInvalidating = plotPatternANonInvalidating
+processingCutoffBar = barsToProcess > 0 ? math.max(0, (last_bar_index + 1) - barsToProcess) : noSignalBar
+inProcessingWindow = bar_index >= processingCutoffBar
+
+// ------------------------
+// Helpers
+// ------------------------
+line_style_from_string(s) =>
+    s == "dotted" ? line.style_dotted : s == "dashed" ? line.style_dashed : line.style_solid
+
+label_size_from_string(s) =>
+    s == "tiny" ? size.tiny : s == "small" ? size.small : s == "large" ? size.large : s == "huge" ? size.huge : size.normal
+
+
+
+f_side_of_level(price, level, eps) =>
+    price > level + eps ? 1 : price < level - eps ? -1 : 0
+
+f_segment_crosses_level(a, b, level, eps) =>
+    sa = f_side_of_level(a, level, eps)
+    sb = f_side_of_level(b, level, eps)
+    sa != 0 and sb != 0 and sa != sb
+
+f_segment_crosses_level_strict(a, b, level, eps) =>
+    da = a - level
+    db = b - level
+    if math.abs(da) <= eps or math.abs(db) <= eps
+        false
+    else
+        (da > 0 and db < 0) or (da < 0 and db > 0)
+
+// ------------------------
+// Pivot storage
+// ------------------------
+var pivotTimes      = array.new_int()
+var pivotPrices     = array.new_float()
+var pivotIsHigh     = array.new_bool()
+var pivotGuidePrice = array.new_float()
+var pivotBarIndex   = array.new_int()
+
+var line[] zzLines  = array.new_line()
+
+// Pattern A results
+var int[]  sigLongBars  = array.new_int()
+var float[]sigLongPrice = array.new_float()
+var int[]  sigShortBars = array.new_int()
+var float[]sigShortPrice= array.new_float()
+var int[] sigLongBarsHistory = array.new_int()
+var int[] sigShortBarsHistory = array.new_int()
+
+var line[] patternALines = array.new_line()
+var label[] patternALabels = array.new_label()
+var map<string, int> lastSignalBarBySetup = map.new<string, int>()
+var map<int, int> sigLongBarSet = map.new<int, int>()
+var map<int, int> sigShortBarSet = map.new<int, int>()
+var map<int, int> sigLongBarSetHistory = map.new<int, int>()
+var map<int, int> sigShortBarSetHistory = map.new<int, int>()
+var map<int, float> sigLongPriceByBar = map.new<int, float>()
+var map<int, float> sigShortPriceByBar = map.new<int, float>()
+var map<int, float> sigLongPriceHistory = map.new<int, float>()
+var map<int, float> sigShortPriceHistory = map.new<int, float>()
+var map<int, int> confirmedPivotTypeByBar = map.new<int, int>()
+
+// ------------------------
+// Storage limits
+// ------------------------
+enforce_limits() =>
+    while array.size(pivotTimes) > maxStoredPivots
+        array.shift(pivotTimes)
+        array.shift(pivotPrices)
+        array.shift(pivotIsHigh)
+        array.shift(pivotGuidePrice)
+        array.shift(pivotBarIndex)
+        if array.size(zzLines) > 0
+            ln = array.shift(zzLines)
+            line.delete(ln)
+
+// ------------------------
+// Pivot functions
+// ------------------------
+add_pivot(pivotTime, price, isHigh, guidePrice, barIdx) =>
+    array.push(pivotTimes, pivotTime)
+    array.push(pivotPrices, price)
+    array.push(pivotIsHigh, isHigh)
+    array.push(pivotGuidePrice, guidePrice)
+    array.push(pivotBarIndex, barIdx)
+
+    // Draw ZigZag segment
+    if showZigZag and array.size(pivotTimes) >= 2
+        n = array.size(pivotTimes)
+        x1 = array.get(pivotTimes, n - 2)
+        y1 = array.get(pivotPrices, n - 2)
+        x2 = array.get(pivotTimes, n - 1)
+        y2 = array.get(pivotPrices, n - 1)
+        l = line.new(x1=x1, y1=y1, x2=x2, y2=y2, xloc=xloc.bar_time, extend=extend.none, color=zigZagColor, width=zigZagWidth, style=line_style_from_string(zigZagStyle))
+        array.push(zzLines, l)
+
+    enforce_limits()
+
+replace_last_pivot(pivotTime, price, isHigh, guidePrice, barIdx) =>
+    idx = array.size(pivotTimes) - 1
+    if idx >= 0
+        array.set(pivotTimes, idx, pivotTime)
+        array.set(pivotPrices, idx, price)
+        array.set(pivotIsHigh, idx, isHigh)
+        array.set(pivotGuidePrice, idx, guidePrice)
+        array.set(pivotBarIndex, idx, barIdx)
+
+        // Update last ZigZag segment
+        if showZigZag and array.size(zzLines) > 0 and array.size(pivotTimes) >= 2
+            lineIdx = array.size(zzLines) - 1
+            l = array.get(zzLines, lineIdx)
+            x1 = array.get(pivotTimes, idx - 1)
+            y1 = array.get(pivotPrices, idx - 1)
+            x2 = array.get(pivotTimes, idx)
+            y2 = array.get(pivotPrices, idx)
+            line.set_xy1(l, x1, y1)
+            line.set_xy2(l, x2, y2)
+
+process_pivot(pivotTime, price, isHigh, guidePrice, barIdx) =>
+    n = array.size(pivotTimes)
+    if n == 0
+        add_pivot(pivotTime, price, isHigh, guidePrice, barIdx)
+    else
+        lastIsHigh  = array.get(pivotIsHigh, n - 1)
+        lastPrice   = array.get(pivotPrices, n - 1)
+        if lastIsHigh == isHigh
+            if (isHigh and price > lastPrice) or (not isHigh and price < lastPrice)
+                replace_last_pivot(pivotTime, price, isHigh, guidePrice, barIdx)
+        else
+            add_pivot(pivotTime, price, isHigh, guidePrice, barIdx)
+
+// ------------------------
+// Pivot creation (bar-close semantics)
+// ------------------------
+if barstate.isconfirmed and bar_index >= 2 and inProcessingWindow
+    h0 = high
+    h1 = high[1]
+    l0 = low
+    l1 = low[1]
+    o0 = open
+    o1 = open[1]
+    c0 = close
+    c1 = close[1]
+
+    isHigh = h0 > h1
+    isLow  = l0 < l1
+
+    previousGreen = c1 >= o1
+    previousRed   = c1 <  o1
+    currentGreen  = c0 >= o0
+    currentRed    = c0 <  o0
+
+    pivotTime = time
+    bodyHigh = math.max(o0, c0)
+    bodyLow  = math.min(o0, c0)
+
+    if previousGreen and currentGreen and isHigh
+        process_pivot(pivotTime, h0, true,  bodyHigh, bar_index)
+    if previousRed   and currentRed   and isLow
+        process_pivot(pivotTime, l0, false, bodyLow,  bar_index)
+    if previousGreen and currentRed   and isHigh
+        process_pivot(pivotTime, h0, true,  bodyHigh, bar_index)
+    if previousRed   and currentGreen and isLow
+        process_pivot(pivotTime, l0, false, bodyLow,  bar_index)
+    if previousRed   and currentGreen and isHigh
+        process_pivot(pivotTime, h0, true,  bodyHigh, bar_index)
+    if previousGreen and currentRed   and isLow
+        process_pivot(pivotTime, l0, false, bodyLow,  bar_index)
+
+// ------------------------
+// Pattern A scan (bar-close rebuild)
+// ------------------------
+clear_patterns() =>
+    // delete labels safely
+    while array.size(patternALabels) > 0
+        lb = array.pop(patternALabels)
+        label.delete(lb)
+
+    // delete lines safely
+    while array.size(patternALines) > 0
+        ln = array.pop(patternALines)
+        line.delete(ln)
+
+    array.clear(sigLongBars)
+    array.clear(sigLongPrice)
+    array.clear(sigShortBars)
+    array.clear(sigShortPrice)
+    sigLongBarSet.clear()
+    sigShortBarSet.clear()
+    sigLongPriceByBar.clear()
+    sigShortPriceByBar.clear()
+
+get_last_confirmed_pivot_idx() =>
+    // last closed bar is bar_index - 1
+    lastClosedBarIdx = bar_index - 1
+    result = -1
+    for i = array.size(pivotBarIndex) - 1 to 0
+        if array.get(pivotBarIndex, i) <= lastClosedBarIdx
+            result := i
+            break
+    result
+
+is_confirmed_pivot_bar(bi, wantHigh) =>
+    wantType = wantHigh ? 1 : -1
+    confirmedPivotTypeByBar.contains(bi) and confirmedPivotTypeByBar.get(bi) == wantType
+
+build_confirmed_pivot_lookup(lastConfirmedIdx) =>
+    confirmedPivotTypeByBar.clear()
+    if lastConfirmedIdx >= 0
+        for i = 0 to lastConfirmedIdx
+            bi = array.get(pivotBarIndex, i)
+            pType = array.get(pivotIsHigh, i) ? 1 : -1
+            confirmedPivotTypeByBar.put(bi, pType)
+
+make_triplet_key(isLong, ogIdx, supportIdx, trendIdx) =>
+    (isLong ? "L|" : "S|") + str.tostring(ogIdx) + "|" + str.tostring(supportIdx) + "|" + str.tostring(trendIdx)
+
+get_last_signal_bar_for_key(key) =>
+    lastSignalBarBySetup.contains(key) ? lastSignalBarBySetup.get(key) : -1
+
+set_last_signal_bar_for_key(key, bi) =>
+    lastSignalBarBySetup.put(key, bi)
+
+prune_signal_key_map(cutoffBar) =>
+    keys = lastSignalBarBySetup.keys()
+    if array.size(keys) > 0
+        for i = 0 to array.size(keys) - 1
+            key = array.get(keys, i)
+            sigBar = lastSignalBarBySetup.get(key)
+            if sigBar < 0 or sigBar < cutoffBar
+                lastSignalBarBySetup.remove(key)
+
+prune_signal_history(cutoffBar) =>
+    i = array.size(sigLongBarsHistory) - 1
+    while i >= 0
+        bi = array.get(sigLongBarsHistory, i)
+        if bi < cutoffBar
+            array.remove(sigLongBarsHistory, i)
+            if sigLongBarSetHistory.contains(bi)
+                sigLongBarSetHistory.remove(bi)
+            if sigLongPriceHistory.contains(bi)
+                sigLongPriceHistory.remove(bi)
+        i -= 1
+
+    j = array.size(sigShortBarsHistory) - 1
+    while j >= 0
+        bi = array.get(sigShortBarsHistory, j)
+        if bi < cutoffBar
+            array.remove(sigShortBarsHistory, j)
+            if sigShortBarSetHistory.contains(bi)
+                sigShortBarSetHistory.remove(bi)
+            if sigShortPriceHistory.contains(bi)
+                sigShortPriceHistory.remove(bi)
+        j -= 1
+
+count_pivot_crosses(startIdx, endIdx, level, eps) =>
+    count = 0
+    startClamped = math.max(0, startIdx)
+    endClamped   = math.min(array.size(pivotPrices) - 1, endIdx)
+    for i = startClamped + 1 to endClamped
+        a = array.get(pivotPrices, i - 1)
+        b = array.get(pivotPrices, i)
+        if f_segment_crosses_level(a, b, level, eps)
+            count += 1
+    count
+
+count_pivot_crosses_confirmed_strict(startIdx, endIdx, level, eps, lastConfirmed) =>
+    count = 0
+    if lastConfirmed < 1
+        0
+    else
+        endClamped = math.min(endIdx, lastConfirmed)
+        startClamped = math.max(startIdx, 0)
+        if startClamped >= endClamped
+            0
+        else
+            for i = startClamped to endClamped - 1
+                a = array.get(pivotGuidePrice, i)
+                b = array.get(pivotGuidePrice, i + 1)
+                if f_segment_crosses_level_strict(a, b, level, eps)
+                    count += 1
+            count
+
+find_next_pivot_cross_idx(fromIdx, level, eps) =>
+    n = array.size(pivotPrices)
+    res = -1
+    startIdx = math.max(1, fromIdx + 1)
+    lastIdx  = n - 1
+    if startIdx <= lastIdx
+        for i = startIdx to lastIdx
+            a = array.get(pivotPrices, i - 1)
+            b = array.get(pivotPrices, i)
+            if f_segment_crosses_level(a, b, level, eps)
+                res := i
+                break
+    res
+
+try_add_long_signals(ogIdx, supportIdx, trendIdx, level, eps) =>
+    // crossBarIndex is pivot bar index for trendIdx
+    crossBarIndex = array.get(pivotBarIndex, trendIdx)
+    if crossBarIndex < 0
+        false
+    else
+        anySignal = false
+        levelAdded = false
+        setupKey = make_triplet_key(true, ogIdx, supportIdx, trendIdx)
+        storedSignalBar = get_last_signal_bar_for_key(setupKey)
+
+        // stop scanning after next cross
+        endBarIndex = bar_index
+        nextCrossPivotIdx = find_next_pivot_cross_idx(trendIdx, level, eps)
+        if nextCrossPivotIdx >= 0
+            nextCrossBarIndex = array.get(pivotBarIndex, nextCrossPivotIdx)
+            if nextCrossBarIndex >= 0
+                endBarIndex := math.min(endBarIndex, nextCrossBarIndex)
+        if maxSignalScanBars > 0
+            endBarIndex := math.min(endBarIndex, crossBarIndex + maxSignalScanBars)
+
+        startBarIndex = math.max(crossBarIndex, 1)
+        if signalFirstMatchOnly and storedSignalBar >= 0
+            if storedSignalBar < startBarIndex or storedSignalBar > endBarIndex
+                storedSignalBar := -1
+                set_last_signal_bar_for_key(setupKey, -1)
+
+        scanStartBarIndex = startBarIndex
+        scanEndBarIndex = endBarIndex
+        if signalFirstMatchOnly and storedSignalBar >= 0
+            scanStartBarIndex := storedSignalBar
+            scanEndBarIndex := storedSignalBar
+
+        if scanStartBarIndex <= scanEndBarIndex
+            for bi = scanStartBarIndex to scanEndBarIndex
+
+                barsAgo = bar_index - bi
+                prevBarsAgo = barsAgo + 1
+                if prevBarsAgo <= bar_index
+                    lo = low[barsAgo]
+                    o  = open[barsAgo]
+                    c  = close[barsAgo]
+                    bodyLow = math.min(o, c)
+
+                    wickTouches = lo <= level + eps
+                    bodyAbove   = bodyLow > level + eps
+                    lowerLow    = lo < low[prevBarsAgo] - eps
+                    if wickTouches and bodyAbove and lowerLow
+                        if signalFirstMatchOnly and storedSignalBar < 0
+                            storedSignalBar := bi
+                            set_last_signal_bar_for_key(setupKey, bi)
+                        else if not signalFirstMatchOnly
+                            set_last_signal_bar_for_key(setupKey, bi)
+
+                        anySignal := true
+                        markerPrice = lo - (patternAMarkerOffsetTicks * syminfo.mintick)
+                        
+                        sigLongPriceByBar.put(bi, markerPrice)
+                        
+                        if enablePatternASignal and not sigLongBarSet.contains(bi)
+                            sigLongBarSet.put(bi, 1)
+                            array.push(sigLongBars, bi)
+                            array.push(sigLongPrice, markerPrice)
+                        if enablePatternASignal and useNonInvalidating and not sigLongBarSetHistory.contains(bi)
+                            sigLongBarSetHistory.put(bi, 1)
+                            array.push(sigLongBarsHistory, bi)
+                            sigLongPriceHistory.put(bi, markerPrice)
+
+                        if enablePatternALevels and not levelAdded
+                            levelAdded := true
+                            ogTime = array.get(pivotTimes, ogIdx)
+                            entryTime = time[barsAgo]
+                            ln = line.new(x1=ogTime, y1=level, x2=entryTime, y2=level, xloc=xloc.bar_time, extend=extend.none, color=patternALongColor, width=patternALevelWidth, style=line_style_from_string(patternALevelStyle))
+                            array.push(patternALines, ln)
+                        if signalFirstMatchOnly
+                            break
+        anySignal
+
+try_add_short_signals(ogIdx, supportIdx, trendIdx, level, eps) =>
+    crossBarIndex = array.get(pivotBarIndex, trendIdx)
+    if crossBarIndex < 0
+        false
+    else
+        anySignal = false
+        levelAdded = false
+        setupKey = make_triplet_key(false, ogIdx, supportIdx, trendIdx)
+        storedSignalBar = get_last_signal_bar_for_key(setupKey)
+
+        endBarIndex = bar_index
+        nextCrossPivotIdx = find_next_pivot_cross_idx(trendIdx, level, eps)
+        if nextCrossPivotIdx >= 0
+            nextCrossBarIndex = array.get(pivotBarIndex, nextCrossPivotIdx)
+            if nextCrossBarIndex >= 0
+                endBarIndex := math.min(endBarIndex, nextCrossBarIndex)
+        if maxSignalScanBars > 0
+            endBarIndex := math.min(endBarIndex, crossBarIndex + maxSignalScanBars)
+
+        startBarIndex = math.max(crossBarIndex, 1)
+        if signalFirstMatchOnly and storedSignalBar >= 0
+            if storedSignalBar < startBarIndex or storedSignalBar > endBarIndex
+                storedSignalBar := -1
+                set_last_signal_bar_for_key(setupKey, -1)
+
+        scanStartBarIndex = startBarIndex
+        scanEndBarIndex = endBarIndex
+        if signalFirstMatchOnly and storedSignalBar >= 0
+            scanStartBarIndex := storedSignalBar
+            scanEndBarIndex := storedSignalBar
+
+        if scanStartBarIndex <= scanEndBarIndex
+            for bi = scanStartBarIndex to scanEndBarIndex
+
+                barsAgo = bar_index - bi
+                prevBarsAgo = barsAgo + 1
+                if prevBarsAgo <= bar_index
+                    hi = high[barsAgo]
+                    o  = open[barsAgo]
+                    c  = close[barsAgo]
+                    bodyHigh = math.max(o, c)
+
+                    wickTouches = hi >= level - eps
+                    bodyBelow   = bodyHigh < level - eps
+                    higherHigh  = hi > high[prevBarsAgo] + eps
+                    if wickTouches and bodyBelow and higherHigh
+                        if signalFirstMatchOnly and storedSignalBar < 0
+                            storedSignalBar := bi
+                            set_last_signal_bar_for_key(setupKey, bi)
+                        else if not signalFirstMatchOnly
+                            set_last_signal_bar_for_key(setupKey, bi)
+
+                        anySignal := true
+                        markerPrice = hi + (patternAMarkerOffsetTicks * syminfo.mintick)
+                        
+                        sigShortPriceByBar.put(bi, markerPrice)
+                        
+                        if enablePatternASignal and not sigShortBarSet.contains(bi)
+                            sigShortBarSet.put(bi, 1)
+                            array.push(sigShortBars, bi)
+                            array.push(sigShortPrice, markerPrice)
+                        if enablePatternASignal and useNonInvalidating and not sigShortBarSetHistory.contains(bi)
+                            sigShortBarSetHistory.put(bi, 1)
+                            array.push(sigShortBarsHistory, bi)
+                            sigShortPriceHistory.put(bi, markerPrice)
+
+                        if enablePatternALevels and not levelAdded
+                            levelAdded := true
+                            ogTime = array.get(pivotTimes, ogIdx)
+                            entryTime = time[barsAgo]
+                            ln = line.new(x1=ogTime, y1=level, x2=entryTime, y2=level, xloc=xloc.bar_time, extend=extend.none, color=patternAShortColor, width=patternALevelWidth, style=line_style_from_string(patternALevelStyle))
+                            array.push(patternALines, ln)
+                        if signalFirstMatchOnly
+                            break
+        anySignal
+
+rebuild_pattern_a() =>
+    didWork = false
+    tripCompleted = 0
+    tripPotential = 0
+    candidateCount = 0
+    if (not enablePatternASignal and not enablePatternALevels)
+        clear_patterns()
+    else
+        clear_patterns()
+        pivotCount = array.size(pivotTimes)
+        if pivotCount >= 3
+            eps = syminfo.mintick * 0.5
+            cutoffBar = processingCutoffBar
+            if useNonInvalidating
+                prune_signal_history(cutoffBar)
+            prune_signal_key_map(cutoffBar)
+            lastConfirmedPivotIdx = get_last_confirmed_pivot_idx()
+            build_confirmed_pivot_lookup(lastConfirmedPivotIdx)
+
+            scanStartIdx1 = 0
+            if maxPrimaryPivotsToScan > 0
+                scanStartIdx1 := math.max(scanStartIdx1, pivotCount - maxPrimaryPivotsToScan - 2)
+            for idx1 = scanStartIdx1 to pivotCount - 3
+                isLongStart = array.get(pivotIsHigh, idx1)
+                level = array.get(pivotGuidePrice, idx1)
+
+                idx2End = pivotCount - 2
+                if maxSecondaryPivotsToScan > 0
+                    idx2End := math.min(idx2End, idx1 + maxSecondaryPivotsToScan)
+                if idx1 + 1 > idx2End
+                    continue
+                for idx2 = idx1 + 1 to idx2End
+                    if isLongStart
+                        // Pivot2 must be LOW below level
+                        if array.get(pivotIsHigh, idx2)
+                            continue
+                        p2 = array.get(pivotPrices, idx2)
+                        if p2 >= level - eps
+                            continue
+                    else
+                        // SHORT: Pivot2 must be HIGH above level
+                        if not array.get(pivotIsHigh, idx2)
+                            continue
+                        p2 = array.get(pivotPrices, idx2)
+                        if p2 <= level + eps
+                            continue
+
+                    idx3 = idx2 + 1
+
+                    if isLongStart
+                        if not array.get(pivotIsHigh, idx3)
+                            continue
+                        p3 = array.get(pivotPrices, idx3)
+                        if p3 <= level + eps
+                            continue
+                    else
+                        if array.get(pivotIsHigh, idx3)
+                            continue
+                        p3 = array.get(pivotPrices, idx3)
+                        if p3 >= level - eps
+                            continue
+
+                    crossCount = count_pivot_crosses(idx1 + 1, idx3, level, eps)
+                    if crossCount != 1
+                        continue
+
+                    // Ensure no post crosses (confirmed strict)
+                    postStart = idx3 + 1
+                    postEnd   = pivotCount - 1
+                    if postStart <= postEnd
+                        postCross = count_pivot_crosses_confirmed_strict(postStart, postEnd, level, eps, lastConfirmedPivotIdx)
+                        if postCross != 0
+                            continue
+
+                    tripPotential += 1
+                    if isLongStart
+                        if try_add_long_signals(idx1, idx2, idx3, level, eps)
+                            tripCompleted += 1
+                    else
+                        if try_add_short_signals(idx1, idx2, idx3, level, eps)
+                            tripCompleted += 1
+
+            candidateCount := tripPotential
+        didWork := true
+    [didWork, tripCompleted, tripPotential, candidateCount]
+
+// Rebuild only on bar close
+if barstate.isconfirmed and inProcessingWindow
+    [_, tripCompletedNow, tripPotentialNow, candidateCountNow] = rebuild_pattern_a()
+
+// ------------------------
+// Plot signals (current bar)
+// ------------------------
+patternASignal = 0.0
+patternASignalMA = 0.0
+
+if enablePatternASignal
+    // Align with the most recent closed bar signal
+    lastClosedBar = bar_index - 1
+    longNow = useNonInvalidating ? sigLongBarSetHistory.contains(lastClosedBar) : sigLongBarSet.contains(lastClosedBar)
+    shortNow = useNonInvalidating ? sigShortBarSetHistory.contains(lastClosedBar) : sigShortBarSet.contains(lastClosedBar)
+
+    if longNow and not shortNow
+        patternASignal := 1
+        patternASignalMA := 1
+    else if shortNow and not longNow
+        patternASignal := -1
+        patternASignalMA := -1
+
+// plot(patternASignal, "PatternASignal", color=color.new(color.gray, 100))
+// plot(patternASignalMA, "PatternASignalMA", color=color.new(color.gray, 100))
+
+get_signal_price_for_bar(targetBar, isLong) =>
+    float result = na
+    if isLong
+        if useNonInvalidating and sigLongPriceHistory.contains(targetBar)
+            result := sigLongPriceHistory.get(targetBar)
+        else if sigLongPriceByBar.contains(targetBar)
+            result := sigLongPriceByBar.get(targetBar)
+    else
+        if useNonInvalidating and sigShortPriceHistory.contains(targetBar)
+            result := sigShortPriceHistory.get(targetBar)
+        else if sigShortPriceByBar.contains(targetBar)
+            result := sigShortPriceByBar.get(targetBar)
+    result
+
+
+
+// ------------------------
+// Draw Pattern A markers
+// ------------------------
+patternALongMarkerText = "▲\nA"
+patternAShortMarkerText = "A\n▼"
+
+if drawPatternA and enablePatternASignal and barstate.isconfirmed and inProcessingWindow
+    cutoffDrawBar = barsToProcess > 0 ? processingCutoffBar : noSignalBar
+
+    if useNonInvalidating
+        if array.size(sigLongBarsHistory) > 0
+            for i = 0 to array.size(sigLongBarsHistory) - 1
+                bi = array.get(sigLongBarsHistory, i)
+                if bi <= bar_index and bi >= cutoffDrawBar
+                    barsAgo = bar_index - bi
+                    y = low[barsAgo] - (patternAMarkerOffsetTicks * syminfo.mintick)
+                    lb = label.new(x=bi, y=y, xloc=xloc.bar_index, text=patternALongMarkerText, textcolor=patternALongColor, style=label.style_label_up, color=color.new(color.white, 100), size=label_size_from_string(patternAMarkerSize))
+                    array.push(patternALabels, lb)
+
+        if array.size(sigShortBarsHistory) > 0
+            for i = 0 to array.size(sigShortBarsHistory) - 1
+                bi = array.get(sigShortBarsHistory, i)
+                if bi <= bar_index and bi >= cutoffDrawBar
+                    barsAgo = bar_index - bi
+                    y = high[barsAgo] + (patternAMarkerOffsetTicks * syminfo.mintick)
+                    lb = label.new(x=bi, y=y, xloc=xloc.bar_index, text=patternAShortMarkerText, textcolor=patternAShortColor, style=label.style_label_down, color=color.new(color.white, 100), size=label_size_from_string(patternAMarkerSize))
+                    array.push(patternALabels, lb)
+    else
+        if array.size(sigLongBars) > 0
+            for i = 0 to array.size(sigLongBars) - 1
+                bi = array.get(sigLongBars, i)
+                if bi <= bar_index and bi >= cutoffDrawBar
+                    barsAgo = bar_index - bi
+                    y = low[barsAgo] - (patternAMarkerOffsetTicks * syminfo.mintick)
+                    lb = label.new(x=bi, y=y, xloc=xloc.bar_index, text=patternALongMarkerText, textcolor=patternALongColor, style=label.style_label_up, color=color.new(color.white, 100), size=label_size_from_string(patternAMarkerSize))
+                    array.push(patternALabels, lb)
+
+        if array.size(sigShortBars) > 0
+            for i = 0 to array.size(sigShortBars) - 1
+                bi = array.get(sigShortBars, i)
+                if bi <= bar_index and bi >= cutoffDrawBar
+                    barsAgo = bar_index - bi
+                    y = high[barsAgo] + (patternAMarkerOffsetTicks * syminfo.mintick)
+                    lb = label.new(x=bi, y=y, xloc=xloc.bar_index, text=patternAShortMarkerText, textcolor=patternAShortColor, style=label.style_label_down, color=color.new(color.white, 100), size=label_size_from_string(patternAMarkerSize))
+                    array.push(patternALabels, lb)
+
+// ------------------------
+// Alerts
+// ------------------------
+bool isLongAlert  = patternASignal == 1
+bool isShortAlert = patternASignal == -1
+
+if isLongAlert
+    string finalLongMsg = str.replace_all(alertLongMessage, "{{ticker}}", syminfo.ticker)
+    alert(finalLongMsg, alert.freq_once_per_bar)
+if isShortAlert
+    string finalShortMsg = str.replace_all(alertShortMessage, "{{ticker}}", syminfo.ticker)
+    alert(finalShortMsg, alert.freq_once_per_bar)
+
+alertcondition(isLongAlert, title="Pattern A Long", message="Pattern A Long Signal Detected")
+alertcondition(isShortAlert, title="Pattern A Short", message="Pattern A Short Signal Detected")
