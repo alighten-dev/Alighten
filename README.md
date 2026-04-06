@@ -1,10 +1,24 @@
 # Alighten Custom NinjaTrader 8 Tools
 
-This repository contains a collection of custom Indicators and Market Analyzer Columns for NinjaTrader 8, developed under the "Alighten" namespace. These tools focus on Order Flow analysis, market structure patterns, and high-performance Market Analyzer integrations.
+This repository contains a collection of custom Indicators and Market Analyzer Columns for NinjaTrader 8, developed under the "Alighten" namespace.
 
-## Indicators
+## The Mirror Ecosystem
+The core of the market structure analysis relies on the **Mirror** indicator.
 
-### Order Flow & Footprint
+### AlightenMirror
+*   **AlightenMirror** (`AlightenMirrorV0014.cs`)
+    *   **Description:** Acts as the master orchestrator, layering up to 7 distinct timeframes into a holistic order flow map on the active chart. It coordinates signal gating and visibility across the sub-indicators, managing performance explicitly by limiting background calculations and ensuring clean, high-performance re-rendering loops.
+
+### Required Sub-Indicators
+The Mirror indicator relies on an array of distinct algorithms working computationally in the background:
+*   **AlightenMirrorPtA** (`AlightenMirrorPtAV0003.cs`): Base detector mapped to "Pattern A" (Initial Impulse and trend shifts). Identifies primary market structures.
+*   **AlightenMirrorPtB** (`AlightenMirrorPtBV0003.cs`): Detector mapped to "Pattern B". Uses specific gates and trends to validate secondary pivots.
+*   **AlightenMirrorPtC** (`AlightenMirrorPtCV0004.cs`): Detector mapped to "Pattern C". Filters specific pivot conditions for continuation or rejection structures.
+*   **AlightenMirrorPtE** (`AlightenMirrorPtEV0005.cs`): Detector mapped to "Pattern E" (S/R Flips). Detects precise support/resistance break-and-retest geometries with dynamic confirmation logic.
+*   **AlightenLevelMultiTimeframeRetest** (`AlightenLevelMultiTimeframeRetestV0001.cs`): Handles tracking for aggressive momentum testing and structural "Gain/Loss" levels over time.
+*   **AlightenHTFVP** (`AlightenHTFVPV0004.cs`): Higher Timeframe Volume Profile. A modular VP engine that computes volume delta, value area highs/lows, and Point of Control (POC) dynamically, enabling the Mirror to bias-filter trend signals automatically based on dominant value zones.
+
+## Order Flow & Footprint
 *   **AlightenFootprintOrderFlow** (`AlightenFootprintOrderFlowV00015.cs`)
     *   **Description:** A comprehensive Footprint chart implementation with extensive configuration for aggregation, signal detection, and visualization.
     *   **Key Features:**
@@ -30,57 +44,6 @@ This repository contains a collection of custom Indicators and Market Analyzer C
 
 *   **AlightenCVDRegressionBias** (`AlightenCVDRegressionBiasV0006.cs`)
     *   **Description:** Analyzes Cumulative Volume Delta (CVD) using regression to determine market bias.
-
-### Market Structure Patterns (Multi-Timeframe)
-A family of indicators designed to detect specific market structure patterns (A, B, C, D, E) based on higher-timeframe ZigZag pivots and levels, with optimized performance for Market Analyzer usage.
-
-*   **AlightenLevelMultiTimeframeMATickPatternA** (`V0001`)
-    *   **Description:** Market Analyzer core for "Pattern A". Uses HTF ZigZag/levels on primary series.
-    *   **Features:** Live intrabar signal generation, proximity checks.
-
-*   **AlightenLevelMultiTimeframeMATickPatternB** (`V0002`)
-    *   **Description:** "Pattern B" detector.
-    *   **Features:** Similar structural logic to Pattern A with specific gates (Pre-OG Check, TrendStart Check).
-
-*   **AlightenLevelMultiTimeframeMATickPatternC** (`V0002`)
-    *   **Description:** "Pattern C" detector.
-    *   **Features:** Includes option to require a pivot for signal generation.
-
-*   **AlightenLevelMultiTimeframeMATickPatternD** (`V0001`)
-    *   **Description:** "Pattern D" detector.
-    *   **Features:** Focuses on Zone touches/rejections defined by HTF pivots.
-
-*   **AlightenLevelMultiTimeframeMATickPatternE** (`V0003`)
-    *   **Description:** "Pattern E" detector (S/R Flip).
-    *   **Features:** Identifies Support/Resistance flips with confirmation logic (break + retest). Supports live signal tags.
-
-### Utilities
-*   **AlightenAggregationAdvisor** (`AlightenAggregationAdvisor (1).cs`)
-    *   **Description:** Helper tool for analyzing and advising on data aggregation settings.
-*   **AlightenBarTimer** (`AlightenBarTimerV3.cs`)
-    *   **Description:** A simple, efficient bar timer indicator.
-*   **AlightenButtonPanel** (`AlightenButtonPanelV0004.cs`)
-    *   **Description:** A dashboard panel for managing trading operations and toggling order flow features.
-
----
-
-## Market Analyzer Columns
-
-These columns are designed to provide a visual dashboard for the Pattern indicators, enabling efficient scanning across multiple instruments.
-
-*   **AlightenMAPatternASignalColumn** (`V0002`)
-*   **AlightenMAPatternBSignalColumn** (`V0002`)
-*   **AlightenMAPatternCSignalColumn** (`V0001`)
-*   **AlightenMAPatternDSignalColumn** (`V0002`)
-*   **AlightenMAPatternESignalColumn** (`V0001`)
-
-**Common Features:**
-*   **Visual Signals:** Displays Up (🡅) or Down (🡇) arrows for active signals.
-*   **Custom Coloring:** Configurable background colors for Long (Green), Short (Magenta), and Neutral states.
-*   **Performance:** Uses `BarsToProcess` to limit historical calculation for faster loading.
-*   **Integration:** Wraps the corresponding `AlightenLevelMultiTimeframeMATickPattern` indicator.
-
----
 
 ## Installation
 
