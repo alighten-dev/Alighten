@@ -21,6 +21,8 @@ The Mirror ecosystem is a multi-timeframe pattern recognition and dashboard engi
   * **Description:** Core signal engine for Pattern E detection.
 * **`AlightenMirrorPtFV0001.cs`** (Breakout + Immediate Retest)
   * **Description:** Core signal engine tracking precise breakouts and immediate retests of critical structure levels.
+* **`AlightenHTFVPV0004.cs`** (Higher Timeframe Volume Profile)
+  * **Description:** Calculates the volume profile of an HTF bar and dynamically provides the trend bias data required by the Mirror dashboard for signal filtering and invalidation.
 
 ### 🔬 Order Flow & Volume Analytics
 High-performance indicators for analyzing Bid/Ask delta, volume nodes, and institutional footprints.
