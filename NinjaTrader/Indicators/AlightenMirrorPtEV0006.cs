@@ -29,7 +29,7 @@ using System.Windows.Automation.Provider;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    public class AlightenMirrorPtEV0005 : Indicator
+    public class AlightenMirrorPtEV0006 : Indicator
     {
 		
 		#region Class Variables
@@ -426,7 +426,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name        = "AlightenMirrorPtEV0005";
+                Name        = "AlightenMirrorPtEV0006";
                 Description = "Market Analyzer core: HTF ZigZag/levels on primary series with 1m/5m proximity columns.";
                 Calculate   = Calculate.OnEachTick;
 
@@ -821,8 +821,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			        if (!c.SeenBreak || CurrentBars[0] <= c.BreakBip0BarIdx)
 			            continue;
 			
-			        if (!WickFromAbove_CurrentBar(c.OgLevel, eps))
-			            continue;
+  			        if (!WickFromAbove_CurrentBar(c.OgLevel, eps, c.InWickStreak))
+  			            continue;
 			
                     liveLongCands.Add(c);
 			    }
@@ -844,8 +844,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 			        if (!c.SeenBreak || CurrentBars[0] <= c.BreakBip0BarIdx)
 			            continue;
 			
-			        if (!WickFromBelow_CurrentBar(c.OgLevel, eps))
-			            continue;
+  			        if (!WickFromBelow_CurrentBar(c.OgLevel, eps, c.InWickStreak))
+  			            continue;
 			
                     liveShortCands.Add(c);
 			    }
@@ -1200,7 +1200,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			            }
 			            else if (sigBar > c.BreakBip0BarIdx)
 			            {
-			                bool isWick = WickFromAbove_ClosedBar(sigBar, c.OgLevel, eps);
+			                bool isWick = WickFromAbove_ClosedBar(sigBar, c.OgLevel, eps, c.InWickStreak);
 			
 			                if (!c.InWickStreak)
 			                {
@@ -1314,7 +1314,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 			            }
 			            else if (sigBar > c.BreakBip0BarIdx)
 			            {
-			                bool isWick = WickFromBelow_ClosedBar(sigBar, c.OgLevel, eps);
+			                bool isWick = WickFromBelow_ClosedBar(sigBar, c.OgLevel, eps, c.InWickStreak);
 			
 			                if (!c.InWickStreak)
 			                {
@@ -1992,8 +1992,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				    }
 				}
 		
+				bool prevOpenedBelow = false;
+				bool prevClosedAbove = false;
+				int prevBarsAgo = barsAgo + 1;
+				if (prevBarsAgo <= CurrentBar)
+				{
+				    prevOpenedBelow = Open[prevBarsAgo] < ogLevel;
+				    prevClosedAbove = Close[prevBarsAgo] > ogLevel;
+				}
 				
-				bool isWickBar = wickTouchesOg && bodyFullyAboveOg && pivotOk;
+				bool isWickBar = wickTouchesOg && bodyFullyAboveOg && pivotOk && (inWickStreak || (prevOpenedBelow && prevClosedAbove));
 		
 		
 		        if (!inWickStreak)
@@ -2145,8 +2153,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 				    }
 				}
 		
+				bool prevOpenedAbove = false;
+				bool prevClosedBelow = false;
+				int prevBarsAgo = barsAgo + 1;
+				if (prevBarsAgo <= CurrentBar)
+				{
+				    prevOpenedAbove = Open[prevBarsAgo] > ogLevel;
+				    prevClosedBelow = Close[prevBarsAgo] < ogLevel;
+				}
 				
-				bool isWickBar = wickTouchesOg && bodyFullyBelowOg && pivotOk;
+				bool isWickBar = wickTouchesOg && bodyFullyBelowOg && pivotOk && (inWickStreak || (prevOpenedAbove && prevClosedBelow));
 		
 		        if (!inWickStreak)
 		        {
@@ -2368,9 +2384,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    return isLong ? ticks : -ticks;
 		}
 		
-		private bool WickFromAbove_ClosedBar(int closedBarIndex, double og, double eps)
+		private bool WickFromAbove_ClosedBar(int closedBarIndex, double og, double eps, bool inWickStreak)
 		{
-		    // closedBarIndex is absolute bar index (0..CurrentBar-1)
 		    int barsAgo = CurrentBar - closedBarIndex;
 		    double o = Open[barsAgo];
 		    double c = Close[barsAgo];
@@ -2380,10 +2395,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		    bool wickTouches = lo <= og + eps;
 		    bool bodyAbove   = bodyLow >= og - eps;   // body stays above (no body cross below)
-		    return wickTouches && bodyAbove;
+		    
+		    bool prevOpenedBelow = false;
+		    bool prevClosedAbove = false;
+		    int prevBarsAgo = barsAgo + 1;
+		    if (prevBarsAgo <= CurrentBar)
+		    {
+		        prevOpenedBelow = Open[prevBarsAgo] < og;
+		        prevClosedAbove = Close[prevBarsAgo] > og;
+		    }
+		    
+		    return wickTouches && bodyAbove && (inWickStreak || (prevOpenedBelow && prevClosedAbove));
 		}
 		
-		private bool WickFromBelow_ClosedBar(int closedBarIndex, double og, double eps)
+		private bool WickFromBelow_ClosedBar(int closedBarIndex, double og, double eps, bool inWickStreak)
 		{
 		    int barsAgo = CurrentBar - closedBarIndex;
 		    double o = Open[barsAgo];
@@ -2394,10 +2419,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		    bool wickTouches = hi >= og - eps;
 		    bool bodyBelow   = bodyHigh <= og + eps;  // body stays below (no body cross above)
-		    return wickTouches && bodyBelow;
+		    
+		    bool prevOpenedAbove = false;
+		    bool prevClosedBelow = false;
+		    int prevBarsAgo = barsAgo + 1;
+		    if (prevBarsAgo <= CurrentBar)
+		    {
+		        prevOpenedAbove = Open[prevBarsAgo] > og;
+		        prevClosedBelow = Close[prevBarsAgo] < og;
+		    }
+		    
+		    return wickTouches && bodyBelow && (inWickStreak || (prevOpenedAbove && prevClosedBelow));
 		}
 		
-		private bool WickFromAbove_CurrentBar(double og, double eps)
+		private bool WickFromAbove_CurrentBar(double og, double eps, bool inWickStreak)
 		{
 		    double o0 = Open[0];
 		    double c0 = Close[0];
@@ -2407,12 +2442,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		    bool wickTouches = l0 <= og + eps;
 		    bool bodyAbove   = bodyLow0 >= og - eps;
-		
-		    return wickTouches && bodyAbove;
+		    
+		    bool prevOpenedBelow = false;
+		    bool prevClosedAbove = false;
+		    if (CurrentBar > 0)
+		    {
+		        prevOpenedBelow = Opens[0][1] < og;
+		        prevClosedAbove = Closes[0][1] > og;
+		    }
+		    
+		    return wickTouches && bodyAbove && (inWickStreak || (prevOpenedBelow && prevClosedAbove));
 		}
 
 		
-		private bool WickFromBelow_CurrentBar(double og, double eps)
+		private bool WickFromBelow_CurrentBar(double og, double eps, bool inWickStreak)
 		{
 		    double o0 = Open[0];
 		    double c0 = Close[0];
@@ -2422,7 +2465,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		    bool wickTouches = h0 >= og - eps;
 		    bool bodyBelow   = bodyHigh0 <= og + eps;
-		    return wickTouches && bodyBelow;
+		    
+		    bool prevOpenedAbove = false;
+		    bool prevClosedBelow = false;
+		    if (CurrentBar > 0)
+		    {
+		        prevOpenedAbove = Opens[0][1] > og;
+		        prevClosedBelow = Closes[0][1] < og;
+		    }
+		    
+		    return wickTouches && bodyBelow && (inWickStreak || (prevOpenedAbove && prevClosedBelow));
 		}
 		
 		private void DerivePatternEFlipFromBase(
@@ -2495,7 +2547,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        {
 		            if (sigBar > peFlipLongBreakBar)
 		            {
-		                bool isWick = WickFromAbove_ClosedBar(sigBar, peFlipLongOg, eps);
+		                bool isWick = WickFromAbove_ClosedBar(sigBar, peFlipLongOg, eps, peFlipLongInWickStreak);
 		
 		                if (!peFlipLongInWickStreak)
 		                {
@@ -2563,7 +2615,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        {
 		            if (sigBar > peFlipShortBreakBar)
 		            {
-		                bool isWick = WickFromBelow_ClosedBar(sigBar, peFlipShortOg, eps);
+		                bool isWick = WickFromBelow_ClosedBar(sigBar, peFlipShortOg, eps, peFlipShortInWickStreak);
 		
 		                if (!peFlipShortInWickStreak)
 		                {
@@ -2710,19 +2762,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorPtEV0005[] cacheAlightenMirrorPtEV0005;
-		public AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		private AlightenMirrorPtEV0006[] cacheAlightenMirrorPtEV0006;
+		public AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return AlightenMirrorPtEV0005(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return AlightenMirrorPtEV0006(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(ISeries<double> input, int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(ISeries<double> input, int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			if (cacheAlightenMirrorPtEV0005 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorPtEV0005.Length; idx++)
-					if (cacheAlightenMirrorPtEV0005[idx] != null && cacheAlightenMirrorPtEV0005[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtEV0005[idx].EnablePatternESignal == enablePatternESignal && cacheAlightenMirrorPtEV0005[idx].EnablePatternELevels == enablePatternELevels && cacheAlightenMirrorPtEV0005[idx].DrawPatternE == drawPatternE && cacheAlightenMirrorPtEV0005[idx].PatternEMarkerFontSize == patternEMarkerFontSize && cacheAlightenMirrorPtEV0005[idx].PatternEMarkerOffsetTicks == patternEMarkerOffsetTicks && cacheAlightenMirrorPtEV0005[idx].PatternELongColor == patternELongColor && cacheAlightenMirrorPtEV0005[idx].PatternEShortColor == patternEShortColor && cacheAlightenMirrorPtEV0005[idx].PatternELevelWidth == patternELevelWidth && cacheAlightenMirrorPtEV0005[idx].PatternELevelDashStyle == patternELevelDashStyle && cacheAlightenMirrorPtEV0005[idx].RequirePivotForPatternESignal == requirePivotForPatternESignal && cacheAlightenMirrorPtEV0005[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtEV0005[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtEV0005[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtEV0005[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtEV0005[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtEV0005[idx].EqualsInput(input))
-						return cacheAlightenMirrorPtEV0005[idx];
-			return CacheIndicator<AlightenMirrorPtEV0005>(new AlightenMirrorPtEV0005(){ BarsToProcess = barsToProcess, EnablePatternESignal = enablePatternESignal, EnablePatternELevels = enablePatternELevels, DrawPatternE = drawPatternE, PatternEMarkerFontSize = patternEMarkerFontSize, PatternEMarkerOffsetTicks = patternEMarkerOffsetTicks, PatternELongColor = patternELongColor, PatternEShortColor = patternEShortColor, PatternELevelWidth = patternELevelWidth, PatternELevelDashStyle = patternELevelDashStyle, RequirePivotForPatternESignal = requirePivotForPatternESignal, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtEV0005);
+			if (cacheAlightenMirrorPtEV0006 != null)
+				for (int idx = 0; idx < cacheAlightenMirrorPtEV0006.Length; idx++)
+					if (cacheAlightenMirrorPtEV0006[idx] != null && cacheAlightenMirrorPtEV0006[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtEV0006[idx].EnablePatternESignal == enablePatternESignal && cacheAlightenMirrorPtEV0006[idx].EnablePatternELevels == enablePatternELevels && cacheAlightenMirrorPtEV0006[idx].DrawPatternE == drawPatternE && cacheAlightenMirrorPtEV0006[idx].PatternEMarkerFontSize == patternEMarkerFontSize && cacheAlightenMirrorPtEV0006[idx].PatternEMarkerOffsetTicks == patternEMarkerOffsetTicks && cacheAlightenMirrorPtEV0006[idx].PatternELongColor == patternELongColor && cacheAlightenMirrorPtEV0006[idx].PatternEShortColor == patternEShortColor && cacheAlightenMirrorPtEV0006[idx].PatternELevelWidth == patternELevelWidth && cacheAlightenMirrorPtEV0006[idx].PatternELevelDashStyle == patternELevelDashStyle && cacheAlightenMirrorPtEV0006[idx].RequirePivotForPatternESignal == requirePivotForPatternESignal && cacheAlightenMirrorPtEV0006[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtEV0006[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtEV0006[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtEV0006[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtEV0006[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtEV0006[idx].EqualsInput(input))
+						return cacheAlightenMirrorPtEV0006[idx];
+			return CacheIndicator<AlightenMirrorPtEV0006>(new AlightenMirrorPtEV0006(){ BarsToProcess = barsToProcess, EnablePatternESignal = enablePatternESignal, EnablePatternELevels = enablePatternELevels, DrawPatternE = drawPatternE, PatternEMarkerFontSize = patternEMarkerFontSize, PatternEMarkerOffsetTicks = patternEMarkerOffsetTicks, PatternELongColor = patternELongColor, PatternEShortColor = patternEShortColor, PatternELevelWidth = patternELevelWidth, PatternELevelDashStyle = patternELevelDashStyle, RequirePivotForPatternESignal = requirePivotForPatternESignal, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtEV0006);
 		}
 	}
 }
@@ -2731,14 +2783,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtEV0005(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtEV0006(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(ISeries<double> input , int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(ISeries<double> input , int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtEV0005(input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtEV0006(input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }
@@ -2747,14 +2799,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtEV0005(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtEV0006(Input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtEV0005 AlightenMirrorPtEV0005(ISeries<double> input , int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtEV0006 AlightenMirrorPtEV0006(ISeries<double> input , int barsToProcess, bool enablePatternESignal, bool enablePatternELevels, bool drawPatternE, int patternEMarkerFontSize, int patternEMarkerOffsetTicks, System.Windows.Media.Brush patternELongColor, System.Windows.Media.Brush patternEShortColor, int patternELevelWidth, DashStyleHelper patternELevelDashStyle, bool requirePivotForPatternESignal, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtEV0005(input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtEV0006(input, barsToProcess, enablePatternESignal, enablePatternELevels, drawPatternE, patternEMarkerFontSize, patternEMarkerOffsetTicks, patternELongColor, patternEShortColor, patternELevelWidth, patternELevelDashStyle, requirePivotForPatternESignal, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }

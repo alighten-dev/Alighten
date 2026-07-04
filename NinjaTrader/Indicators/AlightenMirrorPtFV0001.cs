@@ -29,7 +29,7 @@ using System.Windows.Automation.Provider;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    public class AlightenMirrorPtAV0003 : Indicator
+    public class AlightenMirrorPtFV0001 : Indicator
     {
 		
 		#region Class Variables
@@ -71,26 +71,29 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string instanceId;
         private HashSet<string> zzTags;
 		
-		// Pattern A results (MA-friendly persistent state)
+		// Pattern F results (MA-friendly persistent state)
 		// barIndex is primary-series (BIP 0) absolute bar index (0..CurrentBar)
-		private Dictionary<int, double> patternALongByBar;
-		private Dictionary<int, double> patternAShortByBar;
+		private Dictionary<int, double> patternFLongByBar;
+		private Dictionary<int, double> patternFShortByBar;
+		private Dictionary<int, double> patternFLongLevelByBar;
+		private Dictionary<int, double> patternFShortLevelByBar;
 		
-		// Pattern A derived levels (logical objects; optionally drawn in debug)
-		private List<PatternALevel> patternALevels;
+		// Pattern F derived levels (logical objects; optionally drawn in debug)
+		private List<PatternFLevel> patternFLevels;
 		
-		// Pattern A structure tracking (triplets/pivots). This mirrors the V00029 concept.
-		// These are used inside ScanPatternA() to detect OG/support/regional relationships.
-		private List<PatternATriplet> patternATriplets;
-		private List<PatternATriplet> patternATripletsPotential; // potential (structural-only)
+		// Pattern F structure tracking (triplets/pivots). This mirrors the V00029 concept.
+		// These are used inside ScanPatternF() to detect OG/support/regional relationships.
+		private List<PatternFTriplet> patternFTriplets;
+		private List<PatternFTriplet> patternFTripletsPotential; // potential (structural-only)
 
 		
-		// Represents a single Pattern A triple (OG, Support, TrendStart)
-		// Represents a single Pattern A triple (Pivot1 level, Pivot2, Pivot3-cross)
-		private class PatternATriplet
+		// Represents a single Pattern F triple (OG, Support, TrendStart)
+		// Represents a single Pattern F triple (Pivot1 level, Pivot2, Pivot3-cross)
+		private class PatternFTriplet
 		{
+            public int BreakBarIndex = -1;
 		    // ---- Pivot structure ----
-		    // OgIdx         = Pivot1 (start pivot) -> defines Pattern A level (guide price)
+		    // OgIdx         = Pivot1 (start pivot) -> defines Pattern F level (guide price)
 		    // SupportIdx    = Pivot2 (pre-cross pivot)
 		    // TrendStartIdx = Pivot3 (crossing pivot)
 		    public int    OgIdx;              // Pivot1
@@ -110,7 +113,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    public int      CrossCount;       // must be 1
 		    public DateTime CrossTime;        // pivotTimes[Pivot3]
 		
-		    public PatternATriplet()
+		    public PatternFTriplet()
 		    {
 		        IsActive  = true;
 		        CrossTime = Core.Globals.MinDate;
@@ -119,8 +122,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 
 		
-		// Represents a horizontal Pattern A level to draw (at OG price), ending at the wick/entry pivot
-		private class PatternALevel
+		// Represents a horizontal Pattern F level to draw (at OG price), ending at the wick/entry pivot
+		private class PatternFLevel
 		{
 		    public bool     IsLong;
 		    public int      OgBarIndex;
@@ -131,27 +134,27 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		    public double   Price; // OG level (guide)
 		
-		    public PatternALevel() { }
+		    public PatternFLevel() { }
 		}
 		
-		private PatternATriplet activePatternALong;
-		private PatternATriplet activePatternAShort;
+		private PatternFTriplet activePatternFLong;
+		private PatternFTriplet activePatternFShort;
 
 		private Dictionary<string, int> lastSignalBip0BarByKey;
 		
-		private string MakeTripletKey(PatternATriplet t)
+		private string MakeTripletKey(PatternFTriplet t)
 		{
 		    if (t == null) return string.Empty;
 		    return (t.IsLong ? "L" : "S") + "|" + t.OgIdx + "|" + t.SupportIdx + "|" + t.TrendStartIdx;
 		}
 		
-		// ---- LIVE (intrabar) draw tags for Pattern A ----
-		private const string PA_LIVE_TAG_L = "PATTERNA_LIVE_TAG_L";
-		private const string PA_LIVE_TAG_S = "PATTERNA_LIVE_TAG_S";
-		private const string PA_LIVE_LVL_L = "PATTERNA_LIVE_LVL_L";
-		private const string PA_LIVE_LVL_S = "PATTERNA_LIVE_LVL_S";
+		// ---- LIVE (intrabar) draw tags for Pattern F ----
+		private const string PF_LIVE_TAG_L = "PATTERNA_LIVE_TAG_L";
+		private const string PF_LIVE_TAG_S = "PATTERNA_LIVE_TAG_S";
+		private const string PF_LIVE_LVL_L = "PATTERNA_LIVE_LVL_L";
+		private const string PF_LIVE_LVL_S = "PATTERNA_LIVE_LVL_S";
 		
-		// --- Pattern A live recency (BIP0) state ---
+		// --- Pattern F live recency (BIP0) state ---
 		private bool paLivePrevLong  = false;
 		private bool paLivePrevShort = false;
 		
@@ -195,68 +198,69 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Display(Name="Bars To Process", GroupName="ZigZag", Order=53)]
 		public int BarsToProcess { get; set; } = 200; // 0 = process all
 		
-		// ---- Pattern A toggles ----
+		// ---- Pattern F toggles ----
+
 
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern A Signals", GroupName="Pattern A", Order=1)]
-		public bool EnablePatternASignal { get; set; } = true;
+		[Display(Name="Enable Pattern F Signals", GroupName="Pattern F", Order=1)]
+		public bool EnablePatternFSignal { get; set; } = true;
 		
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern A Levels", GroupName="Pattern A", Order=2)]
-		public bool EnablePatternALevels { get; set; } = true;
+		[Display(Name="Enable Pattern F Levels", GroupName="Pattern F", Order=2)]
+		public bool EnablePatternFLevels { get; set; } = true;
 		
 		[NinjaScriptProperty]
-		[Display(Name = "Draw Pattern A", GroupName = "Pattern A", Order = 3)]
-		public bool DrawPatternA { get; set; } = true;
+		[Display(Name = "Draw Pattern F", GroupName = "Pattern F", Order = 3)]
+		public bool DrawPatternF { get; set; } = true;
 	
 		
 		// Optional styling knobs (safe defaults)
 		[NinjaScriptProperty]
 		[Range(6, 30)]
-		[Display(Name="Pattern A Marker Font Size", GroupName="Pattern A", Order=20)]
-		public int PatternAMarkerFontSize { get; set; } = 18;
+		[Display(Name="Pattern F Marker Font Size", GroupName="Pattern F", Order=20)]
+		public int PatternFMarkerFontSize { get; set; } = 18;
 		
 		[NinjaScriptProperty]
 		[Range(1, 50)]
-		[Display(Name="Pattern A Marker Offset Ticks", GroupName="Pattern A", Order=21)]
-		public int PatternAMarkerOffsetTicks { get; set; } = 5;
+		[Display(Name="Pattern F Marker Offset Ticks", GroupName="Pattern F", Order=21)]
+		public int PatternFMarkerOffsetTicks { get; set; } = 5;
 		
 		[XmlIgnore]
 		[NinjaScriptProperty]
-		[Display(Name="Pattern A Long Color", GroupName="Pattern A", Order=22)]
-		public System.Windows.Media.Brush PatternALongColor { get; set; } = Brushes.Lime;
+		[Display(Name="Pattern F Long Color", GroupName="Pattern F", Order=22)]
+		public System.Windows.Media.Brush PatternFLongColor { get; set; } = Brushes.Lime;
 		
 		[Browsable(false)]
-		public string PatternALongColorSerialize
+		public string PatternFLongColorSerialize
 		{
-		    get => Serialize.BrushToString(PatternALongColor);
-		    set => PatternALongColor = Serialize.StringToBrush(value);
+		    get => Serialize.BrushToString(PatternFLongColor);
+		    set => PatternFLongColor = Serialize.StringToBrush(value);
 		}
 		
 		[XmlIgnore]
 		[NinjaScriptProperty]
-		[Display(Name="Pattern A Short Color", GroupName="Pattern A", Order=23)]
-		public System.Windows.Media.Brush PatternAShortColor { get; set; } = Brushes.Magenta;
+		[Display(Name="Pattern F Short Color", GroupName="Pattern F", Order=23)]
+		public System.Windows.Media.Brush PatternFShortColor { get; set; } = Brushes.Magenta;
 		
 		[Browsable(false)]
-		public string PatternAShortColorSerialize
+		public string PatternFShortColorSerialize
 		{
-		    get => Serialize.BrushToString(PatternAShortColor);
-		    set => PatternAShortColor = Serialize.StringToBrush(value);
+		    get => Serialize.BrushToString(PatternFShortColor);
+		    set => PatternFShortColor = Serialize.StringToBrush(value);
 		}
 		
 		[NinjaScriptProperty]
 		[Range(1, 10)]
-		[Display(Name="Pattern A Level Width", GroupName="Pattern A", Order=30)]
-		public int PatternALevelWidth { get; set; } = 2;
+		[Display(Name="Pattern F Level Width", GroupName="Pattern F", Order=30)]
+		public int PatternFLevelWidth { get; set; } = 2;
 		
 		[NinjaScriptProperty]
-		[Display(Name="Pattern A Level Dash", GroupName="Pattern A", Order=31)]
-		public DashStyleHelper PatternALevelDashStyle { get; set; } = DashStyleHelper.Dash;
+		[Display(Name="Pattern F Level Dash", GroupName="Pattern F", Order=31)]
+		public DashStyleHelper PatternFLevelDashStyle { get; set; } = DashStyleHelper.Dash;
 
 
         [NinjaScriptProperty]
-        [Display(Name="Show Debug Labels", GroupName="Pattern A", Order=40)]
+        [Display(Name="Show Debug Labels", GroupName="Pattern F", Order=40)]
         public bool ShowDebugLabels { get; set; } = false;
 
         // ---- Debug (chart-only) ZigZag drawing ----
@@ -288,63 +292,66 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		
 		
-		private Series<double> patternASignal;
+		
+        
+
+		private Series<double> patternFSignal;
 		
 		[Browsable(false)]
 		[XmlIgnore()]
-		public Series<double> PatternASignal
+		public Series<double> PatternFSignal
 		{
-		    get { return patternASignal; }
+		    get { return patternFSignal; }
 		}
 		
-		private Series<double> patternASignalMA;
+		private Series<double> patternFSignalMA;
 		
 		[Browsable(false)]
 		[XmlIgnore()]
-		public Series<double> PatternASignalMA
+		public Series<double> PatternFSignalMA
 		{
-		    get { return patternASignalMA; }
+		    get { return patternFSignalMA; }
 		}
 
-        private Series<double> patternALongLevel;
+        private Series<double> patternFLongLevel;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternALongLevel => patternALongLevel;
+        public Series<double> PatternFLongLevel => patternFLongLevel;
 
-        private Series<double> patternALongStartTimestamp;
+        private Series<double> patternFLongStartTimestamp;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternALongStartTimestamp => patternALongStartTimestamp;
+        public Series<double> PatternFLongStartTimestamp => patternFLongStartTimestamp;
 
-        private Series<double> patternALongEndTimestamp;
+        private Series<double> patternFLongEndTimestamp;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternALongEndTimestamp => patternALongEndTimestamp;
+        public Series<double> PatternFLongEndTimestamp => patternFLongEndTimestamp;
 
-        private Series<double> patternAShortLevel;
+        private Series<double> patternFShortLevel;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternAShortLevel => patternAShortLevel;
+        public Series<double> PatternFShortLevel => patternFShortLevel;
 
-        private Series<double> patternAShortStartTimestamp;
+        private Series<double> patternFShortStartTimestamp;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternAShortStartTimestamp => patternAShortStartTimestamp;
+        public Series<double> PatternFShortStartTimestamp => patternFShortStartTimestamp;
 
-        private Series<double> patternAShortEndTimestamp;
+        private Series<double> patternFShortEndTimestamp;
         [Browsable(false)]
         [XmlIgnore()]
-        public Series<double> PatternAShortEndTimestamp => patternAShortEndTimestamp;
+        public Series<double> PatternFShortEndTimestamp => patternFShortEndTimestamp;
 		
-		private Series<double> patternALongSignalBarTimestamp;
+		private Series<double> patternFLongSignalBarTimestamp;
 		[Browsable(false)]
 		[XmlIgnore()]
-		public Series<double> PatternALongSignalBarTimestamp => patternALongSignalBarTimestamp;
+		public Series<double> PatternFLongSignalBarTimestamp => patternFLongSignalBarTimestamp;
 		
-		private Series<double> patternAShortSignalBarTimestamp;
+		private Series<double> patternFShortSignalBarTimestamp;
 		[Browsable(false)]
 		[XmlIgnore()]
-		public Series<double> PatternAShortSignalBarTimestamp => patternAShortSignalBarTimestamp;
+		public Series<double> PatternFShortSignalBarTimestamp => patternFShortSignalBarTimestamp;
 		
 		#endregion
 
@@ -352,7 +359,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name        = "AlightenMirrorPtAV0003";
+                Name        = "AlightenMirrorPtFV0001";
                 Description = "Market Analyzer core: HTF ZigZag/levels on primary series with 1m/5m proximity columns.";
                 Calculate   = Calculate.OnEachTick;
 
@@ -366,28 +373,30 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowTransparentPlotsInDataBox 	= true;
 
                
-				AddPlot(Brushes.Transparent, "PatternASignal");
-				AddPlot(Brushes.Transparent, "PatternASignalMA");
-				AddPlot(Brushes.Transparent, "PatternALongLevel");
-				AddPlot(Brushes.Transparent, "PatternALongStartTimestamp");
-				AddPlot(Brushes.Transparent, "PatternALongEndTimestamp");
-				AddPlot(Brushes.Transparent, "PatternAShortLevel");
-				AddPlot(Brushes.Transparent, "PatternAShortStartTimestamp");
-				AddPlot(Brushes.Transparent, "PatternAShortEndTimestamp");
-				AddPlot(Brushes.Transparent, "PatternALongSignalBarTimestamp");
-				AddPlot(Brushes.Transparent, "PatternAShortSignalBarTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFSignal");
+				AddPlot(Brushes.Transparent, "PatternFSignalMA");
+				AddPlot(Brushes.Transparent, "PatternFLongLevel");
+				AddPlot(Brushes.Transparent, "PatternFLongStartTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFLongEndTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFShortLevel");
+				AddPlot(Brushes.Transparent, "PatternFShortStartTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFShortEndTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFLongSignalBarTimestamp");
+				AddPlot(Brushes.Transparent, "PatternFShortSignalBarTimestamp");
                 
             }
             else if (State == State.Configure)
             {
-				//AddDataSeries(BarsPeriodType.Tick, 1);
-                instanceId = $"ZZ_MA_{Guid.NewGuid()}";
+                
+
+                instanceId = $"PA_FILT_{Guid.NewGuid()}";
 		
                 livePreciseEndTimesL = new Dictionary<int, double>();
                 livePreciseEndTimesS = new Dictionary<int, double>();
             }
             else if (State == State.DataLoaded)
             {
+
                 pivotTimes       				= new List<DateTime>(Math.Min(400, BarsToProcess));
                 pivotPrices      				= new List<double>(Math.Min(400, BarsToProcess));
                 pivotIsHigh      				= new List<bool>(Math.Min(400, BarsToProcess));
@@ -397,27 +406,29 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 zzTags 							= new HashSet<string>();
 				
-				patternALongByBar  				= new Dictionary<int, double>(256);
-				patternAShortByBar 				= new Dictionary<int, double>(256);
-				patternALevels     				= new List<PatternALevel>(128);
-				patternATriplets   				= new List<PatternATriplet>(128);
-				patternATripletsPotential   	= new List<PatternATriplet>(128);
-				//patternACandidates 				= new List<PatternACandidate>(128);
+				patternFLongByBar  				= new Dictionary<int, double>(256);
+				patternFShortByBar 				= new Dictionary<int, double>(256);
+				patternFLongLevelByBar			= new Dictionary<int, double>(256);
+				patternFShortLevelByBar			= new Dictionary<int, double>(256);
+				patternFLevels     				= new List<PatternFLevel>(128);
+				patternFTriplets   				= new List<PatternFTriplet>(128);
+				patternFTripletsPotential   	= new List<PatternFTriplet>(128);
+				//patternFCandidates 				= new List<PatternFCandidate>(128);
 				
 				lastSignalBip0BarByKey = new Dictionary<string, int>(512, StringComparer.Ordinal);
                 lastTickTime = DateTime.MinValue;
                 recordedPatternKeys = new HashSet<string>();
 
-				patternASignal					= Values[0];
-				patternASignalMA				= Values[1];
-                patternALongLevel               = Values[2];
-                patternALongStartTimestamp      = Values[3];
-                patternALongEndTimestamp        = Values[4];
-                patternAShortLevel              = Values[5];
-                patternAShortStartTimestamp     = Values[6];
-                patternAShortEndTimestamp       = Values[7];
-				patternALongSignalBarTimestamp  = Values[8];
-				patternAShortSignalBarTimestamp = Values[9];
+				patternFSignal					= Values[0];
+				patternFSignalMA				= Values[1];
+                patternFLongLevel               = Values[2];
+                patternFLongStartTimestamp      = Values[3];
+                patternFLongEndTimestamp        = Values[4];
+                patternFShortLevel              = Values[5];
+                patternFShortStartTimestamp     = Values[6];
+                patternFShortEndTimestamp       = Values[7];
+				patternFLongSignalBarTimestamp  = Values[8];
+				patternFShortSignalBarTimestamp = Values[9];
 
             }
             else if (State == State.Terminated)
@@ -445,7 +456,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        if (BarsInProgress != 0)
 		            return;
 		
-		        if (patternASignal == null || patternASignalMA == null)
+		        if (patternFSignal == null || patternFSignalMA == null)
 		            return;
 		
 		        // Ultra-fast early-exit windowing — keep this for heavy work only
@@ -461,26 +472,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        if (CurrentBar < 1)
 		        {
 		            // Intrabar-safe clearing
-		            patternASignal[0]   = 0;
-		            patternASignalMA[0] = 0;
+		            patternFSignal[0]   = 0;
+		            patternFSignalMA[0] = 0;
 
-		            patternALongLevel[0]          = 0;
-		            patternALongStartTimestamp[0] = 0;
-		            patternALongEndTimestamp[0]   = 0;
+		            patternFLongLevel[0]          = 0;
+		            patternFLongStartTimestamp[0] = 0;
+		            patternFLongEndTimestamp[0]   = 0;
 		            
-		            patternAShortLevel[0]          = 0;
-		            patternAShortStartTimestamp[0] = 0;
-		            patternAShortEndTimestamp[0]   = 0;
+		            patternFShortLevel[0]          = 0;
+		            patternFShortStartTimestamp[0] = 0;
+		            patternFShortEndTimestamp[0]   = 0;
 					
-					patternALongSignalBarTimestamp[0]  = 0;
-					patternAShortSignalBarTimestamp[0] = 0;
+					patternFLongSignalBarTimestamp[0]  = 0;
+					patternFShortSignalBarTimestamp[0] = 0;
 		
-		            if (CanDrawDebug() && DrawPatternA)
+		            if (CanDrawDebug() && DrawPatternF)
 		            {
-		                RemoveDrawObject(PA_LIVE_TAG_L);
-		                RemoveDrawObject(PA_LIVE_TAG_S);
-		                RemoveDrawObject(PA_LIVE_LVL_L);
-		                RemoveDrawObject(PA_LIVE_LVL_S);
+		                RemoveDrawObject(PF_LIVE_TAG_L);
+		                RemoveDrawObject(PF_LIVE_TAG_S);
+		                RemoveDrawObject(PF_LIVE_LVL_L);
+		                RemoveDrawObject(PF_LIVE_LVL_S);
 		            }
 		            return;
 		        }
@@ -495,41 +506,55 @@ namespace NinjaTrader.NinjaScript.Indicators
 		                return;
 		
 		            ProcessClosedBarPivot_BIP0();  // uses [1]
-		            RebuildPatternA_BIP0();
+		            RebuildPatternF_BIP0();
 		
-		            if (EnablePatternASignal)
+		            if (EnablePatternFSignal)
 		            {
 		                // Default clear (current bar)
-		                patternASignal[0]   = 0;
-		                patternASignalMA[0] = 0;
+		                patternFSignal[0]   = 0;
+		                patternFSignalMA[0] = 0;
 
-		                patternALongLevel[0]          = 0;
-		                patternALongStartTimestamp[0] = 0;
-		                patternALongEndTimestamp[0]   = 0;
+		                patternFLongLevel[0]          = 0;
+		                patternFLongStartTimestamp[0] = 0;
+		                patternFLongEndTimestamp[0]   = 0;
 		                
-		                patternAShortLevel[0]          = 0;
-		                patternAShortStartTimestamp[0] = 0;
-		                patternAShortEndTimestamp[0]   = 0;
+		                patternFShortLevel[0]          = 0;
+		                patternFShortStartTimestamp[0] = 0;
+		                patternFShortEndTimestamp[0]   = 0;
 						
-						patternALongSignalBarTimestamp[0]  = 0;
-						patternAShortSignalBarTimestamp[0] = 0;
+						patternFLongSignalBarTimestamp[0]  = 0;
+						patternFShortSignalBarTimestamp[0] = 0;
+						
+						// Clear inherited live values from previous bar's intra-bar updates
+						patternFLongLevel[1]  = 0;
+						patternFShortLevel[1] = 0;
 		
 		                if (CurrentBars[0] >= 1)
 		                {
 		                    int sigBar = CurrentBars[0] - 1;
 		
-		                    bool longNow  = patternALongByBar  != null && patternALongByBar.ContainsKey(sigBar);
-		                    bool shortNow = patternAShortByBar != null && patternAShortByBar.ContainsKey(sigBar);
+		                    bool longNow  = patternFLongByBar  != null && patternFLongByBar.ContainsKey(sigBar);
+		                    bool shortNow = patternFShortByBar != null && patternFShortByBar.ContainsKey(sigBar);
 		
 		                    double sig = 0;
-		                    if (longNow && !shortNow) sig = +1;
-		                    else if (shortNow && !longNow) sig = -1;
+		                    if (longNow && !shortNow)
+		                    {
+		                        sig = +1;
+		                        if (patternFLongLevelByBar != null && patternFLongLevelByBar.TryGetValue(sigBar, out double lvlPrice))
+		                            patternFLongLevel[1] = lvlPrice;
+		                    }
+		                    else if (shortNow && !longNow)
+		                    {
+		                        sig = -1;
+		                        if (patternFShortLevelByBar != null && patternFShortLevelByBar.TryGetValue(sigBar, out double lvlPrice))
+		                            patternFShortLevel[1] = lvlPrice;
+		                    }
 		
 		                    // DataBox / chart-aligned plot (belongs to bar that just closed)
-		                    patternASignal[1] = sig;
+		                    patternFSignal[1] = sig;
 		
 		                    // MA-friendly plot (belongs to current bar so MA reads [0] reliably)
-		                    patternASignalMA[0] = sig;
+		                    patternFSignalMA[0] = sig;
 		                }
 		            }
 		        }
@@ -538,9 +563,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        // 2) LIVE intrabar semantics (new)
 		        //    Update on EVERY tick so it can appear/disappear while bar forms.
 		        // -----------------------------
-		        if (EnablePatternASignal)
+		        if (EnablePatternFSignal)
 		        {
-		            UpdatePatternA_Live_BIP0();
+		            UpdatePatternF_Live_BIP0();
 		        }
 		    }
 		    catch (Exception ex)
@@ -687,11 +712,47 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         #endregion
 		
-		#region Pattern A
+		#region Pattern F
 		
-		private void UpdatePatternA_Live_BIP0()
+		private void UpdatePatternF_Live_BIP0()
 		{
-		    // Per-bar reset for recency tracking (BIP0)
+		    double eps = TickSize * 0.5;
+		    double currentPrice = Closes[0][0];
+            double currentLow = Lows[0][0];
+            double currentHigh = Highs[0][0];
+            double bodyLow = Math.Min(Opens[0][0], Closes[0][0]);
+            double bodyHigh = Math.Max(Opens[0][0], Closes[0][0]);
+
+		    int curBarIndex = CurrentBars[0];
+		
+		    if (CanDrawDebug() && DrawPatternF)
+		    {
+		        RemoveDrawObject(PF_LIVE_TAG_L);
+		        RemoveDrawObject(PF_LIVE_TAG_S);
+                for(int i=0; i<20; i++)
+                {
+                    RemoveDrawObject(PF_LIVE_LVL_L + "_" + i);
+                    RemoveDrawObject(PF_LIVE_LVL_S + "_" + i);
+                }
+		    }
+
+		    if (CurrentBar < 1)
+		    {
+		        patternFSignal[0] = 0;
+		        paLivePrevLong  = false;
+		        paLivePrevShort = false;
+		        return;
+		    }
+		
+		    if (patternFTripletsPotential == null || patternFTripletsPotential.Count == 0 && patternFTriplets.Count == 0)
+		    {
+		        patternFSignal[0] = 0;
+		        paLivePrevLong  = false;
+		        paLivePrevShort = false;
+		        return;
+		    }
+
+		    // Advance sequences
 		    if (IsFirstTickOfBar)
 		    {
 		        paLivePrevLong           = false;
@@ -703,112 +764,65 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    else
 		    {
-		        // advance intra-bar tick sequence
 		        paLiveTickSeq++;
 		    }
-		
-		    // Safety
-		    if (CurrentBar < 1)
-		    {
-		        patternASignal[0] = 0;
-		
-		        // Do NOT publish MA intrabar (by design)
-		        // patternASignalMA[0] = 0;
-		
-		        // Reset edge state to avoid carrying across early exits
-		        paLivePrevLong  = false;
-		        paLivePrevShort = false;
-		
-		        if (CanDrawDebug() && DrawPatternA)
-		        {
-		            RemoveDrawObject(PA_LIVE_TAG_L);
-		            RemoveDrawObject(PA_LIVE_TAG_S);
-                    // We might have multiple levels, so we rely on the loop below to clear them using specific tags 
-                    // OR we can clear a range of tags if we knew them. 
-                    // For now, let's try to clear the generic sets we use.
-                    // Since we are changing to dynamic lists, we need a robust clear strategy.
-                    // The simplest is to manage a list of active tags for this bar. 
-                    // But to respect the existing structure, we will just use a loop to clear potential IDs or use the "Recalculate" strategy.
-                    // Actually, simple way: Clear "ALL" live tags.
-		            RemoveDrawObject(PA_LIVE_LVL_L); // This only clears one if named fixed.
-		            RemoveDrawObject(PA_LIVE_LVL_S);
-		        }
-		        return;
-		    }
-		
-		    // If potentials haven't been built yet, just clear live.
-		    if (patternATripletsPotential == null || patternATripletsPotential.Count == 0)
-		    {
-		        patternASignal[0] = 0;
-		
-		        // Reset edge state to avoid carrying across early exits
-		        paLivePrevLong  = false;
-		        paLivePrevShort = false;
-		
-		        if (CanDrawDebug() && DrawPatternA)
-		        {
-		            RemoveDrawObject(PA_LIVE_TAG_L);
-		            RemoveDrawObject(PA_LIVE_TAG_S);
-		        }
-		        return;
-		    }
-
-            // Remove all previous "Live" level objects from chart to prevent ghosts
-            // We use a prefix search pattern effectively by iterating known potential drawing IDs or just clearing all Pattern A debug objects? No, that clears historical too.
-            // We will just clear the specific "Live" tags we are about to use.
-            // Since we previously only had one live level per side, we fixed the name. 
-            // Now we will have multiple. We need to clear them.
-            // To do this efficiently without tracking every ID in a list (which persists across ticks), 
-            // we will recreate the IDs deterministically or assume the framework handles replacement if we reuse IDs.
-            // Issue: If we had 3 lines last tick and 2 lines this tick, 1 remains ghosting.
-            // Fix: We need to track live objects.
-            // Given the constraints, let's approximate: clear a reasonable max number or use a specific clearing loop.
-            // BETTER: Use a separate list `liveDrawObjects` in the class to track what we drew last tick.
-            
-		    double eps = TickSize * 0.5;
-		
-		    // Current forming bar (BIP0) intrabar state
-		    double o0 = Open[0];
-		    double c0 = Close[0];
-		    double h0 = High[0];
-		    double l0 = Low[0];
-		
-		    double bodyHigh = Math.Max(o0, c0);
-		    double bodyLow  = Math.Min(o0, c0);
-		
-		    // Prev closed bar for LL/HH constraint (Pattern A logic)
-		    // NOTE: This logic relies on historical bars being correct in realtime.
-		    double prevLow  = Low[1];
-		    double prevHigh = High[1];
 		
 		    bool liveLong  = false;
 		    bool liveShort = false;
 		
-            var liveLongTrips  = new List<PatternATriplet>();
-            var liveShortTrips = new List<PatternATriplet>();
+            var liveLongTrips  = new List<PatternFTriplet>();
+            var liveShortTrips = new List<PatternFTriplet>();
 
-		    foreach (var t in patternATripletsPotential)
+		    foreach (var t in patternFTripletsPotential.ToList())
 		    {
 		        if (t == null) continue;
+		        if (!t.IsActive) continue;
 
-                // Optional safety: ignore if already invalidated by a 2nd confirmed cross
 		        int lastConfirmed = GetLastConfirmedPivotIdxBip0();
 		        if (lastConfirmed >= 0)
 		        {
-		            int nextCrossPivotIdx = FindNextPivotCrossIdx(t.TrendStartIdx, t.OgPrice, eps);
-		            if (nextCrossPivotIdx >= 0 && nextCrossPivotIdx <= lastConfirmed)
-		                continue;
+		            int postStart = t.TrendStartIdx + 1; // This is idx3
+		            if (postStart <= lastConfirmed)
+		            {
+                        // Pivot 3 has locked in, and we haven't broken out!
+                        // This triplet failed the "immediate next pivot" constraint.
+                        t.IsActive = false;
+                        patternFTripletsPotential.Remove(t);
+                        continue;
+		            }
 		        }
-                
-                if (t.IsLong)
-                {
-                    double level = t.OgPrice;
-                    // LONG: wick touches OG + body strictly above OG + lower low than previous bar
-	                bool wickTouches = l0 <= level + eps;
-	                bool bodyAbove   = bodyLow > level + eps;
-	                bool lowerLow    = l0 < prevLow - eps;
+
+		        if (t.IsLong)
+		        {
+		            if (currentPrice > t.SupportPrice + eps)
+		            {
+		                t.BreakBarIndex = curBarIndex;
+		                patternFTriplets.Add(t);
+		                patternFTripletsPotential.Remove(t);
+		            }
+		        }
+		        else
+		        {
+		            if (currentPrice < t.SupportPrice - eps)
+		            {
+		                t.BreakBarIndex = curBarIndex;
+		                patternFTriplets.Add(t);
+		                patternFTripletsPotential.Remove(t);
+		            }
+		        }
+		    }
+		
+		    foreach (var t in patternFTriplets)
+		    {
+		        if (!t.IsActive || t.BreakBarIndex == -1 || curBarIndex <= t.BreakBarIndex)
+		            continue;
+		            
+		        if (t.IsLong)
+		        {
+	                bool wickTouches = currentLow <= t.OgPrice + eps;
+	                bool bodyAbove   = bodyLow >= t.OgPrice - eps;
 	
-	                if (wickTouches && bodyAbove && lowerLow)
+	                if (wickTouches && bodyAbove)
 	                {
                         liveLong = true;
                         liveLongTrips.Add(t);
@@ -816,13 +830,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 else
                 {
-                    double level = t.OgPrice;
-                    // SHORT: wick touches OG + body strictly below OG + higher high than previous bar
-	                bool wickTouches = h0 >= level - eps;
-	                bool bodyBelow   = bodyHigh < level - eps;
-	                bool higherHigh  = h0 > prevHigh + eps;
+	                bool wickTouches = currentHigh >= t.OgPrice - eps;
+	                bool bodyBelow   = bodyHigh <= t.OgPrice + eps;
 	
-	                if (wickTouches && bodyBelow && higherHigh)
+	                if (wickTouches && bodyBelow)
 	                {
                         liveShort = true;
                         liveShortTrips.Add(t);
@@ -830,18 +841,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
             }
 		
-		    // --- Recency tracking: capture false->true edges for each side on this bar ---
-		    if (liveLong && !paLivePrevLong)
-		        paLiveLongLastEdgeSeq = paLiveTickSeq;
+		    if (liveLong && !paLivePrevLong) paLiveLongLastEdgeSeq = paLiveTickSeq;
+		    if (liveShort && !paLivePrevShort) paLiveShortLastEdgeSeq = paLiveTickSeq;
 		
-		    if (liveShort && !paLivePrevShort)
-		        paLiveShortLastEdgeSeq = paLiveTickSeq;
-		
-		    // Update prev flags after edge detection
 		    paLivePrevLong  = liveLong;
 		    paLivePrevShort = liveShort;
 		
-		    // --- Choose liveSig ---
 		    double liveSig = 0;
 		
 		    if (liveLong && !liveShort)
@@ -856,7 +861,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    else if (liveLong && liveShort)
 		    {
-		        // Recency wins
 		        if (paLiveLongLastEdgeSeq > paLiveShortLastEdgeSeq)
 		        {
 		            liveSig = +1;
@@ -869,20 +873,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        }
 		        else
 		        {
-                    // Tie-break: Max Penetration
 		            double maxLongPen  = 0;
 		            double maxShortPen = 0;
 		
                     foreach(var t in liveLongTrips)
 		            {
-		                double lvl = t.OgPrice;
-                        double p = (lvl - l0) / TickSize;
+                        double p = (t.OgPrice - currentLow) / TickSize;
                         if (p > maxLongPen) maxLongPen = p;
 		            }
                     foreach(var t in liveShortTrips)
 		            {
-		                double lvl = t.OgPrice;
-                        double p = (h0 - lvl) / TickSize;
+                        double p = (currentHigh - t.OgPrice) / TickSize;
                         if (p > maxShortPen) maxShortPen = p;
 		            }
 		
@@ -898,7 +899,6 @@ namespace NinjaTrader.NinjaScript.Indicators
 		            }
 		            else
 		            {
-		                // Still tied: stabilize
 		                if (paLiveLastChosenDir == +1) liveSig = +1;
 		                else if (paLiveLastChosenDir == -1) liveSig = -1;
                         else liveSig = 0;
@@ -927,17 +927,17 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (paLiveLongLastEdgeSeq == paLiveTickSeq || liveLongFirstHitTime == DateTime.MinValue)
                         liveLongFirstHitTime = now;
 
-                    patternALongLevel[0] = liveLongTrips[0].OgPrice;
-                    patternALongStartTimestamp[0] = liveLongFirstHitTime.ToOADate();
-                    patternALongEndTimestamp[0] = now.ToOADate();
-					patternALongSignalBarTimestamp[0] = Time[0].ToOADate();
+                    patternFLongLevel[0] = liveLongTrips[0].OgPrice;
+                    patternFLongStartTimestamp[0] = liveLongFirstHitTime.ToOADate();
+                    patternFLongEndTimestamp[0] = now.ToOADate();
+					patternFLongSignalBarTimestamp[0] = Time[0].ToOADate();
                 }
                 else
                 {
-                    patternALongLevel[0] = 0;
-                    patternALongStartTimestamp[0] = 0;
-                    patternALongEndTimestamp[0] = 0;
-					patternALongSignalBarTimestamp[0] = 0;
+                    patternFLongLevel[0] = 0;
+                    patternFLongStartTimestamp[0] = 0;
+                    patternFLongEndTimestamp[0] = 0;
+					patternFLongSignalBarTimestamp[0] = 0;
                     liveLongFirstHitTime = DateTime.MinValue;
                 }
                 
@@ -952,67 +952,31 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (paLiveShortLastEdgeSeq == paLiveTickSeq || liveShortFirstHitTime == DateTime.MinValue)
                         liveShortFirstHitTime = now;
 
-                    patternAShortLevel[0] = liveShortTrips[0].OgPrice;
-                    patternAShortStartTimestamp[0] = liveShortFirstHitTime.ToOADate();
-                    patternAShortEndTimestamp[0] = now.ToOADate();
-					patternAShortSignalBarTimestamp[0] = Time[0].ToOADate();
+                    patternFShortLevel[0] = liveShortTrips[0].OgPrice;
+                    patternFShortStartTimestamp[0] = liveShortFirstHitTime.ToOADate();
+                    patternFShortEndTimestamp[0] = now.ToOADate();
+					patternFShortSignalBarTimestamp[0] = Time[0].ToOADate();
                 }
                 else
                 {
-                    patternAShortLevel[0] = 0;
-                    patternAShortStartTimestamp[0] = 0;
-                    patternAShortEndTimestamp[0] = 0;
-					patternAShortSignalBarTimestamp[0] = 0;
+                    patternFShortLevel[0] = 0;
+                    patternFShortStartTimestamp[0] = 0;
+                    patternFShortEndTimestamp[0] = 0;
+					patternFShortSignalBarTimestamp[0] = 0;
                     liveShortFirstHitTime = DateTime.MinValue;
                 }
             }
 		
-		    // LIVE plot (chart):
-		    patternASignal[0] = liveSig;
+		    patternFSignal[0] = liveSig;
 		
-		    // --- Draw live artifacts ---
-		    if (CanDrawDebug() && DrawPatternA)
+		    if (CanDrawDebug() && DrawPatternF)
 		    {
-		        // We need to clear OLD live lines explicitly. 
-                // Since we don't have a list of what we drew last time in this scope without adding a field,
-                // and we can't easily iterate "all objects starting with X",
-                // we will rely on a brute force clear of a reasonable range IF we used indexed tags,
-                // OR we just use a consistent naming scheme that replaces itself if the Count is same.
-                // But if Count decreases, we have ghosts.
-                // Hack: We will use a fixed set of recycled tags up to a max (e.g. 20). 
-                // Any beyond 20 are ignored (safety). 
-                // Any unused within 20 are cleared.
-                
-                int MAX_LIVE_LINES = 20;
-
-		        RemoveDrawObject(PA_LIVE_TAG_L);
-		        RemoveDrawObject(PA_LIVE_TAG_S);
-                
-                // Clear all slots
-                for(int i=0; i<MAX_LIVE_LINES; i++)
-                {
-                    RemoveDrawObject(PA_LIVE_LVL_L + "_" + i);
-                    RemoveDrawObject(PA_LIVE_LVL_S + "_" + i);
-                }
-		
-		        // Draw LONG live
-                // Only draw Signal Text if we have a signal
 		        if (liveLong && liveLongTrips.Count > 0)
 		        {
-		            double y = l0 - (PatternAMarkerOffsetTicks * TickSize);
-		            Draw.Text(this, PA_LIVE_TAG_L, false,
-		                "▲",
-		                0,
-		                y,
-		                0,
-		                PatternALongColor,
-		                new SimpleFont("Arial", PatternAMarkerFontSize),
-		                TextAlignment.Center,
-		                Brushes.Transparent,
-		                Brushes.Transparent,
-		                0);
+		            double y = currentLow - (PatternFMarkerOffsetTicks * TickSize);
+		            Draw.Text(this, PF_LIVE_TAG_L, false, "L", 0, y, 0, PatternFLongColor, new SimpleFont("Arial", PatternFMarkerFontSize), TextAlignment.Center, Brushes.Transparent, Brushes.Transparent, 0);
 		
-                    for(int i=0; i < liveLongTrips.Count && i < MAX_LIVE_LINES; i++)
+                    for(int i=0; i < liveLongTrips.Count && i < 20; i++)
                     {
                         var t = liveLongTrips[i];
                         double level = t.OgPrice;
@@ -1026,32 +990,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		                    int ogBarsAgo = CurrentBars[0] - ogBarIndex;
 		                    if (ogBarsAgo >= 0)
 		                    {
-		                        Draw.Line(this, PA_LIVE_LVL_L + "_" + i, false,
+		                        Draw.Line(this, PF_LIVE_LVL_L + "_" + i, false,
 		                            ogBarsAgo, level,
 		                            0,        level,
-		                            PatternALongColor, PatternALevelDashStyle, PatternALevelWidth);
+		                            PatternFLongColor, PatternFLevelDashStyle, PatternFLevelWidth);
 		                    }
 		                }
                     }
 		        }
 		
-		        // Draw SHORT live
 		        if (liveShort && liveShortTrips.Count > 0)
 		        {
-		            double y = h0 + (PatternAMarkerOffsetTicks * TickSize);
-		            Draw.Text(this, PA_LIVE_TAG_S, false,
-		                "▼",
-		                0,
-		                y,
-		                0,
-		                PatternAShortColor,
-		                new SimpleFont("Arial", PatternAMarkerFontSize),
-		                TextAlignment.Center,
-		                Brushes.Transparent,
-		                Brushes.Transparent,
-		                0);
+		            double y = currentHigh + (PatternFMarkerOffsetTicks * TickSize);
+		            Draw.Text(this, PF_LIVE_TAG_S, false, "S", 0, y, 0, PatternFShortColor, new SimpleFont("Arial", PatternFMarkerFontSize), TextAlignment.Center, Brushes.Transparent, Brushes.Transparent, 0);
 		
-                    for(int i=0; i < liveShortTrips.Count && i < MAX_LIVE_LINES; i++)
+                    for(int i=0; i < liveShortTrips.Count && i < 20; i++)
                     {
                         var t = liveShortTrips[i];
                         double level = t.OgPrice;
@@ -1065,118 +1018,142 @@ namespace NinjaTrader.NinjaScript.Indicators
 		                    int ogBarsAgo = CurrentBars[0] - ogBarIndex;
 		                    if (ogBarsAgo >= 0)
 		                    {
-		                        Draw.Line(this, PA_LIVE_LVL_S + "_" + i, false,
+		                        Draw.Line(this, PF_LIVE_LVL_S + "_" + i, false,
 		                            ogBarsAgo, level,
 		                            0,        level,
-		                            PatternAShortColor, PatternALevelDashStyle, PatternALevelWidth);
+		                            PatternFShortColor, PatternFLevelDashStyle, PatternFLevelWidth);
 		                    }
 		                }
                     }
 		        }
 		    }
 		}
-
-
 		
-		private void RebuildPatternA_BIP0()
+		
+		private void RebuildPatternF_BIP0()
 		{
-		    if (!EnablePatternASignal && !EnablePatternALevels)
+		    if (!EnablePatternFSignal && !EnablePatternFLevels)
 		        return;
 		
-		    BuildPatternA(out var newPBLong, out var newPBShort, out var newPBLevels);
+		    BuildPatternF(out var newPBLong, out var newPBShort, out var newPBLongLevel, out var newPBShortLevel, out var newPBLevels);
 		
-		    ApplyPatternAResults(newPBLong, newPBShort, newPBLevels);
+		    ApplyPatternFResults(newPBLong, newPBShort, newPBLongLevel, newPBShortLevel, newPBLevels);
 			
-			//RebuildPatternACandidates_BIP0();
+			//RebuildPatternFCandidates_BIP0();
 		
 		    // chart-only
-		    if (DrawPatternA && CanDrawDebug())
-		        DrawPatternADebug(newPBLong, newPBShort, newPBLevels);
+		    if (DrawPatternF && CanDrawDebug())
+		        DrawPatternFDebug(newPBLong, newPBShort, newPBLevels);
 		}
 	
-		private void BuildPatternA(
+		private void BuildPatternF(
 		    out Dictionary<int, double> newLongByBar,
 		    out Dictionary<int, double> newShortByBar,
-		    out List<PatternALevel> newLevels)
+		    out Dictionary<int, double> newLongLevelByBar,
+		    out Dictionary<int, double> newShortLevelByBar,
+		    out List<PatternFLevel> newLevels)
 		{
 		    newLongByBar  = new Dictionary<int, double>();
 		    newShortByBar = new Dictionary<int, double>();
-		    newLevels     = new List<PatternALevel>();
+		    newLongLevelByBar = new Dictionary<int, double>();
+		    newShortLevelByBar = new Dictionary<int, double>();
+		    newLevels     = new List<PatternFLevel>();
 		
-		    if ((!EnablePatternASignal && !EnablePatternALevels)
+		    if ((!EnablePatternFSignal && !EnablePatternFLevels)
 		        || pivotTimes == null
 		        || pivotTimes.Count < 3)
 		        return;
 		
-		    ScanPatternA(newLongByBar, newShortByBar, newLevels);
+		    ScanPatternF(newLongByBar, newShortByBar, newLongLevelByBar, newShortLevelByBar, newLevels);
 		}
 
 		
-		private void ApplyPatternAResults(
+		private void ApplyPatternFResults(
 		    Dictionary<int, double> newLongByBar,
 		    Dictionary<int, double> newShortByBar,
-		    List<PatternALevel> newLevels)
+		    Dictionary<int, double> newLongLevelByBar,
+		    Dictionary<int, double> newShortLevelByBar,
+		    List<PatternFLevel> newLevels)
 		{
-		    if (patternALongByBar == null)
-		        patternALongByBar = new Dictionary<int, double>();
-		    if (patternAShortByBar == null)
-		        patternAShortByBar = new Dictionary<int, double>();
-		    if (patternALevels == null)
-		        patternALevels = new List<PatternALevel>();
+		    if (patternFLongByBar == null)
+		        patternFLongByBar = new Dictionary<int, double>();
+		    if (patternFShortByBar == null)
+		        patternFShortByBar = new Dictionary<int, double>();
+		    if (patternFLongLevelByBar == null)
+		        patternFLongLevelByBar = new Dictionary<int, double>();
+		    if (patternFShortLevelByBar == null)
+		        patternFShortLevelByBar = new Dictionary<int, double>();
+		    if (patternFLevels == null)
+		        patternFLevels = new List<PatternFLevel>();
 		
 		    // Signals
-		    if (EnablePatternASignal)
+		    if (EnablePatternFSignal)
 		    {
-		        patternALongByBar.Clear();
+		        patternFLongByBar.Clear();
 		        foreach (var kv in newLongByBar)
-		            patternALongByBar[kv.Key] = kv.Value;
+		            patternFLongByBar[kv.Key] = kv.Value;
 		
-		        patternAShortByBar.Clear();
+		        patternFShortByBar.Clear();
 		        foreach (var kv in newShortByBar)
-		            patternAShortByBar[kv.Key] = kv.Value;
+		            patternFShortByBar[kv.Key] = kv.Value;
+
+		        patternFLongLevelByBar.Clear();
+		        foreach (var kv in newLongLevelByBar)
+		            patternFLongLevelByBar[kv.Key] = kv.Value;
+
+		        patternFShortLevelByBar.Clear();
+		        foreach (var kv in newShortLevelByBar)
+		            patternFShortLevelByBar[kv.Key] = kv.Value;
 		    }
 		    else
 		    {
-		        patternALongByBar.Clear();
-		        patternAShortByBar.Clear();
+		        patternFLongByBar.Clear();
+		        patternFShortByBar.Clear();
+		        patternFLongLevelByBar.Clear();
+		        patternFShortLevelByBar.Clear();
 		    }
 		
 		    // Levels
-		    if (EnablePatternALevels)
+		    if (EnablePatternFLevels)
 		    {
-		        patternALevels.Clear();
-		        patternALevels.AddRange(newLevels);
+		        patternFLevels.Clear();
+		        patternFLevels.AddRange(newLevels);
 		    }
 		    else
 		    {
-		        patternALevels.Clear();
+		        patternFLevels.Clear();
 		    }
 		}
 		
 		
         // Helper class to collect potential signals before filtering
-        private class PatternACandidate
+        private class PatternFCandidate
         {
             public int      BarIndex;
             public bool     IsLong;
             public double   LevelPrice;
             public double   SignalPrice;
             public int      OgIdx;
-            public PatternATriplet Triplet;
+            public PatternFTriplet Triplet;
         }
 
-		// Drop-in replacement for ScanPatternA (assumes you've added the helper methods:
+		// Drop-in replacement for ScanPatternF (assumes you've added the helper methods:
 		// SideOfLevel, SegmentCrossesLevel, CountPivotCrossesOverLevel, FindNextPivotCrossIdx)
-		private void ScanPatternA(
+		private void ScanPatternF(
 		    Dictionary<int, double> newLongByBar,
 		    Dictionary<int, double> newShortByBar,
-		    List<PatternALevel> newLevels)
+		    Dictionary<int, double> newLongLevelByBar,
+		    Dictionary<int, double> newShortLevelByBar,
+		    List<PatternFLevel> newLevels)
 		{
-		    patternATriplets.Clear();
-		    patternATripletsPotential.Clear();
-            var candidates = new List<PatternACandidate>();
+		    patternFTriplets.Clear();
+		    patternFTripletsPotential.Clear();
+            var candidates = new List<PatternFCandidate>();
+
+            List<double> expiredLevelsL = new List<double>();
+            List<double> expiredLevelsS = new List<double>();
 		
-		    if ((!EnablePatternASignal && !EnablePatternALevels)
+		    if ((!EnablePatternFSignal && !EnablePatternFLevels)
 		        || pivotTimes == null
 		        || pivotTimes.Count < 3)
 		        return;
@@ -1184,287 +1161,263 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    int pivotCount = pivotTimes.Count;
 		    double eps = TickSize * 0.5;
 		
-		    // Map pivot index -> primary (BIP0) bar index once, so we can do fast bar scans
 		    int[] pivotBarIndex = new int[pivotCount];
 		    for (int i = 0; i < pivotCount; i++)
 		        pivotBarIndex[i] = BarsArray[0].GetBar(pivotTimes[i]);
 			
-		
-		    void CollectLongSignals(PatternATriplet t, int crossBarIndex)
+		    void CollectLongSignals(PatternFTriplet t, int startBarIndex)
 		    {
-		        if (crossBarIndex < 0) return;
+		        if (startBarIndex < 0) return;
 		
 		        double level = t.OgPrice;
-		        int ogBarIndex = pivotBarIndex[t.OgIdx];
-		        if (ogBarIndex < 0) return;
-		
-		        int start = Math.Max(crossBarIndex, 1); 
-		
-		        // Stop scanning once ZigZag crosses the level again (2nd cross invalidates)
+		        int start = Math.Max(startBarIndex + 1, 1); 
 		        int end = CurrentBars[0];
-		        int nextCrossPivotIdx = FindNextPivotCrossIdx(t.TrendStartIdx, level, eps);
-				
-		        if (nextCrossPivotIdx >= 0)
-		        {
-		            int nextCrossBarIndex = pivotBarIndex[nextCrossPivotIdx];
-		            if (nextCrossBarIndex >= 0)
-						end = Math.Min(end, nextCrossBarIndex);
-		        }
 		
 		        if (start > end) return;
 				
+		        bool sequenceStarted = false;
+
 		        for (int barIndex = start; barIndex <= end; barIndex++)
 		        {
+                    if (expiredLevelsL.Any(lvl => Math.Abs(lvl - level) <= eps))
+                    {
+                        t.IsActive = false;
+                        break;
+                    }
+
 		            int barsAgo     = CurrentBars[0] - barIndex;
-		            int prevBarsAgo = barsAgo + 1;
-		            if (prevBarsAgo > CurrentBars[0]) continue;
-		
 		            double lo = Lows[0][barsAgo];
 		            double o  = Opens[0][barsAgo];
 		            double c  = Closes[0][barsAgo];
-		
 		            double bodyLow = Math.Min(o, c);
 		
 		            bool wickTouches = lo <= level + eps;
-		            bool bodyAbove   = bodyLow > level + eps;             // strict above
-		            bool lowerLow    = lo < Lows[0][prevBarsAgo] - eps;   // lower low than previous bar
+		            bool bodyAbove   = bodyLow >= level - eps;
 		
-		            if (wickTouches && bodyAbove && lowerLow)
+		            if (wickTouches && bodyAbove)
 		            {
-                        // Add candidate
-                        candidates.Add(new PatternACandidate
-                        {
+                        sequenceStarted = true;
+                        candidates.Add(new PatternFCandidate {
                             BarIndex = barIndex,
                             IsLong = true,
                             LevelPrice = level,
-                            SignalPrice = lo - (PatternAMarkerOffsetTicks * TickSize),
+                            SignalPrice = lo - (PatternFMarkerOffsetTicks * TickSize),
                             OgIdx = t.OgIdx,
                             Triplet = t
                         });
 		            }
+                    else
+                    {
+                        if (!sequenceStarted)
+                        {
+                            if (bodyLow < level - eps)
+                            {
+                                t.IsActive = false;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (barIndex < CurrentBars[0])
+                            {
+                                t.IsActive = false;
+                                if (!expiredLevelsL.Any(lvl => Math.Abs(lvl - level) <= eps))
+                                    expiredLevelsL.Add(level);
+                                break;
+                            }
+                        }
+                    }
 		        }
 		    }
 		
-		    void CollectShortSignals(PatternATriplet t, int crossBarIndex)
+		    void CollectShortSignals(PatternFTriplet t, int startBarIndex)
 		    {
-		        if (crossBarIndex < 0) return;
+		        if (startBarIndex < 0) return;
 		
 		        double level = t.OgPrice;
-		        int ogBarIndex = pivotBarIndex[t.OgIdx];
-		        if (ogBarIndex < 0) return;
-		
-		        int start = Math.Max(crossBarIndex, 1);
-		
-		        // Stop scanning once ZigZag crosses the level again (2nd cross invalidates)
+		        int start = Math.Max(startBarIndex + 1, 1);
 		        int end = CurrentBars[0];
-		        int nextCrossPivotIdx = FindNextPivotCrossIdx(t.TrendStartIdx, level, eps);
-		        if (nextCrossPivotIdx >= 0)
-		        {
-		            int nextCrossBarIndex = pivotBarIndex[nextCrossPivotIdx];
-		            if (nextCrossBarIndex >= 0)
-		                end = Math.Min(end, nextCrossBarIndex);
-		        }
 		
 		        if (start > end) return;		
 		
+		        bool sequenceStarted = false;
+
 		        for (int barIndex = start; barIndex <= end; barIndex++)
 		        {
+                    if (expiredLevelsS.Any(lvl => Math.Abs(lvl - level) <= eps))
+                    {
+                        t.IsActive = false;
+                        break;
+                    }
+
 		            int barsAgo     = CurrentBars[0] - barIndex;
-		            int prevBarsAgo = barsAgo + 1;
-		            if (prevBarsAgo > CurrentBars[0]) continue;
-		
 		            double hi = Highs[0][barsAgo];
 		            double o  = Opens[0][barsAgo];
 		            double c  = Closes[0][barsAgo];
-		
 		            double bodyHigh = Math.Max(o, c);
 		
 		            bool wickTouches = hi >= level - eps;
-		            bool bodyBelow   = bodyHigh < level - eps;            // strict below
-		            bool higherHigh  = hi > Highs[0][prevBarsAgo] + eps;  // higher high than previous bar
+		            bool bodyBelow   = bodyHigh <= level + eps;
 					
-		            if (wickTouches && bodyBelow && higherHigh)
+		            if (wickTouches && bodyBelow)
 		            {
-                        // Add candidate
-                        candidates.Add(new PatternACandidate {
+                        sequenceStarted = true;
+                        candidates.Add(new PatternFCandidate {
                             BarIndex = barIndex,
                             IsLong = false,
                             LevelPrice = level,
-                            SignalPrice = hi + (PatternAMarkerOffsetTicks * TickSize),
+                            SignalPrice = hi + (PatternFMarkerOffsetTicks * TickSize),
                             OgIdx = t.OgIdx,
                             Triplet = t
                         });
 		            }
+                    else
+                    {
+                        if (!sequenceStarted)
+                        {
+                            if (bodyHigh > level + eps)
+                            {
+                                t.IsActive = false;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (barIndex < CurrentBars[0])
+                            {
+                                t.IsActive = false;
+                                if (!expiredLevelsS.Any(lvl => Math.Abs(lvl - level) <= eps))
+                                    expiredLevelsS.Add(level);
+                                break;
+                            }
+                        }
+                    }
 		        }
 		    }
 		
-		    // =========================
-		    // Pattern A structural scan
-		    // =========================
-		    // Pivot2->Pivot3 adjacency enforced (idx3 = idx2 + 1).
-		    for (int idx1 = lookbackStartPivotIdx; idx1 < pivotCount - 2; idx1++)
+		    for (int idx1 = lookbackStartPivotIdx; idx1 < pivotCount - 1; idx1++)
 		    {
 		        bool isLongStart = pivotIsHigh[idx1];
-				double level     = pivotGuidePrices[idx1];
+				double breakLevel = pivotPrices[idx1];
 				
-				for (int idx2 = idx1 + 1; idx2 < pivotCount - 1; idx2++)
+				for (int idx2 = idx1 + 1; idx2 < pivotCount; idx2++)
 				{
-				    // Pivot2 must be opposite polarity of Pivot1
 				    if (isLongStart)
 				    {
-				        if (pivotIsHigh[idx2])
-				            continue; // LONG: Pivot2 must be LOW
-				
-				        double p2 = pivotPrices[idx2];
-				        if (p2 >= level - eps)
-				            continue; // must be below level
+				        if (pivotIsHigh[idx2]) continue;
 				    }
 				    else
 				    {
-				        if (!pivotIsHigh[idx2])
-				            continue; // SHORT: Pivot2 must be HIGH
-				
-				        double p2 = pivotPrices[idx2];
-				        if (p2 <= level + eps)
-				            continue; // must be above level
+				        if (!pivotIsHigh[idx2]) continue;
 				    }
 				
-				    int idx3 = idx2 + 1;
-				
-				    // Pivot3 must return to Pivot1 polarity
-				    if (isLongStart)
-				    {
-				        if (!pivotIsHigh[idx3])
-				            continue; // LONG: Pivot3 must be HIGH
-				
-				        double p3 = pivotPrices[idx3];
-				        if (p3 <= level + eps)
-				            continue; // must be above to ensure the segment straddles
-				    }
-				    else
-				    {
-				        if (pivotIsHigh[idx3])
-				            continue; // SHORT: Pivot3 must be LOW
-				
-				        double p3 = pivotPrices[idx3];
-				        if (p3 >= level - eps)
-				            continue; // must be below to ensure the segment straddles
-				    }
-				
-				    // Excluding Pivot1: total crosses from (idx1+1 .. idx3) must be exactly 1
-				    int crossCount = CountPivotCrossesOverLevel(idx1 + 1, idx3, level, eps);
-				    if (crossCount != 1)
-				        continue;
-				
-				    // NEW (fixed + symmetric): after the arming cross at idx3, there must be NO additional crosses
-				    // of the level, using confirmed pivots in realtime and strict crossing to avoid "touch" false positives.
-				    int postStart = idx3 + 1;
-				    int postEnd   = pivotCount - 1;
-				
-				    if (postStart <= postEnd)
-				    {
-				        int postCrossCount = CountPivotCrossesOverLevelConfirmedStrict(postStart, postEnd, level, eps);
-				        if (postCrossCount != 0)
-				        {           
-				            continue;
-				        }
-				    }
-				
-				    var trip = new PatternATriplet
-				    {
-				        IsLong          = isLongStart,
-				        IsActive        = true,
-				        OgIdx           = idx1,
-				        SupportIdx      = idx2,
-				        TrendStartIdx   = idx3,
-				        OgPrice         = level,
-				        SupportPrice    = pivotGuidePrices[idx2],
-				        TrendStartPrice = pivotPrices[idx2], // LONG: low at Pivot2; SHORT: high at Pivot2
-				        HasCrossed      = true,
-				        CrossCount      = crossCount,         // == 1
-				        CrossTime       = pivotTimes[idx3]
-				    };
-				
-				    patternATripletsPotential.Add(trip);
-				
-				    int crossBarIndex = pivotBarIndex[idx3];
-				    if (isLongStart)
-                        CollectLongSignals(trip, crossBarIndex);
-				    else
-                        CollectShortSignals(trip, crossBarIndex);
+				    double activeLevel = pivotGuidePrices[idx2];
+				    
+				    int startBar = pivotBarIndex[idx2];
+				    if (startBar < 0) continue;
+				    
+				    int crossBarIndex = -1;
+				    
+                    int idx3 = idx2 + 1;
+                    int endBar = (idx3 < pivotCount) ? pivotBarIndex[idx3] : CurrentBars[0];
+
+                    for (int b = startBar; b <= endBar; b++)
+                    {
+                        int barsAgo = CurrentBars[0] - b;
+                        if (barsAgo < 0) continue;
+                        
+                        double c = Closes[0][barsAgo];
+                        
+                        if (isLongStart)
+                        {
+                            if (c > breakLevel + eps)
+                            {
+                                crossBarIndex = b;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            if (c < breakLevel - eps)
+                            {
+                                crossBarIndex = b;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    var triplet = new PatternFTriplet
+                    {
+                        OgIdx = idx2,
+                        OgPrice = activeLevel,
+                        SupportPrice = breakLevel,
+                        TrendStartIdx = idx2,
+                        TrendStartPrice = activeLevel,
+                        IsActive = true,
+                        IsLong = isLongStart,
+                        BreakBarIndex = crossBarIndex
+                    };
+                    
+                    if (crossBarIndex != -1)
+                    {
+                        patternFTriplets.Add(triplet);
+                        if (isLongStart)
+                            CollectLongSignals(triplet, crossBarIndex);
+                        else
+                            CollectShortSignals(triplet, crossBarIndex);
+                    }
+                    else
+                    {
+                        // ONLY add to potentials if idx3 hasn't formed yet!
+                        if (idx3 >= pivotCount)
+                            patternFTripletsPotential.Add(triplet);
+                    }
+                        
+                    break;
 				}
 		    }
 
-            // --- FILTERING STEP ---
-            // Group candidates by BarIndex
-            var grouped = candidates.GroupBy(c => c.BarIndex);
-
-            // Set of triplets that successfully generated a "Winning" signal
-            var winningTriplets = new HashSet<PatternATriplet>();
-
-            foreach (var g in grouped)
+            if (EnablePatternFSignal)
             {
-                int barIndex = g.Key;
-
-                // Add ALL Longs
-                foreach(var cand in g.Where(c => c.IsLong))
+                foreach (var c in candidates)
                 {
-                    if (EnablePatternASignal)
+                    if (c.IsLong)
                     {
-                        // Overwrite signal (plot allows only 1 value). 
-                        // It doesn't matter which one because they all have same visual position (Low - offset)
-                        newLongByBar[barIndex] = cand.SignalPrice;
-                        winningTriplets.Add(cand.Triplet);
-                        patternATriplets.Add(cand.Triplet);
-                        
-                        string key = MakeTripletKey(cand.Triplet);
-                        if (!string.IsNullOrEmpty(key))
-                            lastSignalBip0BarByKey[key] = barIndex;
+                        newLongByBar[c.BarIndex] = c.SignalPrice;
+                        newLongLevelByBar[c.BarIndex] = c.LevelPrice;
                     }
-                }
-
-                // Add ALL Shorts
-                foreach(var cand in g.Where(c => !c.IsLong))
-                {
-                    if (EnablePatternASignal)
+                    else
                     {
-                        newShortByBar[barIndex] = cand.SignalPrice;
-                        winningTriplets.Add(cand.Triplet);
-                        patternATriplets.Add(cand.Triplet);
-
-                        string key = MakeTripletKey(cand.Triplet);
-                        if (!string.IsNullOrEmpty(key))
-                            lastSignalBip0BarByKey[key] = barIndex;
+                        newShortByBar[c.BarIndex] = c.SignalPrice;
+                        newShortLevelByBar[c.BarIndex] = c.LevelPrice;
                     }
                 }
             }
 
-            // --- LEVELS STEP ---
-            // Add levels for ALL triplets that signaled
-            if (EnablePatternALevels)
+            if (EnablePatternFLevels)
             {
+                var winningTriplets = candidates.Select(c => c.Triplet).Distinct().ToList();
                 foreach (var t in winningTriplets)
                 {
                     int ogBarIdx = pivotBarIndex[t.OgIdx];
                     if (ogBarIdx < 0) continue;
 
-                    // Use the FIRST time it signaled
-                    var firstSignal = candidates
+                    var lastSignal = candidates
                         .Where(c => c.Triplet == t)
-                        .OrderBy(c => c.BarIndex)
+                        .OrderByDescending(c => c.BarIndex)
                         .FirstOrDefault();
                     
-                    if (firstSignal != null)
+                    if (lastSignal != null)
                     {
-                        int barsAgo = CurrentBars[0] - firstSignal.BarIndex;
+                        int barsAgo = CurrentBars[0] - lastSignal.BarIndex;
                         if (barsAgo >= 0)
                         {
-                             newLevels.Add(new PatternALevel
+                             newLevels.Add(new PatternFLevel
                             {
                                 IsLong        = t.IsLong,
                                 OgBarIndex    = ogBarIdx,
                                 OgTime        = pivotTimes[t.OgIdx],
-                                EntryBarIndex = firstSignal.BarIndex,
+                                EntryBarIndex = lastSignal.BarIndex,
                                 EntryTime     = Times[0][barsAgo],
                                 Price         = t.OgPrice
                             });
@@ -1473,7 +1426,6 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
             }
 		}
-		
 		
 		private int SideOfLevel(double price, double level, double eps)
 		{
@@ -1589,14 +1541,21 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    return count;
 		}
 
-		// Finds the next pivot index > fromPivotIdx where the segment [i-1 -> i] straddles the level.
-		private int FindNextPivotCrossIdx(int fromPivotIdx, double level, double eps)
+		private int FindNextPivotCrossIdx(bool isLong, int startIdx, double level, double eps)
 		{
 		    int n = pivotPrices.Count;
-		    for (int i = Math.Max(1, fromPivotIdx + 1); i < n; i++)
+		    for (int i = startIdx + 1; i < n; i++)
 		    {
-		        if (SegmentCrossesLevel(pivotPrices[i - 1], pivotPrices[i], level, eps))
-		            return i;
+		        if (isLong)
+		        {
+		            if (!pivotIsHigh[i] && pivotGuidePrices[i] < level - eps)
+		                return i;
+		        }
+		        else
+		        {
+		            if (pivotIsHigh[i] && pivotGuidePrices[i] > level + eps)
+		                return i;
+		        }
 		    }
 		    return -1;
 		}
@@ -1635,39 +1594,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    return CurrentBars[0] - barsAgo;
 		}
 
-
-		
-		// Gate for POTENTIAL Pattern A LONG:
-		// Returns true once the pattern has "cleared/armed" (pivot guide cleared support guide),
-		// returns false if it aborts (new extreme beyond TrendStart) or never clears.
-		private bool ScanPatternAFromTriple_Long_PotentialGate(PatternATriplet trip)
+		// Gate for POTENTIAL Pattern F LONG:
+		// Returns true once the pattern has "cleared/armed" (body high cleared support guide),
+		// but aborts if it first breaks the TrendStart low.
+		private bool ScanPatternFFromTriple_Long_PotentialGate(PatternFTriplet trip, double eps)
 		{
 		    if (trip == null || !trip.IsActive)
 		        return false;
 		
-		    double eps           = TickSize * 0.5;
-		    double supportGuide  = trip.SupportPrice;
+		    double supportGuide = trip.SupportPrice;
 		    double trendStartLow = trip.TrendStartPrice;
 		
 		    bool hasClearedSupport = false;
 		
-		    // Move forward from TrendStartIdx+1 through future pivots
-		    for (int j = trip.TrendStartIdx + 1; j < pivotTimes.Count; j++)
+		    int trendStartBarIndex = BarsArray[0].GetBar(pivotTimes[trip.TrendStartIdx]);
+		    if (trendStartBarIndex < 0) return false;
+
+		    for (int b = trendStartBarIndex; b <= CurrentBars[0]; b++)
 		    {
-		        if (!pivotIsHigh[j])
+		        int barsAgo = CurrentBars[0] - b;
+		        if (barsAgo < 0) continue;
+
+		        double l = Lows[0][barsAgo];
+		        double c = Closes[0][barsAgo];
+		        double o = Opens[0][barsAgo];
+
+		        double bodyHigh = Math.Max(o, c);
+
+		        if (!hasClearedSupport)
 		        {
-		            // LOW pivot: abort if new low breaks TrendStart low before arming
-		            double lowPrice = pivotPrices[j];
-		            if (lowPrice < trendStartLow - eps)
+		            if (l < trendStartLow - eps)
 		                return false;
-		
-		            // otherwise continue; arming happens on HIGH pivots (guide > supportGuide)
-		        }
-		        else
-		        {
-		            // HIGH pivot: “cleared support” once body/guide gets above Support guide
-		            double highGuide = pivotGuidePrices[j];
-		            if (highGuide > supportGuide + eps)
+
+		            if (bodyHigh > supportGuide + eps)
 		            {
 		                hasClearedSupport = true;
 		                break;
@@ -1678,37 +1637,39 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    return hasClearedSupport;
 		}
 		
-		// Gate for POTENTIAL Pattern A SHORT:
-		// Returns true once the pattern has "cleared/armed" (pivot guide cleared resistance guide),
-		// returns false if it aborts (new extreme beyond TrendStart) or never clears.
-		private bool ScanPatternAFromTriple_Short_PotentialGate(PatternATriplet trip)
+		// Gate for POTENTIAL Pattern F SHORT:
+		// Returns true once the pattern has "cleared/armed" (body low cleared resistance guide),
+		// but aborts if it first breaks the TrendStart high.
+		private bool ScanPatternFFromTriple_Short_PotentialGate(PatternFTriplet trip, double eps)
 		{
 		    if (trip == null || !trip.IsActive)
 		        return false;
 		
-		    double eps             = TickSize * 0.5;
 		    double resistanceGuide = trip.SupportPrice;
 		    double trendStartHigh  = trip.TrendStartPrice;
 		
 		    bool hasClearedResistance = false;
 		
-		    // Move forward from TrendStartIdx+1 through future pivots
-		    for (int j = trip.TrendStartIdx + 1; j < pivotTimes.Count; j++)
+		    int trendStartBarIndex = BarsArray[0].GetBar(pivotTimes[trip.TrendStartIdx]);
+		    if (trendStartBarIndex < 0) return false;
+
+		    for (int b = trendStartBarIndex; b <= CurrentBars[0]; b++)
 		    {
-		        if (pivotIsHigh[j])
+		        int barsAgo = CurrentBars[0] - b;
+		        if (barsAgo < 0) continue;
+
+		        double h = Highs[0][barsAgo];
+		        double c = Closes[0][barsAgo];
+		        double o = Opens[0][barsAgo];
+
+		        double bodyLow = Math.Min(o, c);
+
+		        if (!hasClearedResistance)
 		        {
-		            // HIGH pivot: abort if new high breaks TrendStart high before arming
-		            double highPrice = pivotPrices[j];
-		            if (highPrice > trendStartHigh + eps)
+		            if (h > trendStartHigh + eps)
 		                return false;
-		
-		            // otherwise continue; arming happens on LOW pivots (guide < resistanceGuide)
-		        }
-		        else
-		        {
-		            // LOW pivot: “cleared resistance” once body/guide gets below resistance guide
-		            double lowGuide = pivotGuidePrices[j];
-		            if (lowGuide < resistanceGuide - eps)
+
+		            if (bodyLow < resistanceGuide - eps)
 		            {
 		                hasClearedResistance = true;
 		                break;
@@ -1717,13 +1678,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		
 		    return hasClearedResistance;
+		
 		}
 
 		
-		private bool ScanPatternAFromTriple_Long(
-		    PatternATriplet trip,
+		private bool ScanPatternFFromTriple_Long(
+		    PatternFTriplet trip,
 		    Dictionary<int, double> newLongByBar,
-		    List<PatternALevel> newLevels)
+		    List<PatternFLevel> newLevels)
 		{
 		    double eps           = TickSize * 0.5;
 		    double ogLevel       = trip.OgPrice;
@@ -1784,9 +1746,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    double entryPrice = pivotPrices[entryPivotIdx];
 		
 		    // Signal placement (keep your offset style)
-		    if (EnablePatternASignal)
+		    if (EnablePatternFSignal)
 			{
-		        newLongByBar[entryBarIndex] = entryPrice - (PatternAMarkerOffsetTicks * TickSize);
+			    if (true)
+			    {
+		            newLongByBar[entryBarIndex] = entryPrice - (PatternFMarkerOffsetTicks * TickSize);
                 
                 string plotKey = "L|" + trip.OgIdx + "|" + trip.SupportIdx + "|" + trip.TrendStartIdx + "_Historical";
 
@@ -1800,24 +1764,27 @@ namespace NinjaTrader.NinjaScript.Indicators
                         double preciseTime = 0;
                         if (livePreciseEndTimesL != null && livePreciseEndTimesL.ContainsKey(entryBarIndex))
                             preciseTime = livePreciseEndTimesL[entryBarIndex];
-                        else if (PatternALongEndTimestamp[barsAgo] > 0)
-                            preciseTime = PatternALongEndTimestamp[barsAgo];
+                        else if (PatternFLongEndTimestamp[barsAgo] > 0)
+                            preciseTime = PatternFLongEndTimestamp[barsAgo];
                             
                         if (preciseTime == 0)
                             preciseTime = Times[0][barsAgo].ToOADate();
                             
-                        PatternALongLevel[barsAgo]          = ogLevel;
-                        PatternALongStartTimestamp[barsAgo] = pivotTimes[trip.OgIdx].ToOADate();
-                        PatternALongEndTimestamp[barsAgo]   = preciseTime;
-						patternALongSignalBarTimestamp[barsAgo] = Times[0][barsAgo].ToOADate();
+                        PatternFLongLevel[barsAgo]          = ogLevel;
+                        PatternFLongStartTimestamp[barsAgo] = pivotTimes[trip.OgIdx].ToOADate();
+                        PatternFLongEndTimestamp[barsAgo]   = preciseTime;
+						patternFLongSignalBarTimestamp[barsAgo] = Times[0][barsAgo].ToOADate();
                     }
                 }
+			    }
 			}
 		
 		    // Level ends at entry (wick) pivot (so it does NOT extend to the right forever)
-		    if (EnablePatternALevels)
+		    if (EnablePatternFLevels)
 		    {
-		        newLevels.Add(new PatternALevel
+			    if (true)
+			    {
+		            newLevels.Add(new PatternFLevel
 		        {
 		            IsLong       = true,
 		            OgBarIndex   = ogBarIndex,
@@ -1826,15 +1793,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		            EntryTime    = pivotTimes[entryPivotIdx],
 		            Price        = ogLevel
 		        });
+		        }
 		    }
 		
 		    return true;
 		}
 		
-		private bool ScanPatternAFromTriple_Short(
-		    PatternATriplet trip,
+		private bool ScanPatternFFromTriple_Short(
+		    PatternFTriplet trip,
 		    Dictionary<int, double> newShortByBar,
-		    List<PatternALevel> newLevels)
+		    List<PatternFLevel> newLevels)
 		{
 		    double eps            = TickSize * 0.5;
 		    double ogLevel        = trip.OgPrice;
@@ -1895,9 +1863,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    double entryPrice = pivotPrices[entryPivotIdx];
 		
 		    // Signal placement (keep your offset style)
-		    if (EnablePatternASignal)
+		    if (EnablePatternFSignal)
 			{
-		        newShortByBar[entryBarIndex] = entryPrice + (PatternAMarkerOffsetTicks * TickSize);
+			    if (true)
+			    {
+		            newShortByBar[entryBarIndex] = entryPrice + (PatternFMarkerOffsetTicks * TickSize);
 
                 string plotKey = "S|" + trip.OgIdx + "|" + trip.SupportIdx + "|" + trip.TrendStartIdx + "_Historical";
 
@@ -1911,24 +1881,27 @@ namespace NinjaTrader.NinjaScript.Indicators
                         double preciseTime = 0;
                         if (livePreciseEndTimesS != null && livePreciseEndTimesS.ContainsKey(entryBarIndex))
                             preciseTime = livePreciseEndTimesS[entryBarIndex];
-                        else if (PatternAShortEndTimestamp[barsAgo] > 0)
-                            preciseTime = PatternAShortEndTimestamp[barsAgo];
+                        else if (PatternFShortEndTimestamp[barsAgo] > 0)
+                            preciseTime = PatternFShortEndTimestamp[barsAgo];
                             
                         if (preciseTime == 0)
                             preciseTime = Times[0][barsAgo].ToOADate();
 
-                        PatternAShortLevel[barsAgo]          = ogLevel;
-                        PatternAShortStartTimestamp[barsAgo] = pivotTimes[trip.OgIdx].ToOADate();
-                        PatternAShortEndTimestamp[barsAgo]   = preciseTime;
-						patternAShortSignalBarTimestamp[barsAgo] = Times[0][barsAgo].ToOADate();
+                        PatternFShortLevel[barsAgo]          = ogLevel;
+                        PatternFShortStartTimestamp[barsAgo] = pivotTimes[trip.OgIdx].ToOADate();
+                        PatternFShortEndTimestamp[barsAgo]   = preciseTime;
+						patternFShortSignalBarTimestamp[barsAgo] = Times[0][barsAgo].ToOADate();
                     }
                 }
+			    }
 			}
 		
 		    // Level ends at entry (wick) pivot
-		    if (EnablePatternALevels)
+		    if (EnablePatternFLevels)
 		    {
-		        newLevels.Add(new PatternALevel
+			    if (true)
+			    {
+		            newLevels.Add(new PatternFLevel
 		        {
 		            IsLong       = false,
 		            OgBarIndex   = ogBarIndex,
@@ -1937,6 +1910,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		            EntryTime    = pivotTimes[entryPivotIdx],
 		            Price        = ogLevel
 		        });
+		        }
 		    }
 		
 		    return true;
@@ -1944,87 +1918,87 @@ namespace NinjaTrader.NinjaScript.Indicators
 	
 
 
-		private void DrawPatternADebug(
+		private void DrawPatternFDebug(
 		    Dictionary<int, double> newLongByBar,
 		    Dictionary<int, double> newShortByBar,
-		    List<PatternALevel> newLevels)
+		    List<PatternFLevel> newLevels)
 		{
-		    if (!CanDrawDebug() || !DrawPatternA)
+		    if (!CanDrawDebug() || !DrawPatternF)
 		        return;
 		
             // ---- New Debug Labels ----
             if (ShowDebugLabels)
             {
-                 foreach (var kv in patternALongByBar)
+                 foreach (var kv in patternFLongByBar)
                  {
                     int barIndex = kv.Key;
                     int barsAgo = CurrentBar - barIndex;
                     if (barsAgo < 0 || barsAgo >= CurrentBar) continue;
 
-                    double level = PatternALongLevel[barsAgo];
+                    double level = PatternFLongLevel[barsAgo];
                     if (level < 0.0001) continue; 
 
-                    double startTs = PatternALongStartTimestamp[barsAgo];
-                    double endTs   = PatternALongEndTimestamp[barsAgo];
+                    double startTs = PatternFLongStartTimestamp[barsAgo];
+                    double endTs   = PatternFLongEndTimestamp[barsAgo];
 
-                    DrawPatternADetailLabel(true, barIndex, level, startTs, endTs);
+                    DrawPatternFDetailLabel(true, barIndex, level, startTs, endTs);
                  }
 
-                 foreach (var kv in patternAShortByBar)
+                 foreach (var kv in patternFShortByBar)
                  {
                     int barIndex = kv.Key;
                     int barsAgo = CurrentBar - barIndex;
                     if (barsAgo < 0 || barsAgo >= CurrentBar) continue;
 
-                    double level = PatternAShortLevel[barsAgo];
+                    double level = PatternFShortLevel[barsAgo];
                     if (level < 0.0001) continue; 
 
-                    double startTs = PatternAShortStartTimestamp[barsAgo];
-                    double endTs   = PatternAShortEndTimestamp[barsAgo];
+                    double startTs = PatternFShortStartTimestamp[barsAgo];
+                    double endTs   = PatternFShortEndTimestamp[barsAgo];
 
-                    DrawPatternADetailLabel(false, barIndex, level, startTs, endTs);
+                    DrawPatternFDetailLabel(false, barIndex, level, startTs, endTs);
                  }
             }
 
 		    // ---- SIGNALS (triangles) ----
 		    // Clear stale markers (only if we have previous state)
-		    if (patternALongByBar != null)
-		        foreach (var kv in patternALongByBar.ToList())
+		    if (patternFLongByBar != null)
+		        foreach (var kv in patternFLongByBar.ToList())
 		            if (!newLongByBar.ContainsKey(kv.Key))
 		                RemoveDrawObject($"PATTERNA_L_{kv.Key}");
 		
-		    if (patternAShortByBar != null)
-		        foreach (var kv in patternAShortByBar.ToList())
+		    if (patternFShortByBar != null)
+		        foreach (var kv in patternFShortByBar.ToList())
 		            if (!newShortByBar.ContainsKey(kv.Key))
 		                RemoveDrawObject($"PATTERNA_S_{kv.Key}");
 		
 		    // Draw current (or none if disabled)
-		    if (EnablePatternASignal)
+		    if (EnablePatternFSignal)
 		    {
 		        foreach (var kv in newLongByBar)
-		            DrawPatternAText(true, kv.Key, kv.Value);
+		            DrawPatternFText(true, kv.Key, kv.Value);
 		
 		        foreach (var kv in newShortByBar)
-		            DrawPatternAText(false, kv.Key, kv.Value);
+		            DrawPatternFText(false, kv.Key, kv.Value);
 		    }
 		    else
 		    {
 		        // If signals disabled, remove any existing markers
-		        if (patternALongByBar != null)
-		            foreach (var kv in patternALongByBar)
+		        if (patternFLongByBar != null)
+		            foreach (var kv in patternFLongByBar)
 		                RemoveDrawObject($"PATTERNA_L_{kv.Key}");
 		
-		        if (patternAShortByBar != null)
-		            foreach (var kv in patternAShortByBar)
+		        if (patternFShortByBar != null)
+		            foreach (var kv in patternFShortByBar)
 		                RemoveDrawObject($"PATTERNA_S_{kv.Key}");
 		    }
 		
 		    // ---- LEVELS (horizontal lines) ----
 		    // For simplicity, clear prior drawn levels and redraw current.
 		    // (Still cheap because this is debug-only.)
-		    if (patternALevels != null)
+		    if (patternFLevels != null)
 		    {
-		        foreach (var lvl in patternALevels)
+		        foreach (var lvl in patternFLevels)
 		        {
 		            string tagOld = lvl.IsLong
 		                ? $"PATTERNA_LVL_L_{lvl.OgBarIndex}"
@@ -2033,15 +2007,15 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        }
 		    }
 		
-		    if (EnablePatternALevels)
+		    if (EnablePatternFLevels)
 		    {
 		        foreach (var lvl in newLevels)
-		            DrawPatternALevelLine(lvl);
+		            DrawPatternFLevelLine(lvl);
 		    }
 		}
 
         // ---- New Debug Labels ----
-        private void DrawPatternADetailLabel(bool isLong, int barIndex, double level, double startTsOA, double endTsOA)
+        private void DrawPatternFDetailLabel(bool isLong, int barIndex, double level, double startTsOA, double endTsOA)
         {
              if (!CanDrawDebug()) return;
              
@@ -2061,11 +2035,11 @@ namespace NinjaTrader.NinjaScript.Indicators
              
              // Position: slightly above/below the level logic
              double y = isLong 
-                ? Low[barsAgo] - (PatternAMarkerOffsetTicks + 15) * TickSize 
-                : High[barsAgo] + (PatternAMarkerOffsetTicks + 15) * TickSize;
+                ? Low[barsAgo] - (PatternFMarkerOffsetTicks + 15) * TickSize 
+                : High[barsAgo] + (PatternFMarkerOffsetTicks + 15) * TickSize;
 
              Draw.Text(this, tag, false, text, barsAgo, y, 0,
-                isLong ? PatternALongColor : PatternAShortColor,
+                isLong ? PatternFLongColor : PatternFShortColor,
                 new SimpleFont("Arial", 10),
                 TextAlignment.Center,
                 Brushes.Transparent,
@@ -2073,9 +2047,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 0);
         }
 		
-		private void DrawPatternAText(bool isLong, int barIndex, double price)
+		private void DrawPatternFText(bool isLong, int barIndex, double price)
 		{
-		    if (!CanDrawDebug() || !DrawPatternA)
+		    if (!CanDrawDebug() || !DrawPatternF)
 		        return;
 		
 		    if (barIndex < 0 || barIndex > CurrentBar)
@@ -2088,7 +2062,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    string tag  = isLong ? $"PATTERNA_L_{barIndex}" : $"PATTERNA_S_{barIndex}";
 		    string txt  = isLong ? "▲" : "▼";
 		
-		    Brush brush = isLong ? PatternALongColor : PatternAShortColor;
+		    Brush brush = isLong ? PatternFLongColor : PatternFShortColor;
 		
 		    // If you want to ensure updates replace old text, clear first
 		    RemoveDrawObject(tag);
@@ -2099,16 +2073,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        price,
 		        0,
 		        brush,
-		        new SimpleFont("Arial", PatternAMarkerFontSize),
+		        new SimpleFont("Arial", PatternFMarkerFontSize),
 		        TextAlignment.Center,
 		        Brushes.Transparent,
 		        Brushes.Transparent,
 		        0);
 		}
 		
-		private void DrawPatternALevelLine(PatternALevel lvl)
+		private void DrawPatternFLevelLine(PatternFLevel lvl)
 		{
-		    if (!CanDrawDebug() || !DrawPatternA)
+		    if (!CanDrawDebug() || !DrawPatternF)
 		        return;
 		
 		    if (lvl == null)
@@ -2118,7 +2092,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        ? $"PATTERNA_LVL_L_{lvl.OgBarIndex}"
 		        : $"PATTERNA_LVL_S_{lvl.OgBarIndex}";
 		
-		    Brush brush = lvl.IsLong ? PatternALongColor : PatternAShortColor;
+		    Brush brush = lvl.IsLong ? PatternFLongColor : PatternFShortColor;
 		
 		    RemoveDrawObject(tag);
 		
@@ -2128,16 +2102,16 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    Draw.Line(this, tag, false,
 		        t1, lvl.Price,
 		        t2, lvl.Price,
-		        brush, PatternALevelDashStyle, PatternALevelWidth);
+		        brush, PatternFLevelDashStyle, PatternFLevelWidth);
 		}
 
 
 
 
 		
-		private double GetPatternAMarkerOffsetPrice(bool isLong)
+		private double GetPatternFMarkerOffsetPrice(bool isLong)
 		{
-		    double ticks = PatternAMarkerOffsetTicks * TickSize;
+		    double ticks = PatternFMarkerOffsetTicks * TickSize;
 		    return isLong ? ticks : -ticks;
 		}
 		
@@ -2224,7 +2198,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		        return false;
 		
 //		    // Any debug visualization enabled?
-//		    if (!ShowZigZagDebug && !DebugDrawPatternA /*&& !DebugDrawPatternA */)
+//		    if (!ShowZigZagDebug && !DebugDrawPatternF /*&& !DebugDrawPatternF */)
 //		        return false;
 		
 		    return true;
@@ -2242,19 +2216,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorPtAV0003[] cacheAlightenMirrorPtAV0003;
-		public AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		private AlightenMirrorPtFV0001[] cacheAlightenMirrorPtFV0001;
+		public AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return AlightenMirrorPtAV0003(Input, barsToProcess, enablePatternASignal, enablePatternALevels, drawPatternA, patternAMarkerFontSize, patternAMarkerOffsetTicks, patternALongColor, patternAShortColor, patternALevelWidth, patternALevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return AlightenMirrorPtFV0001(Input, barsToProcess, enablePatternFSignal, enablePatternFLevels, drawPatternF, patternFMarkerFontSize, patternFMarkerOffsetTicks, patternFLongColor, patternFShortColor, patternFLevelWidth, patternFLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(ISeries<double> input, int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(ISeries<double> input, int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			if (cacheAlightenMirrorPtAV0003 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorPtAV0003.Length; idx++)
-					if (cacheAlightenMirrorPtAV0003[idx] != null && cacheAlightenMirrorPtAV0003[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtAV0003[idx].EnablePatternASignal == enablePatternASignal && cacheAlightenMirrorPtAV0003[idx].EnablePatternALevels == enablePatternALevels && cacheAlightenMirrorPtAV0003[idx].DrawPatternA == drawPatternA && cacheAlightenMirrorPtAV0003[idx].PatternAMarkerFontSize == patternAMarkerFontSize && cacheAlightenMirrorPtAV0003[idx].PatternAMarkerOffsetTicks == patternAMarkerOffsetTicks && cacheAlightenMirrorPtAV0003[idx].PatternALongColor == patternALongColor && cacheAlightenMirrorPtAV0003[idx].PatternAShortColor == patternAShortColor && cacheAlightenMirrorPtAV0003[idx].PatternALevelWidth == patternALevelWidth && cacheAlightenMirrorPtAV0003[idx].PatternALevelDashStyle == patternALevelDashStyle && cacheAlightenMirrorPtAV0003[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtAV0003[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtAV0003[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtAV0003[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtAV0003[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtAV0003[idx].EqualsInput(input))
-						return cacheAlightenMirrorPtAV0003[idx];
-			return CacheIndicator<AlightenMirrorPtAV0003>(new AlightenMirrorPtAV0003(){ BarsToProcess = barsToProcess, EnablePatternASignal = enablePatternASignal, EnablePatternALevels = enablePatternALevels, DrawPatternA = drawPatternA, PatternAMarkerFontSize = patternAMarkerFontSize, PatternAMarkerOffsetTicks = patternAMarkerOffsetTicks, PatternALongColor = patternALongColor, PatternAShortColor = patternAShortColor, PatternALevelWidth = patternALevelWidth, PatternALevelDashStyle = patternALevelDashStyle, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtAV0003);
+			if (cacheAlightenMirrorPtFV0001 != null)
+				for (int idx = 0; idx < cacheAlightenMirrorPtFV0001.Length; idx++)
+					if (cacheAlightenMirrorPtFV0001[idx] != null && cacheAlightenMirrorPtFV0001[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtFV0001[idx].EnablePatternFSignal == enablePatternFSignal && cacheAlightenMirrorPtFV0001[idx].EnablePatternFLevels == enablePatternFLevels && cacheAlightenMirrorPtFV0001[idx].DrawPatternF == drawPatternF && cacheAlightenMirrorPtFV0001[idx].PatternFMarkerFontSize == patternFMarkerFontSize && cacheAlightenMirrorPtFV0001[idx].PatternFMarkerOffsetTicks == patternFMarkerOffsetTicks && cacheAlightenMirrorPtFV0001[idx].PatternFLongColor == patternFLongColor && cacheAlightenMirrorPtFV0001[idx].PatternFShortColor == patternFShortColor && cacheAlightenMirrorPtFV0001[idx].PatternFLevelWidth == patternFLevelWidth && cacheAlightenMirrorPtFV0001[idx].PatternFLevelDashStyle == patternFLevelDashStyle && cacheAlightenMirrorPtFV0001[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtFV0001[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtFV0001[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtFV0001[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtFV0001[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtFV0001[idx].EqualsInput(input))
+						return cacheAlightenMirrorPtFV0001[idx];
+			return CacheIndicator<AlightenMirrorPtFV0001>(new AlightenMirrorPtFV0001(){ BarsToProcess = barsToProcess, EnablePatternFSignal = enablePatternFSignal, EnablePatternFLevels = enablePatternFLevels, DrawPatternF = drawPatternF, PatternFMarkerFontSize = patternFMarkerFontSize, PatternFMarkerOffsetTicks = patternFMarkerOffsetTicks, PatternFLongColor = patternFLongColor, PatternFShortColor = patternFShortColor, PatternFLevelWidth = patternFLevelWidth, PatternFLevelDashStyle = patternFLevelDashStyle, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtFV0001);
 		}
 	}
 }
@@ -2263,14 +2237,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtAV0003(Input, barsToProcess, enablePatternASignal, enablePatternALevels, drawPatternA, patternAMarkerFontSize, patternAMarkerOffsetTicks, patternALongColor, patternAShortColor, patternALevelWidth, patternALevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtFV0001(Input, barsToProcess, enablePatternFSignal, enablePatternFLevels, drawPatternF, patternFMarkerFontSize, patternFMarkerOffsetTicks, patternFLongColor, patternFShortColor, patternFLevelWidth, patternFLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(ISeries<double> input , int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(ISeries<double> input , int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtAV0003(input, barsToProcess, enablePatternASignal, enablePatternALevels, drawPatternA, patternAMarkerFontSize, patternAMarkerOffsetTicks, patternALongColor, patternAShortColor, patternALevelWidth, patternALevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtFV0001(input, barsToProcess, enablePatternFSignal, enablePatternFLevels, drawPatternF, patternFMarkerFontSize, patternFMarkerOffsetTicks, patternFLongColor, patternFShortColor, patternFLevelWidth, patternFLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }
@@ -2279,14 +2253,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtAV0003(Input, barsToProcess, enablePatternASignal, enablePatternALevels, drawPatternA, patternAMarkerFontSize, patternAMarkerOffsetTicks, patternALongColor, patternAShortColor, patternALevelWidth, patternALevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtFV0001(Input, barsToProcess, enablePatternFSignal, enablePatternFLevels, drawPatternF, patternFMarkerFontSize, patternFMarkerOffsetTicks, patternFLongColor, patternFShortColor, patternFLevelWidth, patternFLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtAV0003 AlightenMirrorPtAV0003(ISeries<double> input , int barsToProcess, bool enablePatternASignal, bool enablePatternALevels, bool drawPatternA, int patternAMarkerFontSize, int patternAMarkerOffsetTicks, System.Windows.Media.Brush patternALongColor, System.Windows.Media.Brush patternAShortColor, int patternALevelWidth, DashStyleHelper patternALevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtFV0001 AlightenMirrorPtFV0001(ISeries<double> input , int barsToProcess, bool enablePatternFSignal, bool enablePatternFLevels, bool drawPatternF, int patternFMarkerFontSize, int patternFMarkerOffsetTicks, System.Windows.Media.Brush patternFLongColor, System.Windows.Media.Brush patternFShortColor, int patternFLevelWidth, DashStyleHelper patternFLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtAV0003(input, barsToProcess, enablePatternASignal, enablePatternALevels, drawPatternA, patternAMarkerFontSize, patternAMarkerOffsetTicks, patternALongColor, patternAShortColor, patternALevelWidth, patternALevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtFV0001(input, barsToProcess, enablePatternFSignal, enablePatternFLevels, drawPatternF, patternFMarkerFontSize, patternFMarkerOffsetTicks, patternFLongColor, patternFShortColor, patternFLevelWidth, patternFLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }
