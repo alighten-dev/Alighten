@@ -1,53 +1,60 @@
-# Alighten Custom NinjaTrader 8 Tools
+# Alighten NinjaTrader 8 Indicators
 
-This repository contains a collection of custom Indicators and Market Analyzer Columns for NinjaTrader 8, developed under the "Alighten" namespace.
+This repository contains a proprietary suite of custom NinjaTrader 8 indicators developed for advanced order flow analysis, multi-timeframe pattern recognition, and chart visualization. The suite is centered around the **Alighten Mirror Dashboard** ecosystem and high-performance order flow engines.
 
-## The Mirror Ecosystem
-The core of the market structure analysis relies on the **Mirror** indicator.
+## Repository Structure
 
-### AlightenMirror
-*   **AlightenMirror** (`AlightenMirrorV0014.cs`)
-    *   **Description:** Acts as the master orchestrator, layering up to 7 distinct timeframes into a holistic order flow map on the active chart. It coordinates signal gating and visibility across the sub-indicators, managing performance explicitly by limiting background calculations and ensuring clean, high-performance re-rendering loops.
+The core scripts are located in the `NinjaTrader/Indicators/` directory.
 
-### Required Sub-Indicators
-The Mirror indicator relies on an array of distinct algorithms working computationally in the background:
-*   **AlightenMirrorPtA** (`AlightenMirrorPtAV0003.cs`): Base detector mapped to "Pattern A" (Initial Impulse and trend shifts). Identifies primary market structures.
-*   **AlightenMirrorPtB** (`AlightenMirrorPtBV0003.cs`): Detector mapped to "Pattern B". Uses specific gates and trends to validate secondary pivots.
-*   **AlightenMirrorPtC** (`AlightenMirrorPtCV0004.cs`): Detector mapped to "Pattern C". Filters specific pivot conditions for continuation or rejection structures.
-*   **AlightenMirrorPtE** (`AlightenMirrorPtEV0005.cs`): Detector mapped to "Pattern E" (S/R Flips). Detects precise support/resistance break-and-retest geometries with dynamic confirmation logic.
-*   **AlightenLevelMultiTimeframeRetest** (`AlightenLevelMultiTimeframeRetestV0001.cs`): Handles tracking for aggressive momentum testing and structural "Gain/Loss" levels over time.
-*   **AlightenHTFVP** (`AlightenHTFVPV0004.cs`): Higher Timeframe Volume Profile. A modular VP engine that computes volume delta, value area highs/lows, and Point of Control (POC) dynamically, enabling the Mirror to bias-filter trend signals automatically based on dominant value zones.
+### 📊 Alighten Mirror Dashboard Ecosystem
+The Mirror ecosystem is a multi-timeframe pattern recognition and dashboard engine. It separates raw pattern detection (PtA-F) from the visualization and strategy-emission layer (Mirror).
 
-## Order Flow & Footprint
-*   **AlightenFootprintOrderFlow** (`AlightenFootprintOrderFlowV00015.cs`)
-    *   **Description:** A comprehensive Footprint chart implementation with extensive configuration for aggregation, signal detection, and visualization.
-    *   **Key Features:**
-        *   **Aggregation:** Custom interval, value area settings, session alignment.
-        *   **Signals:** Detects Volume Sequencing, Stacked Imbalances, Divergences, Delta Flips, Sweeps, and more.
-        *   **Visuals:** Highly customizable colors for bars, outlines, POC, and signal markers.
-        *   **Live Updates:** Supports intrabar updates for real-time signal generation.
+* **`AlightenMirrorV0021.cs`** 
+  * **Description:** The core Multi-Timeframe Dashboard and visualization engine. It consolidates signals from Patterns A, B, C, E, and F across multiple higher timeframes (HTFs) onto a single primary chart. It handles on-chart visual rendering (Direct2D lines/labels), Databox plot emissions for strategies, and HTF Volume Profile bias filtering.
+* **`AlightenMirrorPtAV0008.cs`** (Delta Flip / Exhaustion)
+  * **Description:** Core signal engine detecting price exhaustion and delta flips using a ZigZag/level tracking system.
+* **`AlightenMirrorPtBV0003.cs`**
+  * **Description:** Core signal engine for Pattern B detection.
+* **`AlightenMirrorPtCV0005.cs`**
+  * **Description:** Core signal engine for Pattern C detection.
+* **`AlightenMirrorPtEV0006.cs`**
+  * **Description:** Core signal engine for Pattern E detection.
+* **`AlightenMirrorPtFV0001.cs`** (Breakout + Immediate Retest)
+  * **Description:** Core signal engine tracking precise breakouts and immediate retests of critical structure levels.
 
-*   **AlightenOrderFlowTools** (`AlightenOrderFlowToolsV0005.cs`)
-    *   **Description:** A clean-room implementation of order-flow trade detection tools.
-    *   **Key Features:**
-        *   **Large Trades:** Visualizes large trade bubbles based on volume/size filters.
-        *   **Trapped Traders:** Identification of traders trapped by adverse price moves.
-        *   **Stacked Imbalance Trap:** Signals for stacked imbalances followed by reversals.
-        *   **Speed of Tape:** Real-time monitoring of tape speed (contracts/sec).
+### 🔬 Order Flow & Volume Analytics
+High-performance indicators for analyzing Bid/Ask delta, volume nodes, and institutional footprints.
 
-*   **AlightenSpeedOfTape** (`AlightenSpeedOfTapeV0001.cs`)
-    *   **Description:** Visualizes the speed of the tape as a histogram with dynamic thresholds.
-    *   **Key Features:**
-        *   **Metrics:** Displays total Speed and Net Speed (Ask - Bid).
-        *   **Threshold:** Dynamic threshold line based on statistical outliers (Mean + StdDev).
-        *   **Display Modes:** Speed or Net Speed histogram styles.
+* **`AlightenFootprintOrderFlowV00021.cs`**
+  * **Description:** A comprehensive Footprint Indicator that aggregates Bid, Ask, Delta, Volume, Point of Control (POC), and Value Area metrics natively within NinjaTrader. Emits clean data arrays for integration with Bloodhound/strategies.
+* **`AlightenHTFVPV0004.cs`**
+  * **Description:** Higher Timeframe Volume Profile (HTFVP). Calculates the volume profile of an HTF bar and natively projects its POC and Value Area onto lower timeframe charts for the duration of the subsequent HTF bar. Used heavily for trend bias filtering.
+* **`AlightenRelativeDeltaMultiTFV0002.cs`**
+  * **Description:** Multi-Timeframe Relative Delta Wick Heatmap. Provides audio alerts when specific delta conditions align across multiple tracked timeframes.
+* **`AlightenRelativeDeltaV0001.cs`**
+  * **Description:** Base Relative Delta Footprint visualization.
+* **`VolumeDelta.cs`**
+  * **Description:** Core foundational Volume Delta calculation engine.
 
-*   **AlightenCVDRegressionBias** (`AlightenCVDRegressionBiasV0006.cs`)
-    *   **Description:** Analyzes Cumulative Volume Delta (CVD) using regression to determine market bias.
+### 📈 Market Structure & Trend Analysis
+* **`AlightenBiasV0003.cs`**
+  * **Description:** Evaluates multi-level FTG (Failed To Go) and FTL (Failed To Lower) structures to dynamically determine the current market trend/bias.
+* **`HigherTimeframeCandles.cs`**
+  * **Description:** Projects higher-timeframe candlestick boundaries (Open, High, Low, Close) dynamically onto lower-timeframe charts.
 
-## Installation
+### 🛠 UI / UX Utilities
+Tools to enhance the NinjaTrader charting experience and streamline live execution.
 
-1.  Place the `.cs` files in your NinjaTrader 8 custom directory:
-    *   Indicators: `Documents\NinjaTrader 8\bin\Custom\Indicators`
-    *   Market Analyzer Columns: `Documents\NinjaTrader 8\bin\Custom\MarketAnalyzerColumns`
-2.  Compile the code in the NinjaTrader Editor (F5).
+* **`AlightenBarTimerV0004.cs`**
+  * **Description:** An optimized Bar Timer that utilizes the Direct2D `OnRender` pipeline to completely eliminate the flashing/flickering common in standard UI-based bar timers.
+* **`AlightenButtonPanelV0004.cs`**
+  * **Description:** An interactive on-chart button panel providing quick access to Order Flow parameter controls and execution logic (e.g., "Breakeven + X Ticks").
+* **`IndicatorVisualStyleHelper.cs`**
+  * **Description:** Centralized helper class for managing uniform visual styling (brushes, strokes, fonts) across the Alighten indicator suite.
+* **`LabelRemover.cs`**
+  * **Description:** A clean-up utility that automatically removes cluttering text labels from all indicators loaded on a chart.
+* **`OrderLineDecorator.cs`**
+  * **Description:** Enhances the visual presentation of active order lines on the chart.
+
+---
+*Note: Legacy versions and WIP indicators designated with an `@` prefix have been excluded from this index.*
