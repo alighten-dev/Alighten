@@ -17,7 +17,7 @@ using System.Windows.Controls;
 using System.Windows.Automation;
 #endregion
 
-public enum HTFVPBiasTimeframeV0021
+public enum HTFVPBiasTimeframeV0022
 {
     None,
     TF1_Daily,
@@ -33,7 +33,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
     
 
-    public class AlightenMirrorV0021 : Indicator
+    public class AlightenMirrorV0022 : Indicator
     {
 		#region Class Variables
         private const int NUM_TF = 7;
@@ -49,6 +49,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public string Label;
             public int TfIndex; // 0..6
             public int LastUpdatedBip0Bar;
+            public bool IsLive;
         }
 
         private AlightenMirrorPtAV0008[] _srcA = new AlightenMirrorPtAV0008[NUM_TF];
@@ -373,7 +374,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
         [NinjaScriptProperty]
         [Display(Name="Bias Filter Timeframe", Order=0, GroupName="4. HTF VP Timeframes")]
-        public HTFVPBiasTimeframeV0021 BiasTimeframe { get; set; }
+        public HTFVPBiasTimeframeV0022 BiasTimeframe { get; set; }
 
                 [NinjaScriptProperty]
         [Display(Name="1. Enable Daily VP", Order=1, GroupName="4. HTF VP Timeframes")]
@@ -554,7 +555,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0021";
+                Name = "AlightenMirrorV0022";
                 Description = "Multi-Timeframe Mirror for Patterns A, B, C, and E. v14: Multi-Timeframe HTF VP controls and labeled profiles.";
                 Calculate = Calculate.OnEachTick; 
                 IsOverlay = true;
@@ -604,7 +605,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 LabelFontSize = 12;
                 LabelOffsetTicks = 5;
 				
-				BiasTimeframe = HTFVPBiasTimeframeV0021.TF3_60m;
+				BiasTimeframe = HTFVPBiasTimeframeV0022.TF3_60m;
 				EnableHTFVP1_Daily = false;
 				ShowHTFVP1_Daily = false;
 				ShowDevVP1_Daily = false;
@@ -891,7 +892,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     DrawDevelopingHTFVPPassthrough();
 
                     // Apply filter if enabled (using bias timeframe)
-                    if (EnableHTFVPFilter && BiasTimeframe != HTFVPBiasTimeframeV0021.None)
+                    if (EnableHTFVPFilter && BiasTimeframe != HTFVPBiasTimeframeV0022.None)
                     {
                         int tfIdx = ((int)BiasTimeframe) - 1;
                         if (tfIdx >= 0 && tfIdx < NUM_TF && _srcHTFVP[tfIdx] != null && _srcHTFVP[tfIdx].Profiles != null && _srcHTFVP[tfIdx].Profiles.Count > _lastProcessedProfileCount)
@@ -911,36 +912,36 @@ namespace NinjaTrader.NinjaScript.Indicators
                         {
                             bool hasLong = trackedA[t] != null && trackedA[t].Any(x => x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
                             bool hasShort = trackedA[t] != null && trackedA[t].Any(x => !x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
-                            if (hasLong) { Values[t][0] = 1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternA TF{t} Signal: 1 (Long)"); }
-                            else if (hasShort) { Values[t][0] = -1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternA TF{t} Signal: -1 (Short)"); }
+                            if (hasLong) { Values[t][0] = 1; }
+                            else if (hasShort) { Values[t][0] = -1; }
                         }
                         if (EnablePatternB)
                         {
                             bool hasLong = trackedB[t] != null && trackedB[t].Any(x => x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
                             bool hasShort = trackedB[t] != null && trackedB[t].Any(x => !x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
-                            if (hasLong) { Values[t + 7][0] = 1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternB TF{t} Signal: 1 (Long)"); }
-                            else if (hasShort) { Values[t + 7][0] = -1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternB TF{t} Signal: -1 (Short)"); }
+                            if (hasLong) { Values[t + 7][0] = 1; }
+                            else if (hasShort) { Values[t + 7][0] = -1; }
                         }
                         if (EnablePatternC)
                         {
                             bool hasLong = trackedC[t] != null && trackedC[t].Any(x => x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
                             bool hasShort = trackedC[t] != null && trackedC[t].Any(x => !x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
-                            if (hasLong) { Values[t + 14][0] = 1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternC TF{t} Signal: 1 (Long)"); }
-                            else if (hasShort) { Values[t + 14][0] = -1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternC TF{t} Signal: -1 (Short)"); }
+                            if (hasLong) { Values[t + 14][0] = 1; }
+                            else if (hasShort) { Values[t + 14][0] = -1; }
                         }
                         if (EnablePatternE)
                         {
                             bool hasLong = trackedE[t] != null && trackedE[t].Any(x => x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
                             bool hasShort = trackedE[t] != null && trackedE[t].Any(x => !x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
-                            if (hasLong) { Values[t + 21][0] = 1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternE TF{t} Signal: 1 (Long)"); }
-                            else if (hasShort) { Values[t + 21][0] = -1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternE TF{t} Signal: -1 (Short)"); }
+                            if (hasLong) { Values[t + 21][0] = 1; }
+                            else if (hasShort) { Values[t + 21][0] = -1; }
                         }
                         if (EnablePatternF)
                         {
                             bool hasLong = trackedF[t] != null && trackedF[t].Any(x => x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
                             bool hasShort = trackedF[t] != null && trackedF[t].Any(x => !x.IsLong && now >= x.HtfStartTime && now <= x.HtfEndTime && !ViolatesHTFVPBias(x));
-                            if (hasLong) { Values[t + 28][0] = 1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternF TF{t} Signal: 1 (Long)"); }
-                            else if (hasShort) { Values[t + 28][0] = -1; if (IsFirstTickOfBar) Print($"{now} - Plotting PatternF TF{t} Signal: -1 (Short)"); }
+                            if (hasLong) { Values[t + 28][0] = 1; }
+                            else if (hasShort) { Values[t + 28][0] = -1; }
                         }
                     }
                 }
@@ -1041,7 +1042,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		private bool PassesHTFVPBiasGate(DateTime candidateTime, bool isLong)
 		{
-		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0021.None)
+		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0022.None)
 		        return true;
 		        
             int tfIdx = ((int)BiasTimeframe) - 1;
@@ -1059,7 +1060,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		private bool ViolatesHTFVPBias(TrackedLevel tl)
 		{
-		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0021.None)
+		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0022.None)
 		        return false;
 		        
             int tfIdx = ((int)BiasTimeframe) - 1;
@@ -1077,7 +1078,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		private void ApplyHTFVPBiasClipToTrackedSignals()
 		{
-		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0021.None)
+		    if (!EnableHTFVPFilter || BiasTimeframe == HTFVPBiasTimeframeV0022.None)
 		        return;
 		        
             int tfIdx = ((int)BiasTimeframe) - 1;
@@ -1123,48 +1124,78 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 				if (EnablePatternA && _srcA[t] != null)
 				{
-				    int lookback = Math.Min(MirrorLookbackBars, htfBars);
-				    for (int i = lookback; i >= 0; i--)
+				    if (htfBars >= 2)
 				    {
-				        if (_srcA[t].PatternALongLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcA[t].PatternALongLevel[i], true, "A", _srcA[t].PatternALongStartTimestamp.Count > i ? _srcA[t].PatternALongStartTimestamp[i] : 0);
-				        if (_srcA[t].PatternAShortLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcA[t].PatternAShortLevel[i], false, "A", _srcA[t].PatternAShortStartTimestamp.Count > i ? _srcA[t].PatternAShortStartTimestamp[i] : 0);
+				        double long1 = _srcA[t].PatternALongLevel.IsValidDataPoint(1) ? _srcA[t].PatternALongLevel[1] : 0;
+				        double short1 = _srcA[t].PatternAShortLevel.IsValidDataPoint(1) ? _srcA[t].PatternAShortLevel[1] : 0;
+				        SyncSingleSignal(t, bipIdx, 1, long1, true, "A", _srcA[t].PatternALongStartTimestamp.IsValidDataPoint(1) ? _srcA[t].PatternALongStartTimestamp[1] : 0);
+				        SyncSingleSignal(t, bipIdx, 1, short1, false, "A", _srcA[t].PatternAShortStartTimestamp.IsValidDataPoint(1) ? _srcA[t].PatternAShortStartTimestamp[1] : 0);
 				    }
+				    
+				    double long0 = _srcA[t].PatternALongLevel.IsValidDataPoint(0) ? _srcA[t].PatternALongLevel[0] : 0;
+				    double short0 = _srcA[t].PatternAShortLevel.IsValidDataPoint(0) ? _srcA[t].PatternAShortLevel[0] : 0;
+				    SyncSingleSignal(t, bipIdx, 0, long0, true, "A", _srcA[t].PatternALongStartTimestamp.IsValidDataPoint(0) ? _srcA[t].PatternALongStartTimestamp[0] : 0);
+				    SyncSingleSignal(t, bipIdx, 0, short0, false, "A", _srcA[t].PatternAShortStartTimestamp.IsValidDataPoint(0) ? _srcA[t].PatternAShortStartTimestamp[0] : 0);
 				}
 				if (EnablePatternB && _srcB[t] != null)
 				{
-				    int lookback = Math.Min(MirrorLookbackBars, htfBars);
-				    for (int i = lookback; i >= 0; i--)
+				    if (htfBars >= 2)
 				    {
-				        if (_srcB[t].PatternBLongLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcB[t].PatternBLongLevel[i], true, "B", _srcB[t].PatternBLongStartTimestamp.Count > i ? _srcB[t].PatternBLongStartTimestamp[i] : 0);
-				        if (_srcB[t].PatternBShortLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcB[t].PatternBShortLevel[i], false, "B", _srcB[t].PatternBShortStartTimestamp.Count > i ? _srcB[t].PatternBShortStartTimestamp[i] : 0);
+				        double long1 = _srcB[t].PatternBLongLevel.IsValidDataPoint(1) ? _srcB[t].PatternBLongLevel[1] : 0;
+				        double short1 = _srcB[t].PatternBShortLevel.IsValidDataPoint(1) ? _srcB[t].PatternBShortLevel[1] : 0;
+				        SyncSingleSignal(t, bipIdx, 1, long1, true, "B", _srcB[t].PatternBLongStartTimestamp.IsValidDataPoint(1) ? _srcB[t].PatternBLongStartTimestamp[1] : 0);
+				        SyncSingleSignal(t, bipIdx, 1, short1, false, "B", _srcB[t].PatternBShortStartTimestamp.IsValidDataPoint(1) ? _srcB[t].PatternBShortStartTimestamp[1] : 0);
 				    }
+				    
+				    double long0 = _srcB[t].PatternBLongLevel.IsValidDataPoint(0) ? _srcB[t].PatternBLongLevel[0] : 0;
+				    double short0 = _srcB[t].PatternBShortLevel.IsValidDataPoint(0) ? _srcB[t].PatternBShortLevel[0] : 0;
+				    SyncSingleSignal(t, bipIdx, 0, long0, true, "B", _srcB[t].PatternBLongStartTimestamp.IsValidDataPoint(0) ? _srcB[t].PatternBLongStartTimestamp[0] : 0);
+				    SyncSingleSignal(t, bipIdx, 0, short0, false, "B", _srcB[t].PatternBShortStartTimestamp.IsValidDataPoint(0) ? _srcB[t].PatternBShortStartTimestamp[0] : 0);
 				}
 				if (EnablePatternC && _srcC[t] != null)
 				{
-				    int lookback = Math.Min(MirrorLookbackBars, htfBars);
-				    for (int i = lookback; i >= 0; i--)
+				    if (htfBars >= 2)
 				    {
-				        if (_srcC[t].PatternCLongLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcC[t].PatternCLongLevel[i], true, "C", _srcC[t].PatternCLongStartTimestamp.Count > i ? _srcC[t].PatternCLongStartTimestamp[i] : 0);
-				        if (_srcC[t].PatternCShortLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcC[t].PatternCShortLevel[i], false, "C", _srcC[t].PatternCShortStartTimestamp.Count > i ? _srcC[t].PatternCShortStartTimestamp[i] : 0);
+				        double long1 = _srcC[t].PatternCLongLevel.IsValidDataPoint(1) ? _srcC[t].PatternCLongLevel[1] : 0;
+				        double short1 = _srcC[t].PatternCShortLevel.IsValidDataPoint(1) ? _srcC[t].PatternCShortLevel[1] : 0;
+				        SyncSingleSignal(t, bipIdx, 1, long1, true, "C", _srcC[t].PatternCLongStartTimestamp.IsValidDataPoint(1) ? _srcC[t].PatternCLongStartTimestamp[1] : 0);
+				        SyncSingleSignal(t, bipIdx, 1, short1, false, "C", _srcC[t].PatternCShortStartTimestamp.IsValidDataPoint(1) ? _srcC[t].PatternCShortStartTimestamp[1] : 0);
 				    }
+				    
+				    double long0 = _srcC[t].PatternCLongLevel.IsValidDataPoint(0) ? _srcC[t].PatternCLongLevel[0] : 0;
+				    double short0 = _srcC[t].PatternCShortLevel.IsValidDataPoint(0) ? _srcC[t].PatternCShortLevel[0] : 0;
+				    SyncSingleSignal(t, bipIdx, 0, long0, true, "C", _srcC[t].PatternCLongStartTimestamp.IsValidDataPoint(0) ? _srcC[t].PatternCLongStartTimestamp[0] : 0);
+				    SyncSingleSignal(t, bipIdx, 0, short0, false, "C", _srcC[t].PatternCShortStartTimestamp.IsValidDataPoint(0) ? _srcC[t].PatternCShortStartTimestamp[0] : 0);
 				}
 				if (EnablePatternE && _srcE[t] != null)
 				{
-				    int lookback = Math.Min(MirrorLookbackBars, htfBars);
-				    for (int i = lookback; i >= 0; i--)
+				    if (htfBars >= 2)
 				    {
-				        if (_srcE[t].PatternELongLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcE[t].PatternELongLevel[i], true, "E", _srcE[t].PatternELongStartTimestamp.Count > i ? _srcE[t].PatternELongStartTimestamp[i] : 0);
-				        if (_srcE[t].PatternEShortLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcE[t].PatternEShortLevel[i], false, "E", _srcE[t].PatternEShortStartTimestamp.Count > i ? _srcE[t].PatternEShortStartTimestamp[i] : 0);
+				        double long1 = _srcE[t].PatternELongLevel.IsValidDataPoint(1) ? _srcE[t].PatternELongLevel[1] : 0;
+				        double short1 = _srcE[t].PatternEShortLevel.IsValidDataPoint(1) ? _srcE[t].PatternEShortLevel[1] : 0;
+				        SyncSingleSignal(t, bipIdx, 1, long1, true, "E", _srcE[t].PatternELongStartTimestamp.IsValidDataPoint(1) ? _srcE[t].PatternELongStartTimestamp[1] : 0);
+				        SyncSingleSignal(t, bipIdx, 1, short1, false, "E", _srcE[t].PatternEShortStartTimestamp.IsValidDataPoint(1) ? _srcE[t].PatternEShortStartTimestamp[1] : 0);
 				    }
+				    
+				    double long0 = _srcE[t].PatternELongLevel.IsValidDataPoint(0) ? _srcE[t].PatternELongLevel[0] : 0;
+				    double short0 = _srcE[t].PatternEShortLevel.IsValidDataPoint(0) ? _srcE[t].PatternEShortLevel[0] : 0;
+				    SyncSingleSignal(t, bipIdx, 0, long0, true, "E", _srcE[t].PatternELongStartTimestamp.IsValidDataPoint(0) ? _srcE[t].PatternELongStartTimestamp[0] : 0);
+				    SyncSingleSignal(t, bipIdx, 0, short0, false, "E", _srcE[t].PatternEShortStartTimestamp.IsValidDataPoint(0) ? _srcE[t].PatternEShortStartTimestamp[0] : 0);
 				}
 				if (EnablePatternF && _srcF[t] != null)
 				{
-				    int lookback = Math.Min(MirrorLookbackBars, htfBars);
-				    for (int i = lookback; i >= 0; i--)
+				    if (htfBars >= 2)
 				    {
-				        if (_srcF[t].PatternFLongLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcF[t].PatternFLongLevel[i], true, "F", _srcF[t].PatternFLongStartTimestamp.Count > i ? _srcF[t].PatternFLongStartTimestamp[i] : 0);
-				        if (_srcF[t].PatternFShortLevel.Count > i) SyncSingleSignal(t, bipIdx, i, _srcF[t].PatternFShortLevel[i], false, "F", _srcF[t].PatternFShortStartTimestamp.Count > i ? _srcF[t].PatternFShortStartTimestamp[i] : 0);
+				        double long1 = _srcF[t].PatternFLongLevel.IsValidDataPoint(1) ? _srcF[t].PatternFLongLevel[1] : 0;
+				        double short1 = _srcF[t].PatternFShortLevel.IsValidDataPoint(1) ? _srcF[t].PatternFShortLevel[1] : 0;
+				        SyncSingleSignal(t, bipIdx, 1, long1, true, "F", _srcF[t].PatternFLongStartTimestamp.IsValidDataPoint(1) ? _srcF[t].PatternFLongStartTimestamp[1] : 0);
+				        SyncSingleSignal(t, bipIdx, 1, short1, false, "F", _srcF[t].PatternFShortStartTimestamp.IsValidDataPoint(1) ? _srcF[t].PatternFShortStartTimestamp[1] : 0);
 				    }
+				    
+				    double long0 = _srcF[t].PatternFLongLevel.IsValidDataPoint(0) ? _srcF[t].PatternFLongLevel[0] : 0;
+				    double short0 = _srcF[t].PatternFShortLevel.IsValidDataPoint(0) ? _srcF[t].PatternFShortLevel[0] : 0;
+				    SyncSingleSignal(t, bipIdx, 0, long0, true, "F", _srcF[t].PatternFLongStartTimestamp.IsValidDataPoint(0) ? _srcF[t].PatternFLongStartTimestamp[0] : 0);
+				    SyncSingleSignal(t, bipIdx, 0, short0, false, "F", _srcF[t].PatternFShortStartTimestamp.IsValidDataPoint(0) ? _srcF[t].PatternFShortStartTimestamp[0] : 0);
 				}
             }
         }
@@ -1173,10 +1204,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 		private void SyncSingleSignal(int t, int bipIdx, int barsAgoOnHtf, double priceLevel, bool isLong, string pType, double startTimestampExtracted)
         {
-            if (priceLevel == 0 || double.IsNaN(startTimestampExtracted)) return;
             DateTime htfBarCloseTime = Times[bipIdx][barsAgoOnHtf];
             DateTime htfBarStartTime = (barsAgoOnHtf + 1 < CurrentBars[bipIdx]) ? Times[bipIdx][barsAgoOnHtf + 1] : htfBarCloseTime.AddMinutes(-_tfMinutes[t]);
             DateTime signalStartTime = htfBarStartTime;
+            
+            var tList = pType == "A" ? trackedA[t] : pType == "B" ? trackedB[t] : pType == "C" ? trackedC[t] : pType == "E" ? trackedE[t] : trackedF[t];
+            bool isLiveSignal = (barsAgoOnHtf == 0);
+
+            if (priceLevel == 0 || double.IsNaN(startTimestampExtracted) || startTimestampExtracted == 0)
+            {
+                return;
+            }
             
             if (startTimestampExtracted > 0)
             {
@@ -1184,20 +1222,42 @@ namespace NinjaTrader.NinjaScript.Indicators
                 {
                     DateTime extractedTime = DateTime.FromOADate(startTimestampExtracted);
                     if (extractedTime >= Core.Globals.MinDate && extractedTime <= DateTime.MaxValue)
+                    {
                         signalStartTime = extractedTime;
+                        if (State == State.Historical && !BarsArray[0].IsTickReplay)
+                        {
+                            // In historical mode without TickReplay, signals are emitted at bar close.
+                            // We push the start time back by one HTF bar to reflect the actual bar open.
+                            signalStartTime = signalStartTime.AddMinutes(-_tfMinutes[t]);
+                        }
+                    }
                 }
                 catch { }
             }
             if (signalStartTime < Core.Globals.MinDate) signalStartTime = htfBarStartTime;
             if (signalStartTime >= htfBarCloseTime) signalStartTime = htfBarStartTime;
 
-            var tList = pType == "A" ? trackedA[t] : pType == "B" ? trackedB[t] : pType == "C" ? trackedC[t] : pType == "E" ? trackedE[t] : trackedF[t];
-            string tag = $"MR_{pType}_TF{t}_{(isLong ? "L" : "S")}_{Math.Round(priceLevel, 4)}";
-            var existing = tList.FirstOrDefault(x => x.PatternType == pType && x.IsLong == isLong && Math.Abs(x.Price - priceLevel) < 0.0001 && x.HtfStartTime == signalStartTime);
-            if (existing != null) {
-                if (existing.HtfEndTime < htfBarCloseTime) { existing.HtfEndTime = htfBarCloseTime; existing.LastUpdatedBip0Bar = CurrentBars[0]; DrawTrackedLevel(existing, tList); }
-            } else {
-                var newLevel = new TrackedLevel { Tag = tag + "_" + signalStartTime.Ticks, Price = priceLevel, HtfStartTime = signalStartTime, HtfEndTime = htfBarCloseTime, IsLong = isLong, PatternType = pType, Label = $"{pType} {_tfLabels[t]} {(isLong ? "L" : "S")}", TfIndex = t, LastUpdatedBip0Bar = CurrentBars[0] };
+            string tag = $"MR_{pType}_TF{t}_{(isLong ? "L" : "S")}_{signalStartTime.Ticks}";
+            if (pType == "A" || pType == "E" || pType == "F") tag += $"_{priceLevel.ToString("F4", System.Globalization.CultureInfo.InvariantCulture)}";
+            string label = $"{pType} {_tfLabels[t]} {(isLong ? "L" : "S")}";
+            
+            var existing = tList.FirstOrDefault(x => x.PatternType == pType && x.IsLong == isLong && x.HtfStartTime == signalStartTime && (pType == "A" || pType == "E" || pType == "F" ? Math.Abs(x.Price - priceLevel) < 0.0001 : true));
+            if (existing != null)
+            {
+                bool needsRedraw = false;
+                if (existing.HtfEndTime < htfBarCloseTime) { existing.HtfEndTime = htfBarCloseTime; needsRedraw = true; }
+                if (Math.Abs(existing.Price - priceLevel) > 0.0001) { existing.Price = priceLevel; needsRedraw = true; }
+                
+                existing.LastUpdatedBip0Bar = CurrentBars[0];
+                existing.IsLive = isLiveSignal;
+                
+                if (needsRedraw) {
+                    DrawTrackedLevel(existing, tList); 
+                }
+            }
+            else
+            {
+                var newLevel = new TrackedLevel { Tag = tag, Price = priceLevel, HtfStartTime = signalStartTime, HtfEndTime = htfBarCloseTime, IsLong = isLong, PatternType = pType, Label = label, TfIndex = t, LastUpdatedBip0Bar = CurrentBars[0], IsLive = isLiveSignal };
                 tList.Add(newLevel);
                 DrawTrackedLevel(newLevel, tList);
                 
@@ -1383,7 +1443,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 settingsButton.Width = 110;
                 settingsButton.ToolTip = "Configure Mirror V0014 visibility settings";
                 chartWindow.MainMenu.Add(settingsButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0021] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0022] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -1428,7 +1488,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0021] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0022] Failed to open settings: {ex.Message}");
 		    }
 		}
 
@@ -1531,9 +1591,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             var dropRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 10, 0, 0) };
             dropRow.Children.Add(new TextBlock { Text = "Bias Timeframe: ", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0,0,10,0) });
             var combo = new ComboBox { Width = 150 };
-            foreach (var item in Enum.GetValues(typeof(HTFVPBiasTimeframeV0021))) combo.Items.Add(item);
+            foreach (var item in Enum.GetValues(typeof(HTFVPBiasTimeframeV0022))) combo.Items.Add(item);
             combo.SelectedItem = BiasTimeframe;
-            combo.SelectionChanged += (s, e) => { BiasTimeframe = (HTFVPBiasTimeframeV0021)combo.SelectedItem; ForceUISync(); };
+            combo.SelectionChanged += (s, e) => { BiasTimeframe = (HTFVPBiasTimeframeV0022)combo.SelectedItem; ForceUISync(); };
             dropRow.Children.Add(combo);
 
             bGrid.Children.Add(bcb);
@@ -1693,19 +1753,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorV0021[] cacheAlightenMirrorV0021;
-		public AlightenMirrorV0021 AlightenMirrorV0021(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		private AlightenMirrorV0022[] cacheAlightenMirrorV0022;
+		public AlightenMirrorV0022 AlightenMirrorV0022(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			return AlightenMirrorV0021(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
+			return AlightenMirrorV0022(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
 		}
 
-		public AlightenMirrorV0021 AlightenMirrorV0021(ISeries<double> input, bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		public AlightenMirrorV0022 AlightenMirrorV0022(ISeries<double> input, bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			if (cacheAlightenMirrorV0021 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorV0021.Length; idx++)
-					if (cacheAlightenMirrorV0021[idx] != null && cacheAlightenMirrorV0021[idx].EnablePatternA == enablePatternA && cacheAlightenMirrorV0021[idx].EnablePatternB == enablePatternB && cacheAlightenMirrorV0021[idx].EnablePatternC == enablePatternC && cacheAlightenMirrorV0021[idx].EnablePatternE == enablePatternE && cacheAlightenMirrorV0021[idx].EnablePatternF == enablePatternF && cacheAlightenMirrorV0021[idx].SrcBarsToProcess == srcBarsToProcess && cacheAlightenMirrorV0021[idx].MirrorLookbackBars == mirrorLookbackBars && cacheAlightenMirrorV0021[idx].EnableInvalidatedCleanup == enableInvalidatedCleanup && cacheAlightenMirrorV0021[idx].EnableTF1_Daily == enableTF1_Daily && cacheAlightenMirrorV0021[idx].ShowTF1_Daily == showTF1_Daily && cacheAlightenMirrorV0021[idx].EnableTF2_240m == enableTF2_240m && cacheAlightenMirrorV0021[idx].ShowTF2_240m == showTF2_240m && cacheAlightenMirrorV0021[idx].EnableTF3_60m == enableTF3_60m && cacheAlightenMirrorV0021[idx].ShowTF3_60m == showTF3_60m && cacheAlightenMirrorV0021[idx].EnableTF4_30m == enableTF4_30m && cacheAlightenMirrorV0021[idx].ShowTF4_30m == showTF4_30m && cacheAlightenMirrorV0021[idx].EnableTF5_15m == enableTF5_15m && cacheAlightenMirrorV0021[idx].ShowTF5_15m == showTF5_15m && cacheAlightenMirrorV0021[idx].EnableTF6_10m == enableTF6_10m && cacheAlightenMirrorV0021[idx].ShowTF6_10m == showTF6_10m && cacheAlightenMirrorV0021[idx].EnableTF7_5m == enableTF7_5m && cacheAlightenMirrorV0021[idx].ShowTF7_5m == showTF7_5m && cacheAlightenMirrorV0021[idx].ColorTF1 == colorTF1 && cacheAlightenMirrorV0021[idx].ColorTF2 == colorTF2 && cacheAlightenMirrorV0021[idx].ColorTF3 == colorTF3 && cacheAlightenMirrorV0021[idx].ColorTF4 == colorTF4 && cacheAlightenMirrorV0021[idx].ColorTF5 == colorTF5 && cacheAlightenMirrorV0021[idx].ColorTF6 == colorTF6 && cacheAlightenMirrorV0021[idx].ColorTF7 == colorTF7 && cacheAlightenMirrorV0021[idx].LevelWidth == levelWidth && cacheAlightenMirrorV0021[idx].LevelDashStyleA == levelDashStyleA && cacheAlightenMirrorV0021[idx].LevelDashStyleB == levelDashStyleB && cacheAlightenMirrorV0021[idx].LevelDashStyleC == levelDashStyleC && cacheAlightenMirrorV0021[idx].LevelDashStyleE == levelDashStyleE && cacheAlightenMirrorV0021[idx].LevelDashStyleF == levelDashStyleF && cacheAlightenMirrorV0021[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorV0021[idx].LabelOffsetTicks == labelOffsetTicks && cacheAlightenMirrorV0021[idx].BiasTimeframe == biasTimeframe && cacheAlightenMirrorV0021[idx].EnableHTFVP1_Daily == enableHTFVP1_Daily && cacheAlightenMirrorV0021[idx].ShowHTFVP1_Daily == showHTFVP1_Daily && cacheAlightenMirrorV0021[idx].ShowDevVP1_Daily == showDevVP1_Daily && cacheAlightenMirrorV0021[idx].EnableHTFVP2_240m == enableHTFVP2_240m && cacheAlightenMirrorV0021[idx].ShowHTFVP2_240m == showHTFVP2_240m && cacheAlightenMirrorV0021[idx].ShowDevVP2_240m == showDevVP2_240m && cacheAlightenMirrorV0021[idx].EnableHTFVP3_60m == enableHTFVP3_60m && cacheAlightenMirrorV0021[idx].ShowHTFVP3_60m == showHTFVP3_60m && cacheAlightenMirrorV0021[idx].ShowDevVP3_60m == showDevVP3_60m && cacheAlightenMirrorV0021[idx].EnableHTFVP4_30m == enableHTFVP4_30m && cacheAlightenMirrorV0021[idx].ShowHTFVP4_30m == showHTFVP4_30m && cacheAlightenMirrorV0021[idx].ShowDevVP4_30m == showDevVP4_30m && cacheAlightenMirrorV0021[idx].EnableHTFVP5_15m == enableHTFVP5_15m && cacheAlightenMirrorV0021[idx].ShowHTFVP5_15m == showHTFVP5_15m && cacheAlightenMirrorV0021[idx].ShowDevVP5_15m == showDevVP5_15m && cacheAlightenMirrorV0021[idx].EnableHTFVP6_10m == enableHTFVP6_10m && cacheAlightenMirrorV0021[idx].ShowHTFVP6_10m == showHTFVP6_10m && cacheAlightenMirrorV0021[idx].ShowDevVP6_10m == showDevVP6_10m && cacheAlightenMirrorV0021[idx].EnableHTFVP7_5m == enableHTFVP7_5m && cacheAlightenMirrorV0021[idx].ShowHTFVP7_5m == showHTFVP7_5m && cacheAlightenMirrorV0021[idx].ShowDevVP7_5m == showDevVP7_5m && cacheAlightenMirrorV0021[idx].EnableHTFVPFilter == enableHTFVPFilter && cacheAlightenMirrorV0021[idx].HTFVPValueAreaPercentage == hTFVPValueAreaPercentage && cacheAlightenMirrorV0021[idx].HTFVPBarsToProcess == hTFVPBarsToProcess && cacheAlightenMirrorV0021[idx].HTFVPVAHColor == hTFVPVAHColor && cacheAlightenMirrorV0021[idx].HTFVPVALColor == hTFVPVALColor && cacheAlightenMirrorV0021[idx].HTFVPPOCColor == hTFVPPOCColor && cacheAlightenMirrorV0021[idx].HTFVPVAHWidth == hTFVPVAHWidth && cacheAlightenMirrorV0021[idx].HTFVPVAHStyle == hTFVPVAHStyle && cacheAlightenMirrorV0021[idx].HTFVPVALWidth == hTFVPVALWidth && cacheAlightenMirrorV0021[idx].HTFVPVALStyle == hTFVPVALStyle && cacheAlightenMirrorV0021[idx].HTFVPPOCWidth == hTFVPPOCWidth && cacheAlightenMirrorV0021[idx].HTFVPPOCStyle == hTFVPPOCStyle && cacheAlightenMirrorV0021[idx].HTFVPDevVAHWidth == hTFVPDevVAHWidth && cacheAlightenMirrorV0021[idx].HTFVPDevVAHStyle == hTFVPDevVAHStyle && cacheAlightenMirrorV0021[idx].HTFVPDevVALWidth == hTFVPDevVALWidth && cacheAlightenMirrorV0021[idx].HTFVPDevVALStyle == hTFVPDevVALStyle && cacheAlightenMirrorV0021[idx].HTFVPDevPOCWidth == hTFVPDevPOCWidth && cacheAlightenMirrorV0021[idx].HTFVPDevPOCStyle == hTFVPDevPOCStyle && cacheAlightenMirrorV0021[idx].EqualsInput(input))
-						return cacheAlightenMirrorV0021[idx];
-			return CacheIndicator<AlightenMirrorV0021>(new AlightenMirrorV0021(){ EnablePatternA = enablePatternA, EnablePatternB = enablePatternB, EnablePatternC = enablePatternC, EnablePatternE = enablePatternE, EnablePatternF = enablePatternF, SrcBarsToProcess = srcBarsToProcess, MirrorLookbackBars = mirrorLookbackBars, EnableInvalidatedCleanup = enableInvalidatedCleanup, EnableTF1_Daily = enableTF1_Daily, ShowTF1_Daily = showTF1_Daily, EnableTF2_240m = enableTF2_240m, ShowTF2_240m = showTF2_240m, EnableTF3_60m = enableTF3_60m, ShowTF3_60m = showTF3_60m, EnableTF4_30m = enableTF4_30m, ShowTF4_30m = showTF4_30m, EnableTF5_15m = enableTF5_15m, ShowTF5_15m = showTF5_15m, EnableTF6_10m = enableTF6_10m, ShowTF6_10m = showTF6_10m, EnableTF7_5m = enableTF7_5m, ShowTF7_5m = showTF7_5m, ColorTF1 = colorTF1, ColorTF2 = colorTF2, ColorTF3 = colorTF3, ColorTF4 = colorTF4, ColorTF5 = colorTF5, ColorTF6 = colorTF6, ColorTF7 = colorTF7, LevelWidth = levelWidth, LevelDashStyleA = levelDashStyleA, LevelDashStyleB = levelDashStyleB, LevelDashStyleC = levelDashStyleC, LevelDashStyleE = levelDashStyleE, LevelDashStyleF = levelDashStyleF, LabelFontSize = labelFontSize, LabelOffsetTicks = labelOffsetTicks, BiasTimeframe = biasTimeframe, EnableHTFVP1_Daily = enableHTFVP1_Daily, ShowHTFVP1_Daily = showHTFVP1_Daily, ShowDevVP1_Daily = showDevVP1_Daily, EnableHTFVP2_240m = enableHTFVP2_240m, ShowHTFVP2_240m = showHTFVP2_240m, ShowDevVP2_240m = showDevVP2_240m, EnableHTFVP3_60m = enableHTFVP3_60m, ShowHTFVP3_60m = showHTFVP3_60m, ShowDevVP3_60m = showDevVP3_60m, EnableHTFVP4_30m = enableHTFVP4_30m, ShowHTFVP4_30m = showHTFVP4_30m, ShowDevVP4_30m = showDevVP4_30m, EnableHTFVP5_15m = enableHTFVP5_15m, ShowHTFVP5_15m = showHTFVP5_15m, ShowDevVP5_15m = showDevVP5_15m, EnableHTFVP6_10m = enableHTFVP6_10m, ShowHTFVP6_10m = showHTFVP6_10m, ShowDevVP6_10m = showDevVP6_10m, EnableHTFVP7_5m = enableHTFVP7_5m, ShowHTFVP7_5m = showHTFVP7_5m, ShowDevVP7_5m = showDevVP7_5m, EnableHTFVPFilter = enableHTFVPFilter, HTFVPValueAreaPercentage = hTFVPValueAreaPercentage, HTFVPBarsToProcess = hTFVPBarsToProcess, HTFVPVAHColor = hTFVPVAHColor, HTFVPVALColor = hTFVPVALColor, HTFVPPOCColor = hTFVPPOCColor, HTFVPVAHWidth = hTFVPVAHWidth, HTFVPVAHStyle = hTFVPVAHStyle, HTFVPVALWidth = hTFVPVALWidth, HTFVPVALStyle = hTFVPVALStyle, HTFVPPOCWidth = hTFVPPOCWidth, HTFVPPOCStyle = hTFVPPOCStyle, HTFVPDevVAHWidth = hTFVPDevVAHWidth, HTFVPDevVAHStyle = hTFVPDevVAHStyle, HTFVPDevVALWidth = hTFVPDevVALWidth, HTFVPDevVALStyle = hTFVPDevVALStyle, HTFVPDevPOCWidth = hTFVPDevPOCWidth, HTFVPDevPOCStyle = hTFVPDevPOCStyle }, input, ref cacheAlightenMirrorV0021);
+			if (cacheAlightenMirrorV0022 != null)
+				for (int idx = 0; idx < cacheAlightenMirrorV0022.Length; idx++)
+					if (cacheAlightenMirrorV0022[idx] != null && cacheAlightenMirrorV0022[idx].EnablePatternA == enablePatternA && cacheAlightenMirrorV0022[idx].EnablePatternB == enablePatternB && cacheAlightenMirrorV0022[idx].EnablePatternC == enablePatternC && cacheAlightenMirrorV0022[idx].EnablePatternE == enablePatternE && cacheAlightenMirrorV0022[idx].EnablePatternF == enablePatternF && cacheAlightenMirrorV0022[idx].SrcBarsToProcess == srcBarsToProcess && cacheAlightenMirrorV0022[idx].MirrorLookbackBars == mirrorLookbackBars && cacheAlightenMirrorV0022[idx].EnableInvalidatedCleanup == enableInvalidatedCleanup && cacheAlightenMirrorV0022[idx].EnableTF1_Daily == enableTF1_Daily && cacheAlightenMirrorV0022[idx].ShowTF1_Daily == showTF1_Daily && cacheAlightenMirrorV0022[idx].EnableTF2_240m == enableTF2_240m && cacheAlightenMirrorV0022[idx].ShowTF2_240m == showTF2_240m && cacheAlightenMirrorV0022[idx].EnableTF3_60m == enableTF3_60m && cacheAlightenMirrorV0022[idx].ShowTF3_60m == showTF3_60m && cacheAlightenMirrorV0022[idx].EnableTF4_30m == enableTF4_30m && cacheAlightenMirrorV0022[idx].ShowTF4_30m == showTF4_30m && cacheAlightenMirrorV0022[idx].EnableTF5_15m == enableTF5_15m && cacheAlightenMirrorV0022[idx].ShowTF5_15m == showTF5_15m && cacheAlightenMirrorV0022[idx].EnableTF6_10m == enableTF6_10m && cacheAlightenMirrorV0022[idx].ShowTF6_10m == showTF6_10m && cacheAlightenMirrorV0022[idx].EnableTF7_5m == enableTF7_5m && cacheAlightenMirrorV0022[idx].ShowTF7_5m == showTF7_5m && cacheAlightenMirrorV0022[idx].ColorTF1 == colorTF1 && cacheAlightenMirrorV0022[idx].ColorTF2 == colorTF2 && cacheAlightenMirrorV0022[idx].ColorTF3 == colorTF3 && cacheAlightenMirrorV0022[idx].ColorTF4 == colorTF4 && cacheAlightenMirrorV0022[idx].ColorTF5 == colorTF5 && cacheAlightenMirrorV0022[idx].ColorTF6 == colorTF6 && cacheAlightenMirrorV0022[idx].ColorTF7 == colorTF7 && cacheAlightenMirrorV0022[idx].LevelWidth == levelWidth && cacheAlightenMirrorV0022[idx].LevelDashStyleA == levelDashStyleA && cacheAlightenMirrorV0022[idx].LevelDashStyleB == levelDashStyleB && cacheAlightenMirrorV0022[idx].LevelDashStyleC == levelDashStyleC && cacheAlightenMirrorV0022[idx].LevelDashStyleE == levelDashStyleE && cacheAlightenMirrorV0022[idx].LevelDashStyleF == levelDashStyleF && cacheAlightenMirrorV0022[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorV0022[idx].LabelOffsetTicks == labelOffsetTicks && cacheAlightenMirrorV0022[idx].BiasTimeframe == biasTimeframe && cacheAlightenMirrorV0022[idx].EnableHTFVP1_Daily == enableHTFVP1_Daily && cacheAlightenMirrorV0022[idx].ShowHTFVP1_Daily == showHTFVP1_Daily && cacheAlightenMirrorV0022[idx].ShowDevVP1_Daily == showDevVP1_Daily && cacheAlightenMirrorV0022[idx].EnableHTFVP2_240m == enableHTFVP2_240m && cacheAlightenMirrorV0022[idx].ShowHTFVP2_240m == showHTFVP2_240m && cacheAlightenMirrorV0022[idx].ShowDevVP2_240m == showDevVP2_240m && cacheAlightenMirrorV0022[idx].EnableHTFVP3_60m == enableHTFVP3_60m && cacheAlightenMirrorV0022[idx].ShowHTFVP3_60m == showHTFVP3_60m && cacheAlightenMirrorV0022[idx].ShowDevVP3_60m == showDevVP3_60m && cacheAlightenMirrorV0022[idx].EnableHTFVP4_30m == enableHTFVP4_30m && cacheAlightenMirrorV0022[idx].ShowHTFVP4_30m == showHTFVP4_30m && cacheAlightenMirrorV0022[idx].ShowDevVP4_30m == showDevVP4_30m && cacheAlightenMirrorV0022[idx].EnableHTFVP5_15m == enableHTFVP5_15m && cacheAlightenMirrorV0022[idx].ShowHTFVP5_15m == showHTFVP5_15m && cacheAlightenMirrorV0022[idx].ShowDevVP5_15m == showDevVP5_15m && cacheAlightenMirrorV0022[idx].EnableHTFVP6_10m == enableHTFVP6_10m && cacheAlightenMirrorV0022[idx].ShowHTFVP6_10m == showHTFVP6_10m && cacheAlightenMirrorV0022[idx].ShowDevVP6_10m == showDevVP6_10m && cacheAlightenMirrorV0022[idx].EnableHTFVP7_5m == enableHTFVP7_5m && cacheAlightenMirrorV0022[idx].ShowHTFVP7_5m == showHTFVP7_5m && cacheAlightenMirrorV0022[idx].ShowDevVP7_5m == showDevVP7_5m && cacheAlightenMirrorV0022[idx].EnableHTFVPFilter == enableHTFVPFilter && cacheAlightenMirrorV0022[idx].HTFVPValueAreaPercentage == hTFVPValueAreaPercentage && cacheAlightenMirrorV0022[idx].HTFVPBarsToProcess == hTFVPBarsToProcess && cacheAlightenMirrorV0022[idx].HTFVPVAHColor == hTFVPVAHColor && cacheAlightenMirrorV0022[idx].HTFVPVALColor == hTFVPVALColor && cacheAlightenMirrorV0022[idx].HTFVPPOCColor == hTFVPPOCColor && cacheAlightenMirrorV0022[idx].HTFVPVAHWidth == hTFVPVAHWidth && cacheAlightenMirrorV0022[idx].HTFVPVAHStyle == hTFVPVAHStyle && cacheAlightenMirrorV0022[idx].HTFVPVALWidth == hTFVPVALWidth && cacheAlightenMirrorV0022[idx].HTFVPVALStyle == hTFVPVALStyle && cacheAlightenMirrorV0022[idx].HTFVPPOCWidth == hTFVPPOCWidth && cacheAlightenMirrorV0022[idx].HTFVPPOCStyle == hTFVPPOCStyle && cacheAlightenMirrorV0022[idx].HTFVPDevVAHWidth == hTFVPDevVAHWidth && cacheAlightenMirrorV0022[idx].HTFVPDevVAHStyle == hTFVPDevVAHStyle && cacheAlightenMirrorV0022[idx].HTFVPDevVALWidth == hTFVPDevVALWidth && cacheAlightenMirrorV0022[idx].HTFVPDevVALStyle == hTFVPDevVALStyle && cacheAlightenMirrorV0022[idx].HTFVPDevPOCWidth == hTFVPDevPOCWidth && cacheAlightenMirrorV0022[idx].HTFVPDevPOCStyle == hTFVPDevPOCStyle && cacheAlightenMirrorV0022[idx].EqualsInput(input))
+						return cacheAlightenMirrorV0022[idx];
+			return CacheIndicator<AlightenMirrorV0022>(new AlightenMirrorV0022(){ EnablePatternA = enablePatternA, EnablePatternB = enablePatternB, EnablePatternC = enablePatternC, EnablePatternE = enablePatternE, EnablePatternF = enablePatternF, SrcBarsToProcess = srcBarsToProcess, MirrorLookbackBars = mirrorLookbackBars, EnableInvalidatedCleanup = enableInvalidatedCleanup, EnableTF1_Daily = enableTF1_Daily, ShowTF1_Daily = showTF1_Daily, EnableTF2_240m = enableTF2_240m, ShowTF2_240m = showTF2_240m, EnableTF3_60m = enableTF3_60m, ShowTF3_60m = showTF3_60m, EnableTF4_30m = enableTF4_30m, ShowTF4_30m = showTF4_30m, EnableTF5_15m = enableTF5_15m, ShowTF5_15m = showTF5_15m, EnableTF6_10m = enableTF6_10m, ShowTF6_10m = showTF6_10m, EnableTF7_5m = enableTF7_5m, ShowTF7_5m = showTF7_5m, ColorTF1 = colorTF1, ColorTF2 = colorTF2, ColorTF3 = colorTF3, ColorTF4 = colorTF4, ColorTF5 = colorTF5, ColorTF6 = colorTF6, ColorTF7 = colorTF7, LevelWidth = levelWidth, LevelDashStyleA = levelDashStyleA, LevelDashStyleB = levelDashStyleB, LevelDashStyleC = levelDashStyleC, LevelDashStyleE = levelDashStyleE, LevelDashStyleF = levelDashStyleF, LabelFontSize = labelFontSize, LabelOffsetTicks = labelOffsetTicks, BiasTimeframe = biasTimeframe, EnableHTFVP1_Daily = enableHTFVP1_Daily, ShowHTFVP1_Daily = showHTFVP1_Daily, ShowDevVP1_Daily = showDevVP1_Daily, EnableHTFVP2_240m = enableHTFVP2_240m, ShowHTFVP2_240m = showHTFVP2_240m, ShowDevVP2_240m = showDevVP2_240m, EnableHTFVP3_60m = enableHTFVP3_60m, ShowHTFVP3_60m = showHTFVP3_60m, ShowDevVP3_60m = showDevVP3_60m, EnableHTFVP4_30m = enableHTFVP4_30m, ShowHTFVP4_30m = showHTFVP4_30m, ShowDevVP4_30m = showDevVP4_30m, EnableHTFVP5_15m = enableHTFVP5_15m, ShowHTFVP5_15m = showHTFVP5_15m, ShowDevVP5_15m = showDevVP5_15m, EnableHTFVP6_10m = enableHTFVP6_10m, ShowHTFVP6_10m = showHTFVP6_10m, ShowDevVP6_10m = showDevVP6_10m, EnableHTFVP7_5m = enableHTFVP7_5m, ShowHTFVP7_5m = showHTFVP7_5m, ShowDevVP7_5m = showDevVP7_5m, EnableHTFVPFilter = enableHTFVPFilter, HTFVPValueAreaPercentage = hTFVPValueAreaPercentage, HTFVPBarsToProcess = hTFVPBarsToProcess, HTFVPVAHColor = hTFVPVAHColor, HTFVPVALColor = hTFVPVALColor, HTFVPPOCColor = hTFVPPOCColor, HTFVPVAHWidth = hTFVPVAHWidth, HTFVPVAHStyle = hTFVPVAHStyle, HTFVPVALWidth = hTFVPVALWidth, HTFVPVALStyle = hTFVPVALStyle, HTFVPPOCWidth = hTFVPPOCWidth, HTFVPPOCStyle = hTFVPPOCStyle, HTFVPDevVAHWidth = hTFVPDevVAHWidth, HTFVPDevVAHStyle = hTFVPDevVAHStyle, HTFVPDevVALWidth = hTFVPDevVALWidth, HTFVPDevVALStyle = hTFVPDevVALStyle, HTFVPDevPOCWidth = hTFVPDevPOCWidth, HTFVPDevPOCStyle = hTFVPDevPOCStyle }, input, ref cacheAlightenMirrorV0022);
 		}
 	}
 }
@@ -1714,14 +1774,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorV0021 AlightenMirrorV0021(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		public Indicators.AlightenMirrorV0022 AlightenMirrorV0022(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			return indicator.AlightenMirrorV0021(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
+			return indicator.AlightenMirrorV0022(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
 		}
 
-		public Indicators.AlightenMirrorV0021 AlightenMirrorV0021(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		public Indicators.AlightenMirrorV0022 AlightenMirrorV0022(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			return indicator.AlightenMirrorV0021(input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
+			return indicator.AlightenMirrorV0022(input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
 		}
 	}
 }
@@ -1730,14 +1790,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorV0021 AlightenMirrorV0021(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		public Indicators.AlightenMirrorV0022 AlightenMirrorV0022(bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			return indicator.AlightenMirrorV0021(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
+			return indicator.AlightenMirrorV0022(Input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
 		}
 
-		public Indicators.AlightenMirrorV0021 AlightenMirrorV0021(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0021 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
+		public Indicators.AlightenMirrorV0022 AlightenMirrorV0022(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternC, bool enablePatternE, bool enablePatternF, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool enableTF1_Daily, bool showTF1_Daily, bool enableTF2_240m, bool showTF2_240m, bool enableTF3_60m, bool showTF3_60m, bool enableTF4_30m, bool showTF4_30m, bool enableTF5_15m, bool showTF5_15m, bool enableTF6_10m, bool showTF6_10m, bool enableTF7_5m, bool showTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleC, DashStyleHelper levelDashStyleE, DashStyleHelper levelDashStyleF, int labelFontSize, int labelOffsetTicks, HTFVPBiasTimeframeV0022 biasTimeframe, bool enableHTFVP1_Daily, bool showHTFVP1_Daily, bool showDevVP1_Daily, bool enableHTFVP2_240m, bool showHTFVP2_240m, bool showDevVP2_240m, bool enableHTFVP3_60m, bool showHTFVP3_60m, bool showDevVP3_60m, bool enableHTFVP4_30m, bool showHTFVP4_30m, bool showDevVP4_30m, bool enableHTFVP5_15m, bool showHTFVP5_15m, bool showDevVP5_15m, bool enableHTFVP6_10m, bool showHTFVP6_10m, bool showDevVP6_10m, bool enableHTFVP7_5m, bool showHTFVP7_5m, bool showDevVP7_5m, bool enableHTFVPFilter, double hTFVPValueAreaPercentage, int hTFVPBarsToProcess, Brush hTFVPVAHColor, Brush hTFVPVALColor, Brush hTFVPPOCColor, int hTFVPVAHWidth, DashStyleHelper hTFVPVAHStyle, int hTFVPVALWidth, DashStyleHelper hTFVPVALStyle, int hTFVPPOCWidth, DashStyleHelper hTFVPPOCStyle, int hTFVPDevVAHWidth, DashStyleHelper hTFVPDevVAHStyle, int hTFVPDevVALWidth, DashStyleHelper hTFVPDevVALStyle, int hTFVPDevPOCWidth, DashStyleHelper hTFVPDevPOCStyle)
 		{
-			return indicator.AlightenMirrorV0021(input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
+			return indicator.AlightenMirrorV0022(input, enablePatternA, enablePatternB, enablePatternC, enablePatternE, enablePatternF, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, enableTF1_Daily, showTF1_Daily, enableTF2_240m, showTF2_240m, enableTF3_60m, showTF3_60m, enableTF4_30m, showTF4_30m, enableTF5_15m, showTF5_15m, enableTF6_10m, showTF6_10m, enableTF7_5m, showTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleC, levelDashStyleE, levelDashStyleF, labelFontSize, labelOffsetTicks, biasTimeframe, enableHTFVP1_Daily, showHTFVP1_Daily, showDevVP1_Daily, enableHTFVP2_240m, showHTFVP2_240m, showDevVP2_240m, enableHTFVP3_60m, showHTFVP3_60m, showDevVP3_60m, enableHTFVP4_30m, showHTFVP4_30m, showDevVP4_30m, enableHTFVP5_15m, showHTFVP5_15m, showDevVP5_15m, enableHTFVP6_10m, showHTFVP6_10m, showDevVP6_10m, enableHTFVP7_5m, showHTFVP7_5m, showDevVP7_5m, enableHTFVPFilter, hTFVPValueAreaPercentage, hTFVPBarsToProcess, hTFVPVAHColor, hTFVPVALColor, hTFVPPOCColor, hTFVPVAHWidth, hTFVPVAHStyle, hTFVPVALWidth, hTFVPVALStyle, hTFVPPOCWidth, hTFVPPOCStyle, hTFVPDevVAHWidth, hTFVPDevVAHStyle, hTFVPDevVALWidth, hTFVPDevVALStyle, hTFVPDevPOCWidth, hTFVPDevPOCStyle);
 		}
 	}
 }
