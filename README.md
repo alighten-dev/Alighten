@@ -9,15 +9,15 @@ The core scripts are located in the `NinjaTrader/Indicators/` directory.
 ### 📊 Alighten Mirror Dashboard Ecosystem
 The Mirror ecosystem is a multi-timeframe pattern recognition and dashboard engine. It separates raw pattern detection (PtA-F) from the visualization and strategy-emission layer (Mirror).
 
-* **`AlightenMirrorV0022.cs`** 
+* **`AlightenMirrorV0024.cs`** 
   * **Description:** The core Multi-Timeframe Dashboard and visualization engine. It consolidates signals from Patterns A, B, C, E, and F across multiple higher timeframes (HTFs) onto a single primary chart. It handles on-chart visual rendering (Direct2D lines/labels), Databox plot emissions for strategies, and HTF Volume Profile bias filtering.
-* **`AlightenMirrorPtAV0008.cs`** (Delta Flip / Exhaustion)
+* **`AlightenMirrorPtAV0008.cs`** 
   * **Description:** Core signal engine detecting price exhaustion and delta flips using a ZigZag/level tracking system.
 * **`AlightenMirrorPtBV0003.cs`**
   * **Description:** Core signal engine for Pattern B detection.
-* **`AlightenMirrorPtCV0005.cs`**
+* **`AlightenMirrorPtCV0006.cs`**
   * **Description:** Core signal engine for Pattern C detection.
-* **`AlightenMirrorPtEV0006.cs`**
+* **`AlightenMirrorPtEV0007.cs`**
   * **Description:** Core signal engine for Pattern E detection.
 * **`AlightenMirrorPtFV0001.cs`** (Breakout + Immediate Retest)
   * **Description:** Core signal engine tracking precise breakouts and immediate retests of critical structure levels.
