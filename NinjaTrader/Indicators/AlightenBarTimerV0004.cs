@@ -131,7 +131,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         (float)f.Size);
                     
                     dxTextFormat.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
-                    dxTextFormat.ParagraphAlignment = SharpDX.DirectWrite.ParagraphAlignment.Center;
+                    dxTextFormat.ParagraphAlignment = SharpDX.DirectWrite.ParagraphAlignment.Bottom;
 
                     dxTextBrush = TimerColor.ToDxBrush(RenderTarget);
                 } 

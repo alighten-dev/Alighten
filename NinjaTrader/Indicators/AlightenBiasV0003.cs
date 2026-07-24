@@ -45,12 +45,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int BarsToProcess { get; set; } = 200;
 
         [Display(Name = "Draw ZigZags", GroupName = "Parameters", Order = 1)]
-        public bool DrawZigZags { get; set; } = true;
+        public bool DrawZigZags { get; set; } = false;
 
         [NinjaScriptProperty]
         [Range(1,100)]
         [Display(Name = "Number of Levels", GroupName = "Parameters", Order = 2)]
-        public int NumberOfLevels { get; set; } = 6;
+        public int NumberOfLevels { get; set; } = 4;
 
         [NinjaScriptProperty]
         [Range(1, 10000)]
@@ -173,11 +173,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         [NinjaScriptProperty]
         [Display(Name = "Show Gain/Loss Markers", GroupName = "New Settings (V0003)", Order = 15)]
-        public bool ShowGainLoss { get; set; } = false;
+        public bool ShowGainLoss { get; set; } = true;
 
         [NinjaScriptProperty]
         [Display(Name = "Show FTG/FTL Markers", GroupName = "New Settings (V0003)", Order = 16)]
-        public bool ShowFTGFTL { get; set; } = false;
+        public bool ShowFTGFTL { get; set; } = true;
 
         [NinjaScriptProperty]
         [Display(Name = "Enable Debug Output", GroupName = "Debugging", Order = 100)]
@@ -186,7 +186,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Browsable(false)]
         [XmlIgnore]
         public Series<double> Bias { get { return Values[0]; } }
-        #endregion 
+        #endregion
 
         #region OnStateChange
         protected override void OnStateChange()
@@ -594,61 +594,3 @@ namespace NinjaTrader.NinjaScript.Indicators
         #endregion
     }
 }
-
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private AlightenBiasV0003[] cacheAlightenBiasV0003;
-		public AlightenBiasV0003 AlightenBiasV0003(int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			return AlightenBiasV0003(Input, barsToProcess, numberOfLevels, relevanceFactor, zigZagColor, levelLineColor, levelLineColorGained, levelLineColorLost, levelLineWidth, levelLineDashStyle, showContainmentBox, containmentBoxColor, gainColor, lossColor, failedGainColor, failedLossColor, showGainLoss, showFTGFTL, debugPrints);
-		}
-
-		public AlightenBiasV0003 AlightenBiasV0003(ISeries<double> input, int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			if (cacheAlightenBiasV0003 != null)
-				for (int idx = 0; idx < cacheAlightenBiasV0003.Length; idx++)
-					if (cacheAlightenBiasV0003[idx] != null && cacheAlightenBiasV0003[idx].BarsToProcess == barsToProcess && cacheAlightenBiasV0003[idx].NumberOfLevels == numberOfLevels && cacheAlightenBiasV0003[idx].RelevanceFactor == relevanceFactor && cacheAlightenBiasV0003[idx].ZigZagColor == zigZagColor && cacheAlightenBiasV0003[idx].LevelLineColor == levelLineColor && cacheAlightenBiasV0003[idx].LevelLineColorGained == levelLineColorGained && cacheAlightenBiasV0003[idx].LevelLineColorLost == levelLineColorLost && cacheAlightenBiasV0003[idx].LevelLineWidth == levelLineWidth && cacheAlightenBiasV0003[idx].LevelLineDashStyle == levelLineDashStyle && cacheAlightenBiasV0003[idx].ShowContainmentBox == showContainmentBox && cacheAlightenBiasV0003[idx].ContainmentBoxColor == containmentBoxColor && cacheAlightenBiasV0003[idx].GainColor == gainColor && cacheAlightenBiasV0003[idx].LossColor == lossColor && cacheAlightenBiasV0003[idx].FailedGainColor == failedGainColor && cacheAlightenBiasV0003[idx].FailedLossColor == failedLossColor && cacheAlightenBiasV0003[idx].ShowGainLoss == showGainLoss && cacheAlightenBiasV0003[idx].ShowFTGFTL == showFTGFTL && cacheAlightenBiasV0003[idx].DebugPrints == debugPrints && cacheAlightenBiasV0003[idx].EqualsInput(input))
-						return cacheAlightenBiasV0003[idx];
-			return CacheIndicator<AlightenBiasV0003>(new AlightenBiasV0003(){ BarsToProcess = barsToProcess, NumberOfLevels = numberOfLevels, RelevanceFactor = relevanceFactor, ZigZagColor = zigZagColor, LevelLineColor = levelLineColor, LevelLineColorGained = levelLineColorGained, LevelLineColorLost = levelLineColorLost, LevelLineWidth = levelLineWidth, LevelLineDashStyle = levelLineDashStyle, ShowContainmentBox = showContainmentBox, ContainmentBoxColor = containmentBoxColor, GainColor = gainColor, LossColor = lossColor, FailedGainColor = failedGainColor, FailedLossColor = failedLossColor, ShowGainLoss = showGainLoss, ShowFTGFTL = showFTGFTL, DebugPrints = debugPrints }, input, ref cacheAlightenBiasV0003);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.AlightenBiasV0003 AlightenBiasV0003(int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			return indicator.AlightenBiasV0003(Input, barsToProcess, numberOfLevels, relevanceFactor, zigZagColor, levelLineColor, levelLineColorGained, levelLineColorLost, levelLineWidth, levelLineDashStyle, showContainmentBox, containmentBoxColor, gainColor, lossColor, failedGainColor, failedLossColor, showGainLoss, showFTGFTL, debugPrints);
-		}
-
-		public Indicators.AlightenBiasV0003 AlightenBiasV0003(ISeries<double> input , int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			return indicator.AlightenBiasV0003(input, barsToProcess, numberOfLevels, relevanceFactor, zigZagColor, levelLineColor, levelLineColorGained, levelLineColorLost, levelLineWidth, levelLineDashStyle, showContainmentBox, containmentBoxColor, gainColor, lossColor, failedGainColor, failedLossColor, showGainLoss, showFTGFTL, debugPrints);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.AlightenBiasV0003 AlightenBiasV0003(int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			return indicator.AlightenBiasV0003(Input, barsToProcess, numberOfLevels, relevanceFactor, zigZagColor, levelLineColor, levelLineColorGained, levelLineColorLost, levelLineWidth, levelLineDashStyle, showContainmentBox, containmentBoxColor, gainColor, lossColor, failedGainColor, failedLossColor, showGainLoss, showFTGFTL, debugPrints);
-		}
-
-		public Indicators.AlightenBiasV0003 AlightenBiasV0003(ISeries<double> input , int barsToProcess, int numberOfLevels, int relevanceFactor, Brush zigZagColor, Brush levelLineColor, Brush levelLineColorGained, Brush levelLineColorLost, int levelLineWidth, DashStyleHelper levelLineDashStyle, bool showContainmentBox, Brush containmentBoxColor, Brush gainColor, Brush lossColor, Brush failedGainColor, Brush failedLossColor, bool showGainLoss, bool showFTGFTL, bool debugPrints)
-		{
-			return indicator.AlightenBiasV0003(input, barsToProcess, numberOfLevels, relevanceFactor, zigZagColor, levelLineColor, levelLineColorGained, levelLineColorLost, levelLineWidth, levelLineDashStyle, showContainmentBox, containmentBoxColor, gainColor, lossColor, failedGainColor, failedLossColor, showGainLoss, showFTGFTL, debugPrints);
-		}
-	}
-}
-
-#endregion
