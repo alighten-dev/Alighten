@@ -1,4 +1,4 @@
-// #############################################################
+﻿// #############################################################
 // #														   #
 // #                     Volume Delta by Gill                  #
 // #						11.05.2019						   #
@@ -487,60 +487,3 @@ namespace NinjaTrader.NinjaScript.Indicators
 		
 	}
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private VolumeDelta[] cacheVolumeDelta;
-		public VolumeDelta VolumeDelta(Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			return VolumeDelta(Input, barColorDown, barColorUp, shadowColor, shadowWidth, cumulativeDelta, minSize, showDivs);
-		}
-
-		public VolumeDelta VolumeDelta(ISeries<double> input, Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			if (cacheVolumeDelta != null)
-				for (int idx = 0; idx < cacheVolumeDelta.Length; idx++)
-					if (cacheVolumeDelta[idx] != null && cacheVolumeDelta[idx].BarColorDown == barColorDown && cacheVolumeDelta[idx].BarColorUp == barColorUp && cacheVolumeDelta[idx].ShadowColor == shadowColor && cacheVolumeDelta[idx].ShadowWidth == shadowWidth && cacheVolumeDelta[idx].CumulativeDelta == cumulativeDelta && cacheVolumeDelta[idx].MinSize == minSize && cacheVolumeDelta[idx].ShowDivs == showDivs && cacheVolumeDelta[idx].EqualsInput(input))
-						return cacheVolumeDelta[idx];
-			return CacheIndicator<VolumeDelta>(new VolumeDelta(){ BarColorDown = barColorDown, BarColorUp = barColorUp, ShadowColor = shadowColor, ShadowWidth = shadowWidth, CumulativeDelta = cumulativeDelta, MinSize = minSize, ShowDivs = showDivs }, input, ref cacheVolumeDelta);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.VolumeDelta VolumeDelta(Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			return indicator.VolumeDelta(Input, barColorDown, barColorUp, shadowColor, shadowWidth, cumulativeDelta, minSize, showDivs);
-		}
-
-		public Indicators.VolumeDelta VolumeDelta(ISeries<double> input , Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			return indicator.VolumeDelta(input, barColorDown, barColorUp, shadowColor, shadowWidth, cumulativeDelta, minSize, showDivs);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.VolumeDelta VolumeDelta(Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			return indicator.VolumeDelta(Input, barColorDown, barColorUp, shadowColor, shadowWidth, cumulativeDelta, minSize, showDivs);
-		}
-
-		public Indicators.VolumeDelta VolumeDelta(ISeries<double> input , Brush barColorDown, Brush barColorUp, Brush shadowColor, int shadowWidth, bool cumulativeDelta, int minSize, bool showDivs)
-		{
-			return indicator.VolumeDelta(input, barColorDown, barColorUp, shadowColor, shadowWidth, cumulativeDelta, minSize, showDivs);
-		}
-	}
-}
-
-#endregion

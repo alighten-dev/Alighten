@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -284,60 +284,3 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
     }
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private AlightenBarTimerV0004[] cacheAlightenBarTimerV0004;
-		public AlightenBarTimerV0004 AlightenBarTimerV0004(int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			return AlightenBarTimerV0004(Input, fontSize, timerOffset, timerColor);
-		}
-
-		public AlightenBarTimerV0004 AlightenBarTimerV0004(ISeries<double> input, int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			if (cacheAlightenBarTimerV0004 != null)
-				for (int idx = 0; idx < cacheAlightenBarTimerV0004.Length; idx++)
-					if (cacheAlightenBarTimerV0004[idx] != null && cacheAlightenBarTimerV0004[idx].FontSize == fontSize && cacheAlightenBarTimerV0004[idx].TimerOffset == timerOffset && cacheAlightenBarTimerV0004[idx].TimerColor == timerColor && cacheAlightenBarTimerV0004[idx].EqualsInput(input))
-						return cacheAlightenBarTimerV0004[idx];
-			return CacheIndicator<AlightenBarTimerV0004>(new AlightenBarTimerV0004(){ FontSize = fontSize, TimerOffset = timerOffset, TimerColor = timerColor }, input, ref cacheAlightenBarTimerV0004);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.AlightenBarTimerV0004 AlightenBarTimerV0004(int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			return indicator.AlightenBarTimerV0004(Input, fontSize, timerOffset, timerColor);
-		}
-
-		public Indicators.AlightenBarTimerV0004 AlightenBarTimerV0004(ISeries<double> input , int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			return indicator.AlightenBarTimerV0004(input, fontSize, timerOffset, timerColor);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.AlightenBarTimerV0004 AlightenBarTimerV0004(int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			return indicator.AlightenBarTimerV0004(Input, fontSize, timerOffset, timerColor);
-		}
-
-		public Indicators.AlightenBarTimerV0004 AlightenBarTimerV0004(ISeries<double> input , int fontSize, int timerOffset, System.Windows.Media.Brush timerColor)
-		{
-			return indicator.AlightenBarTimerV0004(input, fontSize, timerOffset, timerColor);
-		}
-	}
-}
-
-#endregion

@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows.Media;
@@ -188,60 +188,3 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
     }
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private HigherTimeframeCandles[] cacheHigherTimeframeCandles;
-		public HigherTimeframeCandles HigherTimeframeCandles(BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			return HigherTimeframeCandles(Input, periodType, period, bullishColor, bearishColor, wickColor, opacity, outlineOpacity, borderWidth);
-		}
-
-		public HigherTimeframeCandles HigherTimeframeCandles(ISeries<double> input, BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			if (cacheHigherTimeframeCandles != null)
-				for (int idx = 0; idx < cacheHigherTimeframeCandles.Length; idx++)
-					if (cacheHigherTimeframeCandles[idx] != null && cacheHigherTimeframeCandles[idx].PeriodType == periodType && cacheHigherTimeframeCandles[idx].Period == period && cacheHigherTimeframeCandles[idx].BullishColor == bullishColor && cacheHigherTimeframeCandles[idx].BearishColor == bearishColor && cacheHigherTimeframeCandles[idx].WickColor == wickColor && cacheHigherTimeframeCandles[idx].Opacity == opacity && cacheHigherTimeframeCandles[idx].OutlineOpacity == outlineOpacity && cacheHigherTimeframeCandles[idx].BorderWidth == borderWidth && cacheHigherTimeframeCandles[idx].EqualsInput(input))
-						return cacheHigherTimeframeCandles[idx];
-			return CacheIndicator<HigherTimeframeCandles>(new HigherTimeframeCandles(){ PeriodType = periodType, Period = period, BullishColor = bullishColor, BearishColor = bearishColor, WickColor = wickColor, Opacity = opacity, OutlineOpacity = outlineOpacity, BorderWidth = borderWidth }, input, ref cacheHigherTimeframeCandles);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.HigherTimeframeCandles HigherTimeframeCandles(BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			return indicator.HigherTimeframeCandles(Input, periodType, period, bullishColor, bearishColor, wickColor, opacity, outlineOpacity, borderWidth);
-		}
-
-		public Indicators.HigherTimeframeCandles HigherTimeframeCandles(ISeries<double> input , BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			return indicator.HigherTimeframeCandles(input, periodType, period, bullishColor, bearishColor, wickColor, opacity, outlineOpacity, borderWidth);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.HigherTimeframeCandles HigherTimeframeCandles(BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			return indicator.HigherTimeframeCandles(Input, periodType, period, bullishColor, bearishColor, wickColor, opacity, outlineOpacity, borderWidth);
-		}
-
-		public Indicators.HigherTimeframeCandles HigherTimeframeCandles(ISeries<double> input , BarsPeriodType periodType, int period, Brush bullishColor, Brush bearishColor, Brush wickColor, int opacity, int outlineOpacity, int borderWidth)
-		{
-			return indicator.HigherTimeframeCandles(input, periodType, period, bullishColor, bearishColor, wickColor, opacity, outlineOpacity, borderWidth);
-		}
-	}
-}
-
-#endregion

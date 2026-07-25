@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -488,60 +488,3 @@ namespace NinjaTrader.NinjaScript.Indicators
         #endregion
     }
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private AlightenHTFVPV0004[] cacheAlightenHTFVPV0004;
-		public AlightenHTFVPV0004 AlightenHTFVPV0004(int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			return AlightenHTFVPV0004(Input, barsToProcess, hTFBarType, hTFBarValue, valueAreaPercentage, vAHWidth, vAHDashStyle, vALWidth, vALDashStyle, pOCWidth, pOCDashStyle);
-		}
-
-		public AlightenHTFVPV0004 AlightenHTFVPV0004(ISeries<double> input, int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			if (cacheAlightenHTFVPV0004 != null)
-				for (int idx = 0; idx < cacheAlightenHTFVPV0004.Length; idx++)
-					if (cacheAlightenHTFVPV0004[idx] != null && cacheAlightenHTFVPV0004[idx].BarsToProcess == barsToProcess && cacheAlightenHTFVPV0004[idx].HTFBarType == hTFBarType && cacheAlightenHTFVPV0004[idx].HTFBarValue == hTFBarValue && cacheAlightenHTFVPV0004[idx].ValueAreaPercentage == valueAreaPercentage && cacheAlightenHTFVPV0004[idx].VAHWidth == vAHWidth && cacheAlightenHTFVPV0004[idx].VAHDashStyle == vAHDashStyle && cacheAlightenHTFVPV0004[idx].VALWidth == vALWidth && cacheAlightenHTFVPV0004[idx].VALDashStyle == vALDashStyle && cacheAlightenHTFVPV0004[idx].POCWidth == pOCWidth && cacheAlightenHTFVPV0004[idx].POCDashStyle == pOCDashStyle && cacheAlightenHTFVPV0004[idx].EqualsInput(input))
-						return cacheAlightenHTFVPV0004[idx];
-			return CacheIndicator<AlightenHTFVPV0004>(new AlightenHTFVPV0004(){ BarsToProcess = barsToProcess, HTFBarType = hTFBarType, HTFBarValue = hTFBarValue, ValueAreaPercentage = valueAreaPercentage, VAHWidth = vAHWidth, VAHDashStyle = vAHDashStyle, VALWidth = vALWidth, VALDashStyle = vALDashStyle, POCWidth = pOCWidth, POCDashStyle = pOCDashStyle }, input, ref cacheAlightenHTFVPV0004);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.AlightenHTFVPV0004 AlightenHTFVPV0004(int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			return indicator.AlightenHTFVPV0004(Input, barsToProcess, hTFBarType, hTFBarValue, valueAreaPercentage, vAHWidth, vAHDashStyle, vALWidth, vALDashStyle, pOCWidth, pOCDashStyle);
-		}
-
-		public Indicators.AlightenHTFVPV0004 AlightenHTFVPV0004(ISeries<double> input , int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			return indicator.AlightenHTFVPV0004(input, barsToProcess, hTFBarType, hTFBarValue, valueAreaPercentage, vAHWidth, vAHDashStyle, vALWidth, vALDashStyle, pOCWidth, pOCDashStyle);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.AlightenHTFVPV0004 AlightenHTFVPV0004(int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			return indicator.AlightenHTFVPV0004(Input, barsToProcess, hTFBarType, hTFBarValue, valueAreaPercentage, vAHWidth, vAHDashStyle, vALWidth, vALDashStyle, pOCWidth, pOCDashStyle);
-		}
-
-		public Indicators.AlightenHTFVPV0004 AlightenHTFVPV0004(ISeries<double> input , int barsToProcess, BarsPeriodType hTFBarType, int hTFBarValue, double valueAreaPercentage, int vAHWidth, DashStyleHelper vAHDashStyle, int vALWidth, DashStyleHelper vALDashStyle, int pOCWidth, DashStyleHelper pOCDashStyle)
-		{
-			return indicator.AlightenHTFVPV0004(input, barsToProcess, hTFBarType, hTFBarValue, valueAreaPercentage, vAHWidth, vAHDashStyle, vALWidth, vALDashStyle, pOCWidth, pOCDashStyle);
-		}
-	}
-}
-
-#endregion

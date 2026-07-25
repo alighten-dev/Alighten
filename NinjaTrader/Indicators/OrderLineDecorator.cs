@@ -1,4 +1,4 @@
-#region Using declarations
+﻿#region Using declarations
 using NinjaTrader.Cbi;
 using NinjaTrader.Gui;
 using NinjaTrader.Gui.Chart;
@@ -586,60 +586,3 @@ namespace NinjaTrader.NinjaScript.Indicators.Gemify
     }
 
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private Gemify.OrderLineDecorator[] cacheOrderLineDecorator;
-		public Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, displayProjectedAccountValue, displayRiskReward, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-
-		public Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input, bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			if (cacheOrderLineDecorator != null)
-				for (int idx = 0; idx < cacheOrderLineDecorator.Length; idx++)
-					if (cacheOrderLineDecorator[idx] != null && cacheOrderLineDecorator[idx].DisplayTicks == displayTicks && cacheOrderLineDecorator[idx].DisplayPoints == displayPoints && cacheOrderLineDecorator[idx].DisplayCurrency == displayCurrency && cacheOrderLineDecorator[idx].DisplayPercentOfAccount == displayPercentOfAccount && cacheOrderLineDecorator[idx].DisplayProjectedAccountValue == displayProjectedAccountValue && cacheOrderLineDecorator[idx].DisplayRiskReward == displayRiskReward && cacheOrderLineDecorator[idx].FlexGapWidth == flexGapWidth && cacheOrderLineDecorator[idx].StopFillBrush == stopFillBrush && cacheOrderLineDecorator[idx].TargetFillBrush == targetFillBrush && cacheOrderLineDecorator[idx].OutlineBrush == outlineBrush && cacheOrderLineDecorator[idx].TextBrush == textBrush && cacheOrderLineDecorator[idx].EqualsInput(input))
-						return cacheOrderLineDecorator[idx];
-			return CacheIndicator<Gemify.OrderLineDecorator>(new Gemify.OrderLineDecorator(){ DisplayTicks = displayTicks, DisplayPoints = displayPoints, DisplayCurrency = displayCurrency, DisplayPercentOfAccount = displayPercentOfAccount, DisplayProjectedAccountValue = displayProjectedAccountValue, DisplayRiskReward = displayRiskReward, FlexGapWidth = flexGapWidth, StopFillBrush = stopFillBrush, TargetFillBrush = targetFillBrush, OutlineBrush = outlineBrush, TextBrush = textBrush }, input, ref cacheOrderLineDecorator);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, displayProjectedAccountValue, displayRiskReward, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input , bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, displayProjectedAccountValue, displayRiskReward, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(Input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, displayProjectedAccountValue, displayRiskReward, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-
-		public Indicators.Gemify.OrderLineDecorator OrderLineDecorator(ISeries<double> input , bool displayTicks, bool displayPoints, bool displayCurrency, bool displayPercentOfAccount, bool displayProjectedAccountValue, bool displayRiskReward, int flexGapWidth, Brush stopFillBrush, Brush targetFillBrush, Brush outlineBrush, Brush textBrush)
-		{
-			return indicator.OrderLineDecorator(input, displayTicks, displayPoints, displayCurrency, displayPercentOfAccount, displayProjectedAccountValue, displayRiskReward, flexGapWidth, stopFillBrush, targetFillBrush, outlineBrush, textBrush);
-		}
-	}
-}
-
-#endregion
