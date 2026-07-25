@@ -18,7 +18,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    // Version ID: 2026-07-23b AlightenMirrorPtJV0004 — Pattern J v2, rebuilt on the Trends
+    // Version ID: 2026-07-23b AlightenMirrorPtJV0005 — Pattern J v2, rebuilt on the Trends
     // ("PairBounds") engine instead of the Patch event engine: persistent pair population,
     // live endpoint gain/loss state machines with Tested tracking, SG/RL classification and
     // the PairBounds panel — all unchanged from Trends — plus:
@@ -30,7 +30,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //      holds (long), down-triangle when a resistance test rejects (short).
     // V0001 (Patch-based, sequential one-touch signals) remains a separate indicator.
     //
-    // V0004 (2026-07-24): Mirror-family hosting interface — BarsToProcess (0 = all,
+    // V0005 (2026-07-24): Mirror-family hosting interface — BarsToProcess (0 = all,
     // hosts pass Src Bars To Process), PatternJLongLevel/PatternJShortLevel series
     // (the level BEING TESTED on each bar — exactly where the standalone triangles
     // fire, held through the wick sequence; 0 = no test; MaxReportDistanceTicks
@@ -45,7 +45,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     // (open and close) holds on the correct side (Pattern A wick semantics). The first
     // test of a level is completely unchanged from V0002. One non-wick bar ends the
     // sequence; the level then stays tested (no re-signal until it flips sides).
-    public class AlightenMirrorPtJV0004 : Indicator
+    public class AlightenMirrorPtJV0005 : Indicator
     {
         private enum LevelSide
         {
@@ -171,6 +171,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         private LevelPair currentRlPair;
         private int lastProcessedPrimaryStructureBar = -1;
         private int lastProcessedPrimaryStateBar = -1;
+
+        // V0005: tests committed on the same bar whose pivot churn destroyed the
+        // node. Without this, a bar that both tests a level and rebuilds the swing
+        // structure (fast rejections — exactly the moves worth recording) loses the
+        // node in SynchronizePairsFromPivots before ProcessAllNodesAtAbsoluteBar
+        // ever evaluates the test, so the signal never exists historically and a
+        // level seen live vanishes on refresh.
+        private readonly List<LevelNode> retiredTestedNodes = new List<LevelNode>();
+        private int structureBarInProcess = -1;
+        private const int MaxRetiredTestedNodes = 500;
 
         private double Tick => TickSize > 0 ? TickSize : 0.0;
         private double HalfTickTolerance => Tick > 0 ? Tick * 0.5 : 0.0;
@@ -473,6 +483,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void ProcessPivotPrimary(int primaryBarIndex, double wickPrice,
                                          bool isHigh, double bodyHigh, double bodyLow)
         {
+            // V0005: remember which closed bar is driving this structure update so
+            // the node-removal path can salvage a same-bar test (see retiredTestedNodes).
+            structureBarInProcess = primaryBarIndex;
             double guide = Normalize(isHigh ? bodyHigh : bodyLow);
             wickPrice = Normalize(wickPrice);
 
@@ -610,6 +623,33 @@ namespace NinjaTrader.NinjaScript.Indicators
             foreach (string key in unusedNodeKeys)
             {
                 LevelNode node = nodesByKey[key];
+
+                // V0005 test salvage: the bar rebuilding the structure may ALSO be
+                // testing this node's level (a hard rejection makes a new extreme,
+                // which replaces the pivot backing the node). Evaluate that bar
+                // against the node BEFORE destroying it — the state engine would
+                // otherwise never see the test (node removal runs ahead of
+                // ProcessAllNodesAtAbsoluteBar). A node whose test commits is
+                // RETIRED, not erased: triangles and tested-level stub stay on the
+                // chart, and UpdatePlots keeps reporting the level for that bar so
+                // a hosting Mirror records it. Runs identically in historical and
+                // realtime processing, so the record survives a chart refresh.
+                if (structureBarInProcess > node.LastProcessedBar
+                    && structureBarInProcess <= CurrentPrimaryBar)
+                {
+                    ProcessNodeAtAbsoluteBar(node, structureBarInProcess, !CalcOnlyMode);
+                    if (node.TestedBar == structureBarInProcess)
+                    {
+                        RemoveDrawObject(node.LabelTag);
+                        nodeDrawTags.Remove(node.LabelTag);
+                        nodesByKey.Remove(key);
+                        retiredTestedNodes.Add(node);
+                        if (retiredTestedNodes.Count > MaxRetiredTestedNodes)
+                            retiredTestedNodes.RemoveAt(0);
+                        continue;
+                    }
+                }
+
                 RemoveDrawObject(node.DotTag);
                 RemoveDrawObject(node.LabelTag);
                 RemoveDrawObject(node.DotTag + "_lvl");
@@ -1028,7 +1068,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (ShowTestedPairLevels)
             {
-                foreach (LevelNode node in nodesByKey.Values)
+                // V0005: retired nodes (test salvaged from same-bar structure churn)
+                // keep their stubs alongside the live node set.
+                foreach (LevelNode node in nodesByKey.Values.Concat(retiredTestedNodes))
                 {
                     if (!node.Tested || node.TestedBar < 0 || node.TestedBar < node.PivotBar)
                         continue;
@@ -1224,6 +1266,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                     if (jLong != 0.0 && jShort != 0.0)
                         break;
+                }
+
+                // V0005: nodes retired by same-bar structure churn still report the
+                // level they were testing when the churn destroyed them.
+                foreach (LevelNode node in retiredTestedNodes)
+                {
+                    if (node.TestedBar != stateBar)
+                        continue;
+
+                    if (node.Side == LevelSide.Support && jLong == 0.0)
+                        jLong = node.Level;
+                    else if (node.Side == LevelSide.Resistance && jShort == 0.0)
+                        jShort = node.Level;
                 }
             }
 
@@ -1423,7 +1478,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorPtJV0004";
+                Name = "AlightenMirrorPtJV0005";
                 Description = "Pattern J v3 — v2 (qualified pairs, body levels, triangle tests, bounded signal-level stubs) plus SEQUENTIAL signals: after a test, each consecutive bar that true-WICKS the level (low pokes the tolerance, body holds the correct side) signals again; one non-wick bar ends the sequence; a flip removes the sequence markers like v2 removed its dot.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -1543,6 +1598,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 guidePrices.Clear();
                 nodesByKey.Clear();
                 pairs.Clear();
+                retiredTestedNodes.Clear();
+                structureBarInProcess = -1;
                 currentSgPair = null;
                 currentRlPair = null;
             }

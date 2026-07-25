@@ -1,5 +1,5 @@
-﻿/* Version ID: 2026-07-24a AlightenMirrorV0033 — V0032 + PATTERN J: hosts the paired-pivot
-   pattern source AlightenMirrorPtJV0004 (calc-only, all 47 ctor args, drawing suppressed)
+﻿/* Version ID: 2026-07-24a AlightenMirrorV0034 — V0032 + PATTERN J: hosts the paired-pivot
+   pattern source AlightenMirrorPtJV0005 (calc-only, all 47 ctor args, drawing suppressed)
    per timeframe as the SIXTH pattern (key "J", pattern index 5): levels = the nearest
    UNTESTED support/resistance (aligned with the standalone triangles; distance-capped),
    synced/drawn/researched exactly like A/B/G/H/F — per-TF windows, plots PtJD..PtJ5m
@@ -43,7 +43,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0033 : Indicator
+    public class AlightenMirrorV0034 : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -131,7 +131,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private AlightenMirrorPtGV0002[] _srcG = new AlightenMirrorPtGV0002[NUM_TF];
         private AlightenMirrorPtHV0002[] _srcH = new AlightenMirrorPtHV0002[NUM_TF];
 		private AlightenMirrorPtFV0003[] _srcF = new AlightenMirrorPtFV0003[NUM_TF];
-		private AlightenMirrorPtJV0004[] _srcJ = new AlightenMirrorPtJV0004[NUM_TF];
+		private AlightenMirrorPtJV0005[] _srcJ = new AlightenMirrorPtJV0005[NUM_TF];
 
         // Unified tracked-level store: tracked[pattern][tf]
         private Dictionary<string, TrackedLevel>[][] tracked = new Dictionary<string, TrackedLevel>[NUM_PAT][];
@@ -298,13 +298,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool EnablePatternF { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0004): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=5, GroupName="01. Patterns")]
+		[Display(Name="Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0005): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=5, GroupName="01. Patterns")]
 		public bool EnablePatternJ { get; set; }
-
-		[NinjaScriptProperty]
-		[Range(0, 100000)]
-		[Display(Name="Pattern J Max Level Distance (ticks, 0 = off)", Description="Suppress Pattern J levels sitting farther than this many ticks from price (keeps old far-away structure off the chart).", Order=5, GroupName="01. Patterns")]
-		public int PatternJMaxDistanceTicks { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
@@ -635,7 +630,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0033";
+                Name = "AlightenMirrorV0034";
                 Description = "Multi-Timeframe Mirror for Patterns A, B, G, H, and F. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -649,19 +644,18 @@ namespace NinjaTrader.NinjaScript.Indicators
                 EnablePatternH = true;
 				EnablePatternF = true;
 				EnablePatternJ = true;
-				PatternJMaxDistanceTicks = 400;
-                SrcBarsToProcess = 400;
+                SrcBarsToProcess = 500;
 				MirrorLookbackBars = 3;
 				EnableInvalidatedCleanup = true;
 
-                // Visibility defaults per the user's saved template (2026-07-24):
-                // A and J show everything except 5m; B/G/H/F show Daily/240m/60m only.
+                // Visibility defaults per the user's saved template (2026-07-25):
+                // J shows everything except 5m; H adds 30m; A/B/G/F show Daily/240m/60m only.
                 ShowPatternATF1_Daily = true;
                 ShowPatternATF2_240m = true;
                 ShowPatternATF3_60m = true;
-                ShowPatternATF4_30m = true;
-                ShowPatternATF5_15m = true;
-                ShowPatternATF6_10m = true;
+                ShowPatternATF4_30m = false;
+                ShowPatternATF5_15m = false;
+                ShowPatternATF6_10m = false;
                 ShowPatternATF7_5m = false;
                 ShowPatternBTF1_Daily = true;
                 ShowPatternBTF2_240m = true;
@@ -680,7 +674,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowPatternHTF1_Daily = true;
                 ShowPatternHTF2_240m = true;
                 ShowPatternHTF3_60m = true;
-                ShowPatternHTF4_30m = false;
+                ShowPatternHTF4_30m = true;
                 ShowPatternHTF5_15m = false;
                 ShowPatternHTF6_10m = false;
                 ShowPatternHTF7_5m = false;
@@ -923,10 +917,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                     if (EnablePatternJ)
                     {
-                        // Pattern J: paired-pivot engine (PtJV0004). Calc-only hosted —
+                        // Pattern J: paired-pivot engine (PtJV0005). Calc-only hosted —
                         // all its own drawing/labels/legacy display off; the Mirror draws
                         // the levels it reports (nearest untested support/resistance).
-                        _srcJ[t] = AlightenMirrorPtJV0004(
+                        _srcJ[t] = AlightenMirrorPtJV0005(
                             Closes[bipIdx],
                             SrcBarsToProcess,                      // barsToProcess
                             true, false,                           // confirmedPairsOnly, useWicksForPairLevels (body levels)
@@ -951,7 +945,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                             4,                                     // sg/rl pair line width (unused)
                             false, Colors.Gold, 2,                 // zigzag off
                             true,                                  // calcOnlyMode
-                            PatternJMaxDistanceTicks               // maxReportDistanceTicks
+                            0                                      // maxReportDistanceTicks: always off —
+                                                                   // a reported J level is one this bar's wick
+                                                                   // touched; the old 400t cap deleted exactly
+                                                                   // the biggest rejections (28630 on 7/24)
                         );
                     }
                 }
@@ -1061,7 +1058,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		            // Historical: the current daily bar [0] is complete. Realtime: it is forming.
 		            CatchUpDailyBias(State == State.Historical ? CurrentBars[2] : CurrentBars[2] - 1);
 		        }
-		        catch (Exception ex) { Print("[MirrorV0033] daily-bias engine: " + ex.Message); }
+		        catch (Exception ex) { Print("[MirrorV0034] daily-bias engine: " + ex.Message); }
 		        return;
 		    }
 
@@ -1152,7 +1149,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 catch (Exception ex)
                 {
-                    Print("[MirrorV0033] CRASH in BIP 0: " + ex.ToString());
+                    Print("[MirrorV0034] CRASH in BIP 0: " + ex.ToString());
                 }
 			}
 
@@ -1655,7 +1652,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 exportButton.Width = 110;
                 exportButton.ToolTip = "Export tracked levels to CSV";
                 chartWindow.MainMenu.Add(exportButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0033] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0034] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -1718,7 +1715,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0033] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0034] Export error: " + ex.Message);
             }
         }
 
@@ -1766,7 +1763,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0033] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0034] Failed to open settings: {ex.Message}");
 		    }
 		}
 
@@ -1898,7 +1895,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print("[MirrorV0033] ForceUISync Error: " + ex.Message);
+		        Print("[MirrorV0034] ForceUISync Error: " + ex.Message);
 		    }
 		}
 
