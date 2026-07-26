@@ -1,5 +1,5 @@
-﻿/* Version ID: 2026-07-24a AlightenMirrorV0034 — V0032 + PATTERN J: hosts the paired-pivot
-   pattern source AlightenMirrorPtJV0005 (calc-only, all 47 ctor args, drawing suppressed)
+﻿/* Version ID: 2026-07-24a AlightenMirrorV0035 — V0032 + PATTERN J: hosts the paired-pivot
+   pattern source AlightenMirrorPtJV0006 (calc-only, all 47 ctor args, drawing suppressed)
    per timeframe as the SIXTH pattern (key "J", pattern index 5): levels = the nearest
    UNTESTED support/resistance (aligned with the standalone triangles; distance-capped),
    synced/drawn/researched exactly like A/B/G/H/F — per-TF windows, plots PtJD..PtJ5m
@@ -43,7 +43,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0034 : Indicator
+    public class AlightenMirrorV0035 : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -119,6 +119,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public TrackedLevel Level;
         }
         private SyncSlot[] _syncCache;
+        private const int MAX_SYNC_AGO = 3;   // deepest closed-HTF-bar scanned by SyncLevels
 
         // PERF: levels whose HtfEndTime is older than MirrorLookbackBars HTF bars are
         // moved here. They keep their chart drawings but stop costing per-tick scans.
@@ -131,7 +132,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private AlightenMirrorPtGV0002[] _srcG = new AlightenMirrorPtGV0002[NUM_TF];
         private AlightenMirrorPtHV0002[] _srcH = new AlightenMirrorPtHV0002[NUM_TF];
 		private AlightenMirrorPtFV0003[] _srcF = new AlightenMirrorPtFV0003[NUM_TF];
-		private AlightenMirrorPtJV0005[] _srcJ = new AlightenMirrorPtJV0005[NUM_TF];
+		private AlightenMirrorPtJV0006[] _srcJ = new AlightenMirrorPtJV0006[NUM_TF];
 
         // Unified tracked-level store: tracked[pattern][tf]
         private Dictionary<string, TrackedLevel>[][] tracked = new Dictionary<string, TrackedLevel>[NUM_PAT][];
@@ -298,7 +299,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public bool EnablePatternF { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0005): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=5, GroupName="01. Patterns")]
+		[Display(Name="Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0006): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=5, GroupName="01. Patterns")]
 		public bool EnablePatternJ { get; set; }
 
         [NinjaScriptProperty]
@@ -630,7 +631,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0034";
+                Name = "AlightenMirrorV0035";
                 Description = "Multi-Timeframe Mirror for Patterns A, B, G, H, and F. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -855,7 +856,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                         tracked[p][t] = new Dictionary<string, TrackedLevel>();
                 }
 
-                _syncCache = new SyncSlot[NUM_PAT * NUM_TF * 4];
+                // V0035: slots cover barsAgo 0..MAX_SYNC_AGO (was 0..1) so PtJV0006's
+                // retro back-stamped tests (pairs confirming 2+ HTF bars late) are
+                // picked up by the deeper SyncLevels scan.
+                _syncCache = new SyncSlot[NUM_PAT * NUM_TF * 2 * (MAX_SYNC_AGO + 1)];
                 for (int i = 0; i < _syncCache.Length; i++)
                     _syncCache[i] = new SyncSlot();
 
@@ -920,7 +924,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         // Pattern J: paired-pivot engine (PtJV0005). Calc-only hosted —
                         // all its own drawing/labels/legacy display off; the Mirror draws
                         // the levels it reports (nearest untested support/resistance).
-                        _srcJ[t] = AlightenMirrorPtJV0005(
+                        _srcJ[t] = AlightenMirrorPtJV0006(
                             Closes[bipIdx],
                             SrcBarsToProcess,                      // barsToProcess
                             true, false,                           // confirmedPairsOnly, useWicksForPairLevels (body levels)
@@ -1193,17 +1197,18 @@ namespace NinjaTrader.NinjaScript.Indicators
                     var shortSeries = GetShortLevelSeries(p, t);
                     if (longSeries == null || shortSeries == null) continue;
 
-                    // Just-closed HTF bar
-                    double long1  = longSeries.IsValidDataPoint(1)  ? longSeries[1]  : 0;
-                    double short1 = shortSeries.IsValidDataPoint(1) ? shortSeries[1] : 0;
-                    SyncSingleSignal(p, t, bipIdx, 1, long1, true);
-                    SyncSingleSignal(p, t, bipIdx, 1, short1, false);
-
-                    // Live/forming HTF bar
-                    double long0  = longSeries.IsValidDataPoint(0)  ? longSeries[0]  : 0;
-                    double short0 = shortSeries.IsValidDataPoint(0) ? shortSeries[0] : 0;
-                    SyncSingleSignal(p, t, bipIdx, 0, long0, true);
-                    SyncSingleSignal(p, t, bipIdx, 0, short0, false);
+                    // V0035: scan several closed HTF bars, not just [1] — PtJV0006
+                    // back-stamps a test at its true bar when the pair confirming it
+                    // arrives late, so the level can first appear at barsAgo 2..3.
+                    // [0] stays the live/forming HTF bar (provisional values).
+                    int deepest = Math.Min(MAX_SYNC_AGO, Math.Max(1, CurrentBars[bipIdx] - 1));
+                    for (int ago = deepest; ago >= 0; ago--)
+                    {
+                        double lv = longSeries.IsValidDataPoint(ago)  ? longSeries[ago]  : 0;
+                        double sv = shortSeries.IsValidDataPoint(ago) ? shortSeries[ago] : 0;
+                        SyncSingleSignal(p, t, bipIdx, ago, lv, true);
+                        SyncSingleSignal(p, t, bipIdx, ago, sv, false);
+                    }
                 }
             }
         }
@@ -1229,7 +1234,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // PERF fast path: identical (start, price) signal as the previous sync of
             // this slot -> update the tracked level directly, skipping the tag string
             // interpolation + dictionary lookup that used to run on every tick.
-            int slotIdx = ((p * NUM_TF + t) * 2 + (isLong ? 0 : 1)) * 2 + barsAgoOnHtf;
+            int slotIdx = ((p * NUM_TF + t) * 2 + (isLong ? 0 : 1)) * (MAX_SYNC_AGO + 1) + barsAgoOnHtf;
             var slot = _syncCache[slotIdx];
             if (slot.Level != null && !slot.Level.Removed
                 && slot.StartTicks == signalStartTime.Ticks && slot.Price == priceLevel)
@@ -1243,7 +1248,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 lvl.LastUpdatedBip0Bar = CurrentBars[0];
                 lvl.IsLive = isLiveSignal;
 
-                if (EnableResearchLog && barsAgoOnHtf == 1 && !lvl.ResearchLogged)
+                if (EnableResearchLog && barsAgoOnHtf >= 1 && !lvl.ResearchLogged)
                     LogResearchEvent(lvl);
 
                 return;
@@ -1266,7 +1271,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     DrawTrackedLevel(existing, tDict);
                 }
 
-                if (EnableResearchLog && barsAgoOnHtf == 1 && !existing.ResearchLogged)
+                if (EnableResearchLog && barsAgoOnHtf >= 1 && !existing.ResearchLogged)
                     LogResearchEvent(existing);
 
                 slot.StartTicks = signalStartTime.Ticks;
@@ -1283,7 +1288,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 slot.Price = priceLevel;
                 slot.Level = newLevel;
 
-                if (EnableResearchLog && barsAgoOnHtf == 1)
+                if (EnableResearchLog && barsAgoOnHtf >= 1)
                     LogResearchEvent(newLevel);
 
                 // Retroactively plot in Databox for historical signals
@@ -1652,7 +1657,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 exportButton.Width = 110;
                 exportButton.ToolTip = "Export tracked levels to CSV";
                 chartWindow.MainMenu.Add(exportButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0034] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0035] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -1715,7 +1720,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0034] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0035] Export error: " + ex.Message);
             }
         }
 
@@ -1763,7 +1768,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0034] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0035] Failed to open settings: {ex.Message}");
 		    }
 		}
 

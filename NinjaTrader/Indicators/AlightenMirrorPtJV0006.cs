@@ -18,7 +18,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    // Version ID: 2026-07-23b AlightenMirrorPtJV0005 — Pattern J v2, rebuilt on the Trends
+    // Version ID: 2026-07-23b AlightenMirrorPtJV0006 — Pattern J v2, rebuilt on the Trends
     // ("PairBounds") engine instead of the Patch event engine: persistent pair population,
     // live endpoint gain/loss state machines with Tested tracking, SG/RL classification and
     // the PairBounds panel — all unchanged from Trends — plus:
@@ -30,7 +30,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //      holds (long), down-triangle when a resistance test rejects (short).
     // V0001 (Patch-based, sequential one-touch signals) remains a separate indicator.
     //
-    // V0005 (2026-07-24): Mirror-family hosting interface — BarsToProcess (0 = all,
+    // V0006 (2026-07-24): Mirror-family hosting interface — BarsToProcess (0 = all,
     // hosts pass Src Bars To Process), PatternJLongLevel/PatternJShortLevel series
     // (the level BEING TESTED on each bar — exactly where the standalone triangles
     // fire, held through the wick sequence; 0 = no test; MaxReportDistanceTicks
@@ -45,7 +45,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     // (open and close) holds on the correct side (Pattern A wick semantics). The first
     // test of a level is completely unchanged from V0002. One non-wick bar ends the
     // sequence; the level then stays tested (no re-signal until it flips sides).
-    public class AlightenMirrorPtJV0005 : Indicator
+    public class AlightenMirrorPtJV0006 : Indicator
     {
         private enum LevelSide
         {
@@ -172,7 +172,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private int lastProcessedPrimaryStructureBar = -1;
         private int lastProcessedPrimaryStateBar = -1;
 
-        // V0005: tests committed on the same bar whose pivot churn destroyed the
+        // V0006: tests committed on the same bar whose pivot churn destroyed the
         // node. Without this, a bar that both tests a level and rebuilds the swing
         // structure (fast rejections — exactly the moves worth recording) loses the
         // node in SynchronizePairsFromPivots before ProcessAllNodesAtAbsoluteBar
@@ -181,6 +181,19 @@ namespace NinjaTrader.NinjaScript.Indicators
         private readonly List<LevelNode> retiredTestedNodes = new List<LevelNode>();
         private int structureBarInProcess = -1;
         private const int MaxRetiredTestedNodes = 500;
+
+        // V0006: a pair that confirms 2+ bars after its test bar (the next opposite
+        // pivot arrives late) discovers the test in InitializeNodeFromHistory, but
+        // the normal reporting path only announces TestedBar == stateBar — the test
+        // reached standalone charts and never the hosting Mirror. Queue them here and
+        // back-stamp the plots at the tested bar's offset on the next UpdatePlots.
+        private struct RetroReport
+        {
+            public int Bar;
+            public double Level;
+            public bool IsShort;
+        }
+        private readonly List<RetroReport> pendingRetroReports = new List<RetroReport>();
 
         private double Tick => TickSize > 0 ? TickSize : 0.0;
         private double HalfTickTolerance => Tick > 0 ? Tick * 0.5 : 0.0;
@@ -483,7 +496,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void ProcessPivotPrimary(int primaryBarIndex, double wickPrice,
                                          bool isHigh, double bodyHigh, double bodyLow)
         {
-            // V0005: remember which closed bar is driving this structure update so
+            // V0006: remember which closed bar is driving this structure update so
             // the node-removal path can salvage a same-bar test (see retiredTestedNodes).
             structureBarInProcess = primaryBarIndex;
             double guide = Normalize(isHigh ? bodyHigh : bodyLow);
@@ -551,6 +564,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             nodesByKey[key] = node;
             InitializeNodeFromHistory(node);
+
+            // V0006 retro-report: the init replay can discover a test on a bar the
+            // state engine has already moved past (TestedBar == stateBar is handled
+            // by the normal path; strictly older means the pair confirmed late).
+            if (node.TestedBar >= 0 && node.TestedBar < lastProcessedPrimaryStateBar)
+                pendingRetroReports.Add(new RetroReport
+                {
+                    Bar = node.TestedBar,
+                    Level = node.Level,
+                    IsShort = node.Side == LevelSide.Resistance
+                });
+
             return node;
         }
 
@@ -624,7 +649,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 LevelNode node = nodesByKey[key];
 
-                // V0005 test salvage: the bar rebuilding the structure may ALSO be
+                // V0006 test salvage: the bar rebuilding the structure may ALSO be
                 // testing this node's level (a hard rejection makes a new extreme,
                 // which replaces the pivot backing the node). Evaluate that bar
                 // against the node BEFORE destroying it — the state engine would
@@ -1068,7 +1093,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             if (ShowTestedPairLevels)
             {
-                // V0005: retired nodes (test salvaged from same-bar structure churn)
+                // V0006: retired nodes (test salvaged from same-bar structure churn)
                 // keep their stubs alongside the live node set.
                 foreach (LevelNode node in nodesByKey.Values.Concat(retiredTestedNodes))
                 {
@@ -1268,7 +1293,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         break;
                 }
 
-                // V0005: nodes retired by same-bar structure churn still report the
+                // V0006: nodes retired by same-bar structure churn still report the
                 // level they were testing when the churn destroyed them.
                 foreach (LevelNode node in retiredTestedNodes)
                 {
@@ -1307,6 +1332,30 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // Pattern A-style signal plot: +1 long test, -1 short test (each
                 // sequence bar restamps, so consecutive wick bars all signal).
                 Values[PLOT_J_SIGNAL][stateAgo] = jLong != 0.0 ? 1.0 : (jShort != 0.0 ? -1.0 : 0.0);
+            }
+
+            // V0006: back-stamp tests discovered by a late pair confirmation at the
+            // bar they actually happened on (a hosting Mirror scans a few closed HTF
+            // bars, so these still reach it). Never overwrite a value already there.
+            if (pendingRetroReports.Count > 0)
+            {
+                foreach (RetroReport rr in pendingRetroReports)
+                {
+                    int ago = CurrentBar - rr.Bar;
+                    if (ago < 1 || ago > CurrentBar || ago > 10)
+                        continue;
+
+                    Series<double> target = rr.IsShort ? Values[PLOT_J_SHORT] : Values[PLOT_J_LONG];
+                    double existing = target.IsValidDataPoint(ago) ? target[ago] : 0.0;
+                    if (existing != 0.0)
+                        continue;
+                    target[ago] = rr.Level;
+
+                    double l = Values[PLOT_J_LONG].IsValidDataPoint(ago) ? Values[PLOT_J_LONG][ago] : 0.0;
+                    double s = Values[PLOT_J_SHORT].IsValidDataPoint(ago) ? Values[PLOT_J_SHORT][ago] : 0.0;
+                    Values[PLOT_J_SIGNAL][ago] = l != 0.0 ? 1.0 : (s != 0.0 ? -1.0 : 0.0);
+                }
+                pendingRetroReports.Clear();
             }
 
             // Realtime PROVISIONAL: evaluate the FORMING bar against armed and
@@ -1374,6 +1423,89 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         if (pass && liveShort == 0.0)
                             liveShort = node.Level;
+                    }
+                }
+
+                // V0006 developing-leg preview: with Confirmed Pairs Only, the newest
+                // zigzag leg's endpoint has NO node until the next opposite pivot
+                // confirms the pair — and for hard rejections that pivot arrives WITH
+                // the test bar's close, so the level never showed live (7/20 09:50
+                // J10@29127). The pivot and its guide price DO exist already; preview
+                // it as a phantom first test of the forming bar. The preview clears
+                // tick-by-tick like any provisional value, and can shift if the pivot
+                // is replaced intrabar — standard provisional semantics.
+                if (UseConfirmedPairsOnly && (liveLong == 0.0 || liveShort == 0.0) && pivotBars.Count >= 2)
+                {
+                    int lastPivot = pivotBars.Count - 1;
+                    double lvl = GetSelectedPivotLevel(lastPivot);
+                    if (!double.IsNaN(lvl) && Tick > 0)
+                    {
+                        lvl = Normalize(lvl);
+                        int legStartBar = pivotBars[lastPivot - 1];
+                        int legEndBar = pivotBars[lastPivot];
+
+                        bool qualifies = legEndBar - legStartBar >= Math.Max(1, MinimumTrendBars)
+                            && !(Math.Abs(pivotHLPrices[lastPivot] - pivotHLPrices[lastPivot - 1]) / Tick + 1e-9
+                                 < Math.Max(0, MinimumTrendTicks));
+
+                        int pivotAgo = CurrentBar - legEndBar;
+                        int lastClosed = CurrentBar - 1;
+
+                        if (qualifies && pivotAgo >= 1 && pivotAgo <= CurrentBar
+                            && lastClosed - legEndBar <= 100)
+                        {
+                            // Establish the phantom's current side/tested state by
+                            // walking the closed bars since the pivot with the same
+                            // gain/loss/first-test rules the node engine applies.
+                            double closeAtPivot = Close[pivotAgo];
+                            LevelSide side = closeAtPivot > lvl + HalfTickTolerance ? LevelSide.Support
+                                : (closeAtPivot < lvl - HalfTickTolerance ? LevelSide.Resistance
+                                : (pivotIsHigh[lastPivot] ? LevelSide.Resistance : LevelSide.Support));
+                            bool tested = false;
+                            int stateChangedBar = legEndBar;
+
+                            for (int b = legEndBar + 1; b <= lastClosed; b++)
+                            {
+                                int ago = CurrentBar - b;
+                                double h = High[ago], lo = Low[ago], c = Close[ago], pc = Close[ago + 1];
+
+                                if (side == LevelSide.Support)
+                                {
+                                    bool lost = UseWicksForGainLoss ? lo < lvl - breakTol : c < lvl - breakTol;
+                                    if (lost) { side = LevelSide.Resistance; tested = false; stateChangedBar = b; continue; }
+                                    if (!tested && b > stateChangedBar
+                                        && pc > lvl + HalfTickTolerance && lo <= lvl + touchTol && c >= lvl + holdTol)
+                                        tested = true;
+                                }
+                                else
+                                {
+                                    bool gained = UseWicksForGainLoss ? h > lvl + breakTol : c > lvl + breakTol;
+                                    if (gained) { side = LevelSide.Support; tested = false; stateChangedBar = b; continue; }
+                                    if (!tested && b > stateChangedBar
+                                        && pc < lvl - HalfTickTolerance && h >= lvl - touchTol && c <= lvl - holdTol)
+                                        tested = true;
+                                }
+                            }
+
+                            // First test of the FORMING bar against the phantom level.
+                            if (!tested && CurrentBar > stateChangedBar)
+                            {
+                                if (side == LevelSide.Support && liveLong == 0.0)
+                                {
+                                    bool broken = UseWicksForGainLoss ? Low[0] < lvl - breakTol : Close[0] < lvl - breakTol;
+                                    if (!broken && Close[1] > lvl + HalfTickTolerance
+                                        && Low[0] <= lvl + touchTol && Close[0] >= lvl + holdTol)
+                                        liveLong = lvl;
+                                }
+                                else if (side == LevelSide.Resistance && liveShort == 0.0)
+                                {
+                                    bool broken = UseWicksForGainLoss ? High[0] > lvl + breakTol : Close[0] > lvl + breakTol;
+                                    if (!broken && Close[1] < lvl - HalfTickTolerance
+                                        && High[0] >= lvl - touchTol && Close[0] <= lvl - holdTol)
+                                        liveShort = lvl;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1478,7 +1610,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorPtJV0005";
+                Name = "AlightenMirrorPtJV0006";
                 Description = "Pattern J v3 — v2 (qualified pairs, body levels, triangle tests, bounded signal-level stubs) plus SEQUENTIAL signals: after a test, each consecutive bar that true-WICKS the level (low pokes the tolerance, body holds the correct side) signals again; one non-wick bar ends the sequence; a flip removes the sequence markers like v2 removed its dot.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -1600,6 +1732,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 pairs.Clear();
                 retiredTestedNodes.Clear();
                 structureBarInProcess = -1;
+                pendingRetroReports.Clear();
                 currentSgPair = null;
                 currentRlPair = null;
             }

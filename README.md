@@ -8,14 +8,14 @@ The highest version number is **not** always the production version — abandone
 
 | Indicator family | Production version |
 |---|---|
-| Mirror Dashboard | `AlightenMirrorV0034` |
+| Mirror Dashboard | `AlightenMirrorV0035` |
 | Mirror Entry (research) | `AlightenMirrorEntryV0003` |
 | Pattern A source | `AlightenMirrorPtAV0010` |
 | Pattern B source | `AlightenMirrorPtBV0005` |
 | Pattern G source | `AlightenMirrorPtGV0002` |
 | Pattern H source | `AlightenMirrorPtHV0002` |
 | Pattern F source | `AlightenMirrorPtFV0003` |
-| Pattern J source | `AlightenMirrorPtJV0005` |
+| Pattern J source | `AlightenMirrorPtJV0006` |
 | Footprint OrderFlow | `AlightenFootprintOrderFlowV00021` |
 | HTF Volume Profile | `AlightenHTFVPV0004` |
 | Relative Delta | `AlightenRelativeDeltaV0001` |
@@ -31,7 +31,7 @@ The core scripts are located in the `NinjaTrader/Indicators/` directory.
 ### 📊 Alighten Mirror Dashboard Ecosystem
 The Mirror ecosystem is a multi-timeframe pattern recognition and dashboard engine. It separates raw pattern detection (the hosted PtA/B/G/H/F/J sources) from the visualization, research-logging, and strategy-emission layer (Mirror).
 
-* **`AlightenMirrorV0034.cs`** — **current Mirror of record** (= V0033 + Pattern J hosted via PtJV0005, and the Pattern J level-distance cap removed — the 400-tick filter was suppressing exactly the biggest-rejection J levels)
+* **`AlightenMirrorV0035.cs`** — **current Mirror of record** (= V0034 + a deeper level-sync scan: the Mirror now reads several closed HTF bars per pattern source, so tests that Pattern J discovers retroactively — pairs confirming late — still reach the dashboard and the research log; V0034 had removed the Pattern J level-distance cap that was suppressing the biggest-rejection levels)
   * **Description:** The core Multi-Timeframe Dashboard and visualization engine. Consolidates level signals from Patterns A, B, G, H, F, and J across seven timeframes (Daily, 240m, 60m, 30m, 15m, 10m, 5m) onto a single primary chart, each pattern hosted per-timeframe as a calc-only child indicator. Features: per-pattern/per-TF visibility (settings modal with live toggles), per-TF colors and per-pattern dash styles, transparent Databox plots for strategies/Bloodhound (`PtAD`…`PtJ5m`), **Daily Bias Levels** (the last N Daily levels from the AlightenBiasV0003 pivot engine, ported inline, colored by the last daily close's side), a **Research Log** (every confirmed signal with confluence context and forward MFE/MAE outcomes, exported to CSV via the "Export Levels"/"Export Research" toolbar buttons for offline mining), and level export to CSV.
 * **`AlightenMirrorEntryV0003.cs`** — research companion
   * **Description:** Self-contained entry-bar confirmation engine at Mirror levels (10 orderflow confirmations: sweep-reclaim, POC-in-wick, absorption, stopping volume, etc.), an LTF support-lost/resistance-gained trigger, and a research log of EVERY level touch (confirmations + forward MFE/MAE), exportable for regime/entry-type mining.
@@ -45,7 +45,7 @@ The Mirror ecosystem is a multi-timeframe pattern recognition and dashboard engi
   * **Description:** Pattern H signal engine — the "flipped Pattern G": a completed G pattern whose level is then lost/gained arms the opposite-direction retest signal.
 * **`AlightenMirrorPtFV0003.cs`** (Breakout + Immediate Retest)
   * **Description:** Pattern F signal engine tracking precise breakouts and immediate retests of critical structure levels.
-* **`AlightenMirrorPtJV0005.cs`** — Pattern J (paired pivots) (= V0004 + test salvage: a bar that both tests a level and rebuilds the pivot structure now commits the test before the node is destroyed, so fast-rejection signals survive reloads)
+* **`AlightenMirrorPtJV0006.cs`** — Pattern J (paired pivots) (= V0005 + two realtime-visibility fixes: a **developing-leg provisional preview** — under Confirmed Pairs Only, the newest zigzag leg's endpoint level is previewed live while the forming bar tests it, instead of appearing only when the next opposite pivot confirms the pair at the HTF close — and **retro-reporting** of tests discovered by a late pair confirmation, back-stamped to the bar they occurred on. V0005 added test salvage: a bar that both tests a level and rebuilds the pivot structure commits the test before the node is destroyed, so fast-rejection signals survive reloads)
   * **Description:** Paired-pivot pattern engine (Trends/PairBounds lineage): qualified zigzag pairs (minimum trend bars/ticks), levels at the pivot candle's body, endpoint gain/loss state machines with first-touch tests, triangle test markers with sequential consecutive-wick signals, and an optional flip-invalidation of past signals ("Remove Signals When Level Flips"). Serves both roles: standalone chart use (default settings draw triangles, tested-level stubs, and SG/RL structural pairs) and Mirror hosting via `PatternJLongLevel`/`PatternJShortLevel`/`PatternJSignal` series reporting the level being tested on each bar (with realtime provisional evaluation of the forming bar) and a Calc-Only mode.
 
 ### 🔬 Order Flow & Volume Analytics
@@ -64,7 +64,7 @@ High-performance indicators for analyzing Bid/Ask delta, volume nodes, and insti
 
 ### 📈 Market Structure & Trend Analysis
 * **`AlightenBiasV0003.cs`**
-  * **Description:** Evaluates multi-level FTG (Failed To Go) and FTL (Failed To Lower) structures to dynamically determine the current market trend/bias. Its pivot/level engine also powers the Mirror dashboard's Daily Bias Levels (ported inline in AlightenMirrorV0034).
+  * **Description:** Evaluates multi-level FTG (Failed To Go) and FTL (Failed To Lower) structures to dynamically determine the current market trend/bias. Its pivot/level engine also powers the Mirror dashboard's Daily Bias Levels (ported inline in AlightenMirrorV0035).
 * **`HigherTimeframeCandles.cs`**
   * **Description:** Projects higher-timeframe candlestick boundaries (Open, High, Low, Close) dynamically onto lower-timeframe charts.
 
