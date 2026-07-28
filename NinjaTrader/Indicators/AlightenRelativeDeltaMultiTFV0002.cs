@@ -1,4 +1,4 @@
-﻿#region Using declarations
+#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -557,3 +557,61 @@ namespace NinjaTrader.NinjaScript.Indicators
         #endregion
     }
 }
+
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private AlightenRelativeDeltaMultiTFV0002[] cacheAlightenRelativeDeltaMultiTFV0002;
+		public AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			return AlightenRelativeDeltaMultiTFV0002(Input, aggregationInterval, anchorPeriod, relativeDeltaMinimumPercentage, relativeDeltaMaxPosition, relativeDeltaMinimumWickLevels, barsToProcess, enableDebugPrints, enableAllPositiveAlert, enableAllNegativeAlert, treatDualAsBothForAlerts, allPositiveAlertSound, allNegativeAlertSound, alertRearmSeconds, positiveColor, negativeColor, dualSignalColor, neutralColor);
+		}
+
+		public AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(ISeries<double> input, int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			if (cacheAlightenRelativeDeltaMultiTFV0002 != null)
+				for (int idx = 0; idx < cacheAlightenRelativeDeltaMultiTFV0002.Length; idx++)
+					if (cacheAlightenRelativeDeltaMultiTFV0002[idx] != null && cacheAlightenRelativeDeltaMultiTFV0002[idx].AggregationInterval == aggregationInterval && cacheAlightenRelativeDeltaMultiTFV0002[idx].AnchorPeriod == anchorPeriod && cacheAlightenRelativeDeltaMultiTFV0002[idx].RelativeDeltaMinimumPercentage == relativeDeltaMinimumPercentage && cacheAlightenRelativeDeltaMultiTFV0002[idx].RelativeDeltaMaxPosition == relativeDeltaMaxPosition && cacheAlightenRelativeDeltaMultiTFV0002[idx].RelativeDeltaMinimumWickLevels == relativeDeltaMinimumWickLevels && cacheAlightenRelativeDeltaMultiTFV0002[idx].BarsToProcess == barsToProcess && cacheAlightenRelativeDeltaMultiTFV0002[idx].EnableDebugPrints == enableDebugPrints && cacheAlightenRelativeDeltaMultiTFV0002[idx].EnableAllPositiveAlert == enableAllPositiveAlert && cacheAlightenRelativeDeltaMultiTFV0002[idx].EnableAllNegativeAlert == enableAllNegativeAlert && cacheAlightenRelativeDeltaMultiTFV0002[idx].TreatDualAsBothForAlerts == treatDualAsBothForAlerts && cacheAlightenRelativeDeltaMultiTFV0002[idx].AllPositiveAlertSound == allPositiveAlertSound && cacheAlightenRelativeDeltaMultiTFV0002[idx].AllNegativeAlertSound == allNegativeAlertSound && cacheAlightenRelativeDeltaMultiTFV0002[idx].AlertRearmSeconds == alertRearmSeconds && cacheAlightenRelativeDeltaMultiTFV0002[idx].PositiveColor == positiveColor && cacheAlightenRelativeDeltaMultiTFV0002[idx].NegativeColor == negativeColor && cacheAlightenRelativeDeltaMultiTFV0002[idx].DualSignalColor == dualSignalColor && cacheAlightenRelativeDeltaMultiTFV0002[idx].NeutralColor == neutralColor && cacheAlightenRelativeDeltaMultiTFV0002[idx].EqualsInput(input))
+						return cacheAlightenRelativeDeltaMultiTFV0002[idx];
+			return CacheIndicator<AlightenRelativeDeltaMultiTFV0002>(new AlightenRelativeDeltaMultiTFV0002(){ AggregationInterval = aggregationInterval, AnchorPeriod = anchorPeriod, RelativeDeltaMinimumPercentage = relativeDeltaMinimumPercentage, RelativeDeltaMaxPosition = relativeDeltaMaxPosition, RelativeDeltaMinimumWickLevels = relativeDeltaMinimumWickLevels, BarsToProcess = barsToProcess, EnableDebugPrints = enableDebugPrints, EnableAllPositiveAlert = enableAllPositiveAlert, EnableAllNegativeAlert = enableAllNegativeAlert, TreatDualAsBothForAlerts = treatDualAsBothForAlerts, AllPositiveAlertSound = allPositiveAlertSound, AllNegativeAlertSound = allNegativeAlertSound, AlertRearmSeconds = alertRearmSeconds, PositiveColor = positiveColor, NegativeColor = negativeColor, DualSignalColor = dualSignalColor, NeutralColor = neutralColor }, input, ref cacheAlightenRelativeDeltaMultiTFV0002);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			return indicator.AlightenRelativeDeltaMultiTFV0002(Input, aggregationInterval, anchorPeriod, relativeDeltaMinimumPercentage, relativeDeltaMaxPosition, relativeDeltaMinimumWickLevels, barsToProcess, enableDebugPrints, enableAllPositiveAlert, enableAllNegativeAlert, treatDualAsBothForAlerts, allPositiveAlertSound, allNegativeAlertSound, alertRearmSeconds, positiveColor, negativeColor, dualSignalColor, neutralColor);
+		}
+
+		public Indicators.AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(ISeries<double> input , int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			return indicator.AlightenRelativeDeltaMultiTFV0002(input, aggregationInterval, anchorPeriod, relativeDeltaMinimumPercentage, relativeDeltaMaxPosition, relativeDeltaMinimumWickLevels, barsToProcess, enableDebugPrints, enableAllPositiveAlert, enableAllNegativeAlert, treatDualAsBothForAlerts, allPositiveAlertSound, allNegativeAlertSound, alertRearmSeconds, positiveColor, negativeColor, dualSignalColor, neutralColor);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			return indicator.AlightenRelativeDeltaMultiTFV0002(Input, aggregationInterval, anchorPeriod, relativeDeltaMinimumPercentage, relativeDeltaMaxPosition, relativeDeltaMinimumWickLevels, barsToProcess, enableDebugPrints, enableAllPositiveAlert, enableAllNegativeAlert, treatDualAsBothForAlerts, allPositiveAlertSound, allNegativeAlertSound, alertRearmSeconds, positiveColor, negativeColor, dualSignalColor, neutralColor);
+		}
+
+		public Indicators.AlightenRelativeDeltaMultiTFV0002 AlightenRelativeDeltaMultiTFV0002(ISeries<double> input , int aggregationInterval, int anchorPeriod, int relativeDeltaMinimumPercentage, int relativeDeltaMaxPosition, int relativeDeltaMinimumWickLevels, int barsToProcess, bool enableDebugPrints, bool enableAllPositiveAlert, bool enableAllNegativeAlert, bool treatDualAsBothForAlerts, string allPositiveAlertSound, string allNegativeAlertSound, int alertRearmSeconds, Brush positiveColor, Brush negativeColor, Brush dualSignalColor, Brush neutralColor)
+		{
+			return indicator.AlightenRelativeDeltaMultiTFV0002(input, aggregationInterval, anchorPeriod, relativeDeltaMinimumPercentage, relativeDeltaMaxPosition, relativeDeltaMinimumWickLevels, barsToProcess, enableDebugPrints, enableAllPositiveAlert, enableAllNegativeAlert, treatDualAsBothForAlerts, allPositiveAlertSound, allNegativeAlertSound, alertRearmSeconds, positiveColor, negativeColor, dualSignalColor, neutralColor);
+		}
+	}
+}
+
+#endregion
