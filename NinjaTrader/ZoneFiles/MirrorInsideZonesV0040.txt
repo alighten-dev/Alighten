@@ -1,0 +1,122 @@
+# MirrorEntry signal groups - INSIDE ZONES for AlightenMirrorV0040
+#
+# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T [; flag]
+# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)
+#
+#   ; ANCHORED  - highest-TF signal is the anchor; all others must be on its
+#                 protected side (at/below a LONG anchor, at/above a SHORT anchor)
+#   ; ORDERED   - the listed order is the required price order, LOWEST FIRST
+#
+# ============================================================================
+# WHAT THIS FILE IS
+# ============================================================================
+# The 72 pair rules from MirrorGroupsV0037.txt, unchanged, now running as the
+# INSIDE set. Pair them with MirrorGroupsV0038.txt as the primary (Groups File)
+# so the primary marks the area and these mark where to act inside it.
+#
+# Why these rules are here rather than retired. Measured on a 40-day export,
+# a pair on its own is indistinguishable from an average level (R120 -0.002,
+# failing split-half). The SAME pairs, sitting on the price side of a live
+# same-direction triplet zone, measured:
+#
+#     your geometry (pair between the triplet and price)   +0.187   n=59
+#     opposite side                                        -0.158   n=38
+#     no triplet nearby                                    -0.002   n=2,826
+#     your geometry + a triplet containing 4H or 1H        +0.279   n=37
+#
+# Median adverse excursion on that last row was 98 ticks against a 245-tick
+# baseline - the lowest measured anywhere in this work.
+#
+# ============================================================================
+# READ THIS BEFORE TRADING IT
+# ============================================================================
+# 1. THOSE SAMPLES ARE TINY. 59 and 37 events. On a second, non-overlapping
+#    window the ordering held (+0.039 / -0.095 / +0.001) but the size collapsed
+#    and it failed split-half. It is a candidate, not a finding.
+#
+# 2. THE ENGINE DOES NOT ENFORCE THE GEOMETRY. V0040 draws two independent zone
+#    sets. It does NOT check that an inside zone sits on the price side of a
+#    primary zone - that is still your eye's job. Every number above comes from
+#    a filter applied in analysis, not from anything this file can express.
+#
+# 3. The broader claim these came from was REFUTED out of sample: doubles paired
+#    with any triplet went from +0.047 to -0.054 on the June window, sign flipped,
+#    holding negative in both halves.
+#
+# What did survive both windows: triplets containing a 4H or 1H member beat
+# 30/15/10-only triplets decisively, and 30/15/10-only triplets measured actively
+# harmful. Keep that in mind when choosing the primary file.
+# ============================================================================
+
+A30S, J30S; 10T
+A15S, J15S; 10T
+A10S, J10S; 10T
+A15S, J10S; 10T
+A10S, J15S; 10T
+A15S, J30S; 10T
+A30S, J15S; 10T
+A10S, J30S; 10T
+A30S, J10S; 10T
+H30S, J30S; 10T
+H15S, J15S; 10T
+H10S, J10S; 10T
+H15S, J10S; 10T
+H10S, J15S; 10T
+H15S, J30S; 10T
+H30S, J15S; 10T
+H10S, J30S; 10T
+H30S, J10S; 10T
+G30S, J30S; 10T
+G15S, J15S; 10T
+G10S, J10S; 10T
+G15S, J10S; 10T
+G10S, J15S; 10T
+G15S, J30S; 10T
+G30S, J15S; 10T
+G10S, J30S; 10T
+G30S, J10S; 10T
+F30S, J30S; 10T
+F15S, J15S; 10T
+F10S, J10S; 10T
+F15S, J10S; 10T
+F10S, J15S; 10T
+F15S, J30S; 10T
+F30S, J15S; 10T
+F10S, J30S; 10T
+F30S, J10S; 10T
+A30L, J30L; 10T
+A15L, J15L; 10T
+A10L, J10L; 10T
+A15L, J10L; 10T
+A10L, J15L; 10T
+A15L, J30L; 10T
+A30L, J15L; 10T
+A10L, J30L; 10T
+A30L, J10L; 10T
+H30L, J30L; 10T
+H15L, J15L; 10T
+H10L, J10L; 10T
+H15L, J10L; 10T
+H10L, J15L; 10T
+H15L, J30L; 10T
+H30L, J15L; 10T
+H10L, J30L; 10T
+H30L, J10L; 10T
+G30L, J30L; 10T
+G15L, J15L; 10T
+G10L, J10L; 10T
+G15L, J10L; 10T
+G10L, J15L; 10T
+G15L, J30L; 10T
+G30L, J15L; 10T
+G10L, J30L; 10T
+G30L, J10L; 10T
+F30L, J30L; 10T
+F15L, J15L; 10T
+F10L, J10L; 10T
+F15L, J10L; 10T
+F10L, J15L; 10T
+F15L, J30L; 10T
+F30L, J15L; 10T
+F10L, J30L; 10T
+F30L, J10L; 10T

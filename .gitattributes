@@ -1,7 +1,17 @@
+# Default for anything not named below. Kept FIRST: in .gitattributes the LAST
+# matching line wins, so a catch-all placed at the bottom would silently override
+# every explicit rule above it.
+* text=auto eol=crlf
+
 # NinjaTrader source must reach downloaders with CRLF line endings —
 # NT8 re-finds its "NinjaScript generated code" region by exact text match,
 # and LF files make it append a duplicate region (compile errors on import).
-# git archive (GitHub "Download ZIP") and checkout both honor eol=crlf.
-*.cs text eol=crlf
-*.md text eol=crlf
-*.xml text eol=crlf
+# git archive ("Download ZIP") and checkout both honor eol=crlf; note that
+# core.autocrlf does NOT apply to git archive, so relying on it is not enough.
+*.cs   text eol=crlf
+*.xml  text eol=crlf
+*.md   text eol=crlf
+
+# Zone rule files, read at runtime from Documents\NinjaTrader 8\.
+*.txt  text eol=crlf
+*.json text eol=crlf

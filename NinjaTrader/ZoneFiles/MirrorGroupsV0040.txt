@@ -1,0 +1,282 @@
+# MirrorEntry signal groups - V0038 rule set
+#
+# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T [; flag]
+# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)
+#
+#   ; ANCHORED  - highest-TF signal is the anchor; all others must be on its
+#                 protected side (at/below a LONG anchor, at/above a SHORT anchor)
+#   ; ORDERED   - the listed order is the required price order, LOWEST FIRST
+#
+# ============================================================================
+# WHAT CHANGED FROM V0037, AND WHY
+# ============================================================================
+# Rebuilt from the 40-day AlightenMirrorV0039 export (27,777 levels, NQ 09-26,
+# 2026-07-06 -> 08-14). Scored as R120 = (mfe-mae)/(mfe+mae) demeaned within
+# direction, 120-minute horizon, split-half across the window.
+#
+#   1. SPAN, NOT PAIRS.  Every V0037 rule was a two-member pair. Measured, one
+#      partner scores -0.002 and fails split-half - indistinguishable from an
+#      average level. The signal starts at THREE distinct timeframes (+0.070,
+#      n=2,463) and is strongest at four (+0.215, n=450). Both hold in each
+#      half. So every rule below spans at least three timeframes.
+#
+#   2. TIMEFRAMES, NOT COUNT.  Raw partner count is non-monotone; distinct
+#      timeframe count is clean. Three 10m levels stacked together measure
+#      WORSE than one level alone. Same-timeframe stacking is not confluence.
+#
+#   3. NO G AS A NEIGHBOUR AT 10m.  Four separate G-bearing partner sets land
+#      between -0.023 and -0.112, all holding split-half, on samples of 122 to
+#      764. The H-bearing equivalents land positive on n=603 and n=382. The
+#      sharpest single contrast in the study, same anchor either side:
+#          J10 beside H10+J10 = +0.067 (n=603)
+#          J10 beside G10+J10 = -0.079 (n=764)
+#      G is absent from the 10m slot below. It is NOT banned elsewhere - as an
+#      anchor it scored +0.120, which is a different role.
+#
+#   4. 20-TICK RADIUS KEPT.  Best of the four tested (4, 8, 20, 40). A three-
+#      member set all within 20 ticks of one member spans at most 40, so the
+#      spread below is 10T rather than V0037's 10T. This is the same geometry,
+#      not a looser one.
+#
+#   5. 5m AND DAILY EXCLUDED.  5m levels covered only 18 of the export's 40
+#      days, so no 5m combination could be split-halved and none was measured.
+#      Daily produced 50 levels in 40 days - too sparse to rule on. Neither is
+#      claimed to be bad; both are simply unmeasured.
+#
+# NOT MEASURED, DELIBERATELY LEFT OFF:  the ANCHORED flag encodes nesting, and
+# nesting has been counted but never scored. It discarded ~70% of structurally
+# valid candidates in the census, which is a big filter to apply on faith. An
+# ANCHORED variant is at the bottom, commented out, to be turned on only as a
+# deliberate A/B - not as a default.
+#
+# CAVEAT: 40 days is one sample and invalidated levels are absent from the
+# export entirely (they are deleted, not archived), so every rate behind these
+# rules has a denominator missing the cleanup's casualties. Treat this file as
+# a hypothesis to be re-measured on a second export, not a settled answer.
+# ============================================================================
+
+
+# --- LONGS: three-timeframe J stacks (the backbone) ---
+# J is 78% of all levels on this spine, so it is the only pattern dense enough
+# to appear on three timeframes at once with any regularity.
+J240L, J60L, J30L; 10T
+J240L, J60L, J15L; 10T
+J240L, J60L, J10L; 10T
+J60L, J30L, J15L; 10T
+J60L, J30L, J10L; 10T
+J60L, J15L, J10L; 10T
+J30L, J15L, J10L; 10T
+
+# --- LONGS: three timeframes, non-J partner in the 10m slot ---
+# H10, A10 and F10 all measured positive beside J. G10 is excluded by finding 3.
+J60L, J15L, H10L; 10T
+J60L, J15L, A10L; 10T
+J60L, J15L, F10L; 10T
+J30L, J15L, H10L; 10T
+
+# --- LONGS: four timeframes (the +0.215 bucket) ---
+J240L, J60L, J15L, J10L; 10T
+J240L, J60L, J30L, J15L; 10T
+J60L, J30L, J15L, J10L; 10T
+J240L, J60L, J15L, H10L; 10T
+
+
+# --- SHORTS: three-timeframe J stacks (the backbone) ---
+J240S, J60S, J30S; 10T
+J240S, J60S, J15S; 10T
+J240S, J60S, J10S; 10T
+J60S, J30S, J15S; 10T
+J60S, J30S, J10S; 10T
+J60S, J15S, J10S; 10T
+J30S, J15S, J10S; 10T
+
+# --- SHORTS: three timeframes, non-J partner in the 10m slot ---
+J60S, J15S, H10S; 10T
+J60S, J15S, A10S; 10T
+J60S, J15S, F10S; 10T
+J30S, J15S, H10S; 10T
+
+# --- SHORTS: four timeframes (the +0.215 bucket) ---
+J240S, J60S, J15S, J10S; 10T
+J240S, J60S, J30S, J15S; 10T
+J60S, J30S, J15S, J10S; 10T
+J240S, J60S, J15S, H10S; 10T
+
+
+# ============================================================================
+# OPTIONAL A/B - ANCHORED variants. Uncomment ONE block at a time.
+#
+# ANCHORED additionally requires every member to sit on the protected side of
+# the highest-TF member (at/below a long anchor). That is the nesting rule from
+# the census, which has been COUNTED but never SCORED - it is the open question,
+# not a finding. Running these alongside the plain rules above will double the
+# zones drawn, so prefer swapping rather than adding.
+#
+# J240L, J60L, J15L, J10L; 10T; ANCHORED
+# J60L, J30L, J15L, J10L; 10T; ANCHORED
+# J60L, J15L, H10L; 10T; ANCHORED
+# J240S, J60S, J15S, J10S; 10T; ANCHORED
+# J60S, J30S, J15S, J10S; 10T; ANCHORED
+# J60S, J15S, H10S; 10T; ANCHORED
+#
+# Also unmeasured and worth a look on its own: a bare J60 level scored +0.041
+# over n=344, holding in both halves (+0.038 / +0.043) with NO company at all.
+# It is the only single-member result that survived, and a one-member rule is
+# legal here. It will mark a great many bands, so treat it as context rather
+# than a setup:
+#
+# J60L; 1T
+# J60S; 1T
+# ============================================================================
+
+
+# ============================================================================
+# ADDED 2026-08-17 - 4H stacks that SKIP the 60-minute step
+# ============================================================================
+# Every original J240 rule also required J60, so a 4H level could not take part
+# in any zone whenever the 60m engine happened not to print one. Found on the
+# 22:00 4H long at 30187.25 (2026-08-16), which had a J10 at exactly the same
+# price, an F10 beside it and two 15m levels 1.5 points above - three distinct
+# timeframes stacked, and not one rule could express it.
+#
+# Appended at the END on purpose. The zone key is built from the rule's INDEX,
+# so inserting these mid-file would renumber every rule after them.
+#
+# UNTESTED. The 4H-bearing triplets are the arm that survived out of sample,
+# but every composition actually measured included 60m. Skipping a timeframe in
+# the chain is a different shape and has never been scored - treat whatever
+# these draw as provisional until they go through a proper window.
+J240L, J30L, J15L; 10T
+J240L, J30L, J10L; 10T
+J240L, J15L, J10L; 10T
+
+J240S, J30S, J15S; 10T
+J240S, J30S, J10S; 10T
+J240S, J15S, J10S; 10T
+
+
+# ============================================================================
+# ADDED 2026-08-17 - EXPLORATORY. G triplets, and A/H/G/F in the 15m slot.
+# ============================================================================
+# Requested for inspection, not on evidence. Appended at the end so rules 0-35
+# keep their indices (the zone key is built from the rule index).
+#
+# READ THIS ABOUT G AT 10m. It is the one composition the data spoke clearly
+# against, in both windows and on the largest samples in the study:
+#     J10 beside G10+J10   -0.079  (n=764, held split-half)
+#     J10 beside H10+J10   +0.067  (n=603, held split-half)
+#     H10 beside G10+J10   -0.112  (n=104)
+#     J10 beside G10+H10+J10  -0.112 (n=233)
+# A G neighbour at 10m did not predict a smaller move - it went FURTHER against
+# you first (median MAE 269t vs 230t with H). These rules are here to be looked
+# at; the measurement says do not size on them.
+#
+# Density note (7-day export): H and F have ~1 level each at 60m, so no rule
+# below asks for H60 or F60 - it would never fire. G has 9 at 60m, 65 at 15m,
+# 94 at 10m, so G is used in the 15m and 10m slots and sparingly at 60m.
+
+# --- G in the 10m slot (the arm the measurement argues against) ---
+J240L, J15L, G10L; 10T
+J60L, J15L, G10L; 10T
+J30L, J15L, G10L; 10T
+J240S, J15S, G10S; 10T
+J60S, J15S, G10S; 10T
+J30S, J15S, G10S; 10T
+
+# --- A / H / G / F in the 15m slot, 1-hour backbone ---
+J60L, A15L, J10L; 10T
+J60L, H15L, J10L; 10T
+J60L, G15L, J10L; 10T
+J60L, F15L, J10L; 10T
+J60S, A15S, J10S; 10T
+J60S, H15S, J10S; 10T
+J60S, G15S, J10S; 10T
+J60S, F15S, J10S; 10T
+
+# --- A / H / G / F in the 15m slot, 4-hour backbone ---
+J240L, A15L, J10L; 10T
+J240L, H15L, J10L; 10T
+J240L, G15L, J10L; 10T
+J240L, F15L, J10L; 10T
+J240S, A15S, J10S; 10T
+J240S, H15S, J10S; 10T
+J240S, G15S, J10S; 10T
+J240S, F15S, J10S; 10T
+
+# --- pure G triplets ---
+G60L, G30L, G15L; 10T
+G30L, G15L, G10L; 10T
+G60S, G30S, G15S; 10T
+G30S, G15S, G10S; 10T
+
+
+# ============================================================================
+# ADDED 2026-08-17 - EXPLORATORY. A/H/F/G triplets at 240m and 60m.
+# ============================================================================
+# The full space was enumerated: {A,H,F,G} at 240m x {A,H,F,G,J} at 60m x
+# {A,H,F,G,J} at 30/15/10m, plus the 60m-anchored equivalents. 1,000 candidate
+# rules across both directions.
+#
+# ONLY 102 FIRE AT ALL over the 7-day export, and 56 of those fire exactly once.
+# The 46 below are the ones firing twice or more. The other 954 are omitted
+# because they would be dead lines: A/H/F/G have only 1-9 levels each at 240m
+# and 60m in a week, against J's 62 and 67, so a triplet needing two non-J
+# members at high timeframes almost never assembles.
+#
+# What the enumeration showed:
+#   - A60 and G60 are the only non-J patterns dense enough to anchor anything
+#   - H60 and F60 are effectively absent (1 level each in 7 days)
+#   - the productive shape is a non-J anchor over a J body: A60/G60 + J30 + J15/J10
+#
+# UNMEASURED. None of these compositions has been scored on outcomes. They are
+# here to be looked at.
+
+# --- longs ---
+A240L, A60L, A30L; 10T
+A240L, A60L, J30L; 10T
+A240L, G60L, J15L; 10T
+A240L, G60L, J30L; 10T
+A240L, J60L, A30L; 10T
+A240L, J60L, J15L; 10T
+A240L, J60L, J30L; 10T
+A60L, A30L, A10L; 10T
+A60L, A30L, H10L; 10T
+A60L, A30L, J10L; 10T
+A60L, A30L, J15L; 10T
+A60L, H30L, A10L; 10T
+A60L, H30L, H10L; 10T
+A60L, H30L, J10L; 10T
+A60L, J30L, A10L; 10T
+A60L, J30L, A15L; 10T
+A60L, J30L, G10L; 10T
+A60L, J30L, G15L; 10T
+A60L, J30L, H10L; 10T
+A60L, J30L, J10L; 10T
+A60L, J30L, J15L; 10T
+G60L, J30L, A15L; 10T
+G60L, J30L, G10L; 10T
+G60L, J30L, G15L; 10T
+G60L, J30L, J10L; 10T
+G60L, J30L, J15L; 10T
+H60L, A30L, A10L; 10T
+H60L, A30L, J10L; 10T
+H60L, J30L, A10L; 10T
+H60L, J30L, J10L; 10T
+
+# --- shorts ---
+A60S, A30S, H15S; 10T
+G240S, F60S, J15S; 10T
+G240S, J60S, J15S; 10T
+G60S, A30S, G10S; 10T
+G60S, A30S, J10S; 10T
+G60S, F30S, J10S; 10T
+G60S, G30S, G10S; 10T
+G60S, G30S, J10S; 10T
+G60S, J30S, F10S; 10T
+G60S, J30S, F15S; 10T
+G60S, J30S, G10S; 10T
+G60S, J30S, G15S; 10T
+G60S, J30S, H10S; 10T
+G60S, J30S, H15S; 10T
+G60S, J30S, J10S; 10T
+G60S, J30S, J15S; 10T

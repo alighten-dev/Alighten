@@ -1,4 +1,4 @@
-﻿#region Using declarations
+#region Using declarations
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,7 +18,7 @@ using NinjaTrader.NinjaScript.DrawingTools;
 
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    // Version ID: 2026-07-23b AlightenMirrorPtJV0006 — Pattern J v2, rebuilt on the Trends
+    // Version ID: 2026-07-23b AlightenMirrorPtJV0007 — Pattern J v2, rebuilt on the Trends
     // ("PairBounds") engine instead of the Patch event engine: persistent pair population,
     // live endpoint gain/loss state machines with Tested tracking, SG/RL classification and
     // the PairBounds panel — all unchanged from Trends — plus:
@@ -45,7 +45,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     // (open and close) holds on the correct side (Pattern A wick semantics). The first
     // test of a level is completely unchanged from V0002. One non-wick bar ends the
     // sequence; the level then stays tested (no re-signal until it flips sides).
-    public class AlightenMirrorPtJV0006 : Indicator
+    public class AlightenMirrorPtJV0007 : Indicator
     {
         private enum LevelSide
         {
@@ -124,6 +124,19 @@ namespace NinjaTrader.NinjaScript.Indicators
         private const int PLOT_J_SHORT           = 9; // resistance level tested THIS bar (0 = none)
         private const int PLOT_J_SIGNAL          = 10; // +1 long test / -1 short test / 0 (Pattern A-style)
 
+        // V0007: several nodes can test on one bar — this chart draws a triangle for each,
+        // but a single Series<double> can only carry one. Extra SERIES (not a side-channel
+        // accessor) carry the rest, so a host reads slot 2..4 exactly the way it reads slot 1
+        // and every mechanism built around plot semantics keeps working. Appended after the
+        // existing plots, so no existing index shifts.
+        private const int PLOT_J_LONG2           = 11;
+        private const int PLOT_J_LONG3           = 12;
+        private const int PLOT_J_LONG4           = 13;
+        private const int PLOT_J_SHORT2          = 14;
+        private const int PLOT_J_SHORT3          = 15;
+        private const int PLOT_J_SHORT4          = 16;
+        public  const int J_LEVEL_SLOTS          = 4;  // levels per side per bar
+
         [Browsable(false)]
         [XmlIgnore]
         public Series<double> PatternJSignal { get { return Values[PLOT_J_SIGNAL]; } }
@@ -132,6 +145,179 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Browsable(false)]
         [XmlIgnore]
         public Series<double> PatternJLongLevel { get { return Values[PLOT_J_LONG]; } }
+
+        #region Extra level slots (V0007)
+
+        // Slot 1 is PatternJLongLevel / PatternJShortLevel above; these are slots 2..4.
+        // Read them exactly like slot 1 — a bar with fewer levels reads 0, same as any
+        // bar with no signal at all.
+        public Series<double> PatternJLongLevel2  { get { return Values[PLOT_J_LONG2];  } }
+        public Series<double> PatternJLongLevel3  { get { return Values[PLOT_J_LONG3];  } }
+        public Series<double> PatternJLongLevel4  { get { return Values[PLOT_J_LONG4];  } }
+        public Series<double> PatternJShortLevel2 { get { return Values[PLOT_J_SHORT2]; } }
+        public Series<double> PatternJShortLevel3 { get { return Values[PLOT_J_SHORT3]; } }
+        public Series<double> PatternJShortLevel4 { get { return Values[PLOT_J_SHORT4]; } }
+
+        /// <summary>
+        /// How many level slots exist per side. Read this from a host rather than the const —
+        /// inside a hosting indicator the generated factory METHOD shadows the type name, so
+        /// AlightenMirrorPtJV0007.J_LEVEL_SLOTS does not resolve there.
+        /// </summary>
+        public int LevelSlotCount { get { return J_LEVEL_SLOTS; } }
+
+        /// <summary>Long level slot <paramref name="slot"/> (0-based, 0..J_LEVEL_SLOTS-1).</summary>
+        public Series<double> LongLevelSlot(int slot)
+        {
+            switch (slot)
+            {
+                case 0:  return Values[PLOT_J_LONG];
+                case 1:  return Values[PLOT_J_LONG2];
+                case 2:  return Values[PLOT_J_LONG3];
+                default: return Values[PLOT_J_LONG4];
+            }
+        }
+
+        /// <summary>Short level slot <paramref name="slot"/> (0-based, 0..J_LEVEL_SLOTS-1).</summary>
+        public Series<double> ShortLevelSlot(int slot)
+        {
+            switch (slot)
+            {
+                case 0:  return Values[PLOT_J_SHORT];
+                case 1:  return Values[PLOT_J_SHORT2];
+                case 2:  return Values[PLOT_J_SHORT3];
+                default: return Values[PLOT_J_SHORT4];
+            }
+        }
+
+        // Support belongs at or below price, resistance at or above — the same side test
+        // FindNearestLevel uses.
+        private bool IsOnTradableSide(bool isLong, double level)
+        {
+            double price = Close[0];
+            return isLong ? level <= price + HalfTickTolerance
+                          : level >= price - HalfTickTolerance;
+        }
+
+        // One node that tested on `stateBar` -> the next free slot on its side. Skips the
+        // wrong side of price and prices already held in a slot.
+        private void CollectJLevel(LevelNode node, int stateBar,
+                                   double[] longs, double[] shorts, ref int nLong, ref int nShort)
+        {
+            if (node == null || node.TestedBar != stateBar) return;
+
+            bool isLong = node.Side == LevelSide.Support;
+            if (!isLong && node.Side != LevelSide.Resistance) return;
+            if (!IsOnTradableSide(isLong, node.Level))
+            {
+                SigLog("SKIP " + (isLong ? "L" : "S") + " bar=" + stateBar
+                    + " level=" + node.Level.ToString("F2") + " close=" + Close[0].ToString("F2")
+                    + "  (wrong side of price)");
+                return;
+            }
+
+            double[] slots = isLong ? longs : shorts;
+            int n = isLong ? nLong : nShort;
+
+            for (int i = 0; i < n; i++)
+                if (Math.Abs(slots[i] - node.Level) <= HalfTickTolerance)
+                    return;                                   // same level twice = one level
+
+            if (n >= J_LEVEL_SLOTS)
+            {
+                SigLog("FULL " + (isLong ? "L" : "S") + " bar=" + stateBar
+                    + " level=" + node.Level.ToString("F2")
+                    + "  (all " + J_LEVEL_SLOTS + " slots taken - level dropped)");
+                return;
+            }
+
+            slots[n] = node.Level;
+            if (isLong) nLong++; else nShort++;
+
+            SigLog("REC  " + (isLong ? "L" : "S") + " bar=" + stateBar
+                + " level=" + node.Level.ToString("F2") + " slot=" + n);
+        }
+
+        // Drop slots farther than maxDist from price, compacting the rest down.
+        private int CapSlotsByDistance(double[] slots, int n, double maxDist, bool isLong)
+        {
+            int kept = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double d = isLong ? Math.Abs(Close[0] - slots[i]) : Math.Abs(slots[i] - Close[0]);
+                if (d <= maxDist) slots[kept++] = slots[i];
+            }
+            for (int i = kept; i < n; i++) slots[i] = 0.0;
+            return kept;
+        }
+
+        // Late-confirmed test: first free slot on that bar, or drop if all are taken.
+        private bool PlaceRetroInFreeSlot(RetroReport rr, int ago)
+        {
+            for (int sl = 0; sl < J_LEVEL_SLOTS; sl++)
+            {
+                Series<double> s = rr.IsShort ? ShortLevelSlot(sl) : LongLevelSlot(sl);
+                double cur = s.IsValidDataPoint(ago) ? s[ago] : 0.0;
+                if (cur != 0.0)
+                {
+                    if (Math.Abs(cur - rr.Level) <= HalfTickTolerance)
+                        return false;                          // already recorded
+                    continue;
+                }
+                s[ago] = rr.Level;
+                SigLog("RETRO " + (rr.IsShort ? "S" : "L") + " bar=" + rr.Bar
+                    + " level=" + rr.Level.ToString("F2") + " slot=" + sl);
+                return true;
+            }
+            return false;
+        }
+
+        #endregion
+
+        #region Signal log (V0007 diagnostics)
+
+        // Ground truth for "where should a signal be": one SIG line per triangle this
+        // indicator draws (a newly-tested node), plus REC/SKIP showing what reached the
+        // multi-level map a host reads. Diff against the Mirror's own level log to find
+        // levels the Mirror invented or dropped.
+        //
+        // The Mirror hosts SEVEN instances of this indicator (one per timeframe), all
+        // writing here, so every line carries TF= to tell them apart. calc= distinguishes
+        // a hosted instance (calcOnly=True) from a chart instance (False).
+        private string _sigLogPath;
+        private int _sigLogLines;
+        private const int SIG_LOG_MAX_LINES = 60000;   // hard stop; never let logging itself run away
+
+        private string SigTf()
+        {
+            try
+            {
+                BarsPeriod bp = BarsPeriod;
+                return bp == null ? "?" : bp.BarsPeriodType.ToString().Substring(0, 3) + bp.Value;
+            }
+            catch { return "?"; }
+        }
+
+        private void SigLog(string msg)
+        {
+            if (!DebugSignalLog) return;
+            if (_sigLogPath == null) return;
+            if (_sigLogLines >= SIG_LOG_MAX_LINES) return;
+
+            try
+            {
+                _sigLogLines++;
+                if (_sigLogLines == SIG_LOG_MAX_LINES)
+                    msg += "   <<< LINE CAP REACHED - logging stops here >>>";
+
+                System.IO.File.AppendAllText(_sigLogPath,
+                    DateTime.Now.ToString("HH:mm:ss.fff") + " [" + State + "] TF=" + SigTf()
+                    + " calc=" + CalcOnlyMode + "  " + msg + "\r\n");
+            }
+            catch { }
+        }
+
+        #endregion
+
 
         [Browsable(false)]
         [XmlIgnore]
@@ -144,6 +330,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private readonly List<double> guidePrices = new List<double>();
 
         private readonly Dictionary<string, LevelNode> nodesByKey = new Dictionary<string, LevelNode>();
+
         private readonly List<LevelPair> pairs = new List<LevelPair>();
         private readonly List<LegacyEventLevel> legacyEvents = new List<LegacyEventLevel>();
         private int legacyEventId;
@@ -835,6 +1022,14 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 node.TestedBar = barIndex;      // the tested-level stub follows the sequence
                 node.LastSignalBar = barIndex;
+
+                // GROUND TRUTH: this is the exact condition that draws a triangle below.
+                SigLog("SIG  " + (node.Side == LevelSide.Support ? "L" : "S")
+                    + " bar=" + barIndex
+                    + " time=" + (barIndex >= 0 && CurrentBar - barIndex >= 0 && CurrentBar - barIndex <= CurrentBar
+                                  ? Time[CurrentBar - barIndex].ToString("MM-dd HH:mm") : "?")
+                    + " level=" + node.Level.ToString("F2")
+                    + " close=" + Close[0].ToString("F2"));
             }
 
             if (allowDrawing && ShowTestDots && newlyTested)
@@ -1273,62 +1468,56 @@ namespace NinjaTrader.NinjaScript.Indicators
             // 0 = no test on this bar. This makes hosted Mirror levels coincide with
             // the standalone signals; earlier semantics (nearest-untested bands and
             // sticky SG/RL origins) were rejected as "floating" — context, not signals.
-            double jLong = 0.0;
-            double jShort = 0.0;
+            // V0007: collect EVERY node that tested on this bar — one per triangle drawn —
+            // into slots, instead of stopping at the first. Slot 0 keeps exactly the value
+            // the single plot always carried, so nothing reading PatternJLongLevel changes.
+            double[] jLongs  = new double[J_LEVEL_SLOTS];
+            double[] jShorts = new double[J_LEVEL_SLOTS];
+            int nLong = 0, nShort = 0;
             int stateBar = lastProcessedPrimaryStateBar;
 
             if (stateBar >= 0)
             {
                 foreach (LevelNode node in nodesByKey.Values)
-                {
-                    if (node.TestedBar != stateBar)
-                        continue;
-
-                    if (node.Side == LevelSide.Support && jLong == 0.0)
-                        jLong = node.Level;
-                    else if (node.Side == LevelSide.Resistance && jShort == 0.0)
-                        jShort = node.Level;
-
-                    if (jLong != 0.0 && jShort != 0.0)
-                        break;
-                }
+                    CollectJLevel(node, stateBar, jLongs, jShorts, ref nLong, ref nShort);
 
                 // V0006: nodes retired by same-bar structure churn still report the
                 // level they were testing when the churn destroyed them.
                 foreach (LevelNode node in retiredTestedNodes)
-                {
-                    if (node.TestedBar != stateBar)
-                        continue;
-
-                    if (node.Side == LevelSide.Support && jLong == 0.0)
-                        jLong = node.Level;
-                    else if (node.Side == LevelSide.Resistance && jShort == 0.0)
-                        jShort = node.Level;
-                }
+                    CollectJLevel(node, stateBar, jLongs, jShorts, ref nLong, ref nShort);
             }
 
             if (MaxReportDistanceTicks > 0 && Tick > 0)
             {
                 double maxDist = MaxReportDistanceTicks * Tick;
-                if (jLong != 0.0 && Math.Abs(Close[0] - jLong) > maxDist)
-                    jLong = 0.0;
-                if (jShort != 0.0 && Math.Abs(jShort - Close[0]) > maxDist)
-                    jShort = 0.0;
+                nLong  = CapSlotsByDistance(jLongs,  nLong,  maxDist, true);
+                nShort = CapSlotsByDistance(jShorts, nShort, maxDist, false);
             }
+
+            double jLong  = nLong  > 0 ? jLongs[0]  : 0.0;
+            double jShort = nShort > 0 ? jShorts[0] : 0.0;
 
             // Stamp the test on the bar it BELONGS to. In realtime the state engine
             // evaluates the just-CLOSED bar while this method runs on the forming
             // bar — writing to [0] here shifted live levels one HTF window right
             // (and duplicated them across reload seams). Historical: stateAgo == 0.
-            Values[PLOT_J_LONG][0] = 0.0;
-            Values[PLOT_J_SHORT][0] = 0.0;
+            // Clear ALL slots on the forming bar, not just slot 0 — a stale slot 2..4 would
+            // otherwise linger and be read as a signal that no longer exists.
+            for (int sl = 0; sl < J_LEVEL_SLOTS; sl++)
+            {
+                LongLevelSlot(sl)[0]  = 0.0;
+                ShortLevelSlot(sl)[0] = 0.0;
+            }
             Values[PLOT_J_SIGNAL][0] = 0.0;
 
             int stateAgo = CurrentBar - stateBar;
             if (stateBar >= 0 && stateAgo >= 0 && stateAgo <= CurrentBar)
             {
-                Values[PLOT_J_LONG][stateAgo] = jLong;
-                Values[PLOT_J_SHORT][stateAgo] = jShort;
+                for (int sl = 0; sl < J_LEVEL_SLOTS; sl++)
+                {
+                    LongLevelSlot(sl)[stateAgo]  = sl < nLong  ? jLongs[sl]  : 0.0;
+                    ShortLevelSlot(sl)[stateAgo] = sl < nShort ? jShorts[sl] : 0.0;
+                }
                 // Pattern A-style signal plot: +1 long test, -1 short test (each
                 // sequence bar restamps, so consecutive wick bars all signal).
                 Values[PLOT_J_SIGNAL][stateAgo] = jLong != 0.0 ? 1.0 : (jShort != 0.0 ? -1.0 : 0.0);
@@ -1345,11 +1534,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (ago < 1 || ago > CurrentBar || ago > 10)
                         continue;
 
-                    Series<double> target = rr.IsShort ? Values[PLOT_J_SHORT] : Values[PLOT_J_LONG];
-                    double existing = target.IsValidDataPoint(ago) ? target[ago] : 0.0;
-                    if (existing != 0.0)
+                    // A late-confirmed test on a bar that already has a value is still a real
+                    // test this chart drew — put it in the next FREE slot instead of dropping
+                    // it, which is what the single-value plot used to do.
+                    if (!PlaceRetroInFreeSlot(rr, ago))
                         continue;
-                    target[ago] = rr.Level;
 
                     double l = Values[PLOT_J_LONG].IsValidDataPoint(ago) ? Values[PLOT_J_LONG][ago] : 0.0;
                     double s = Values[PLOT_J_SHORT].IsValidDataPoint(ago) ? Values[PLOT_J_SHORT][ago] : 0.0;
@@ -1368,6 +1557,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 double liveLong = 0.0;
                 double liveShort = 0.0;
+
                 double breakTol = GainLossToleranceTicks * Tick;
                 double touchTol = TestTouchToleranceTicks * Tick;
                 double holdTol = TestCloseHoldTicks * Tick;
@@ -1610,7 +1800,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorPtJV0006";
+                Name = "AlightenMirrorPtJV0007";
                 Description = "Pattern J v3 — v2 (qualified pairs, body levels, triangle tests, bounded signal-level stubs) plus SEQUENTIAL signals: after a test, each consecutive bar that true-WICKS the level (low pokes the tolerance, body holds the correct side) signals again; one non-wick bar ends the sequence; a flip removes the sequence markers like v2 removed its dot.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -1623,6 +1813,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                 CalcOnlyMode = false;
                 MaxReportDistanceTicks = 0;
                 RemoveSignalsOnFlip = true;
+
+                // OFF. The seven hosted instances are built by the factory and never see the
+                // UI, so this default is their only control — flip it to true to re-enable
+                // diagnostic logging for them. Line-capped either way.
+                DebugSignalLog = false;
                 UseConfirmedPairsOnly = true;
                 UseWicksForPairLevels = false;
                 UseWicksForGainLoss = false;
@@ -1688,6 +1883,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 AddPlot(Brushes.Transparent, "PatternJLongLevel");
                 AddPlot(Brushes.Transparent, "PatternJShortLevel");
                 AddPlot(Brushes.Transparent, "PatternJSignal");
+                AddPlot(Brushes.Transparent, "PatternJLongLevel2");
+                AddPlot(Brushes.Transparent, "PatternJLongLevel3");
+                AddPlot(Brushes.Transparent, "PatternJLongLevel4");
+                AddPlot(Brushes.Transparent, "PatternJShortLevel2");
+                AddPlot(Brushes.Transparent, "PatternJShortLevel3");
+                AddPlot(Brushes.Transparent, "PatternJShortLevel4");
             }
             else if (State == State.Configure)
             {
@@ -1695,6 +1896,21 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             else if (State == State.DataLoaded)
             {
+                if (DebugSignalLog)
+                {
+                    try
+                    {
+                        _sigLogPath = System.IO.Path.Combine(
+                            NinjaTrader.Core.Globals.UserDataDir, "MirrorPtJV0007Signals.log");
+                        _sigLogLines = 0;
+                        System.IO.File.AppendAllText(_sigLogPath,
+                            "\r\n======== LOAD " + DateTime.Now.ToString("HH:mm:ss")
+                            + "  " + (Instrument != null ? Instrument.FullName : "?")
+                            + "  TF=" + SigTf() + "  calcOnly=" + CalcOnlyMode + " ========\r\n");
+                    }
+                    catch { _sigLogPath = null; }
+                }
+
                 zigZagBrush = MakeFrozenBrush(ZigZagColor);
                 uptrendPairBrush = MakeFrozenBrush(UptrendPairColor);
                 downtrendPairBrush = MakeFrozenBrush(DowntrendPairColor);
@@ -2021,6 +2237,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         // invalidates its signals); off = signals persist as history, Pattern A style.
         [Display(Name = "Remove Signals When Level Flips", Description = "When a tested level flips sides, remove its test triangles (validity check). Untick to keep them as permanent signal history.", GroupName = "04. G/L and Tests", Order = 8)]
         public bool RemoveSignalsOnFlip { get; set; }
+
+        // Display-only (NOT a ctor parameter — adding one would change the generated
+        // factory signature and break every host). Hosted instances therefore take the
+        // SetDefaults value; flip that to turn hosted logging off.
+        [Display(Name = "Write Signal Log", Description = "Append every drawn signal (newly-tested node) and every level handed to a host to MirrorPtJV0007Signals.log in the NinjaTrader 8 folder. Diagnostic — leave off in normal use. Capped at 60,000 lines.", GroupName = "05. Diagnostics", Order = 1)]
+        public bool DebugSignalLog { get; set; }
         #endregion
     }
 }
@@ -2031,19 +2253,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorPtJV0006[] cacheAlightenMirrorPtJV0006;
-		public AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		private AlightenMirrorPtJV0007[] cacheAlightenMirrorPtJV0007;
+		public AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			return AlightenMirrorPtJV0006(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
+			return AlightenMirrorPtJV0007(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
 		}
 
-		public AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(ISeries<double> input, int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		public AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(ISeries<double> input, int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			if (cacheAlightenMirrorPtJV0006 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorPtJV0006.Length; idx++)
-					if (cacheAlightenMirrorPtJV0006[idx] != null && cacheAlightenMirrorPtJV0006[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtJV0006[idx].UseConfirmedPairsOnly == useConfirmedPairsOnly && cacheAlightenMirrorPtJV0006[idx].UseWicksForPairLevels == useWicksForPairLevels && cacheAlightenMirrorPtJV0006[idx].NearestPairLineWidth == nearestPairLineWidth && cacheAlightenMirrorPtJV0006[idx].PairLineWidthStep == pairLineWidthStep && cacheAlightenMirrorPtJV0006[idx].UntestedLineStyle == untestedLineStyle && cacheAlightenMirrorPtJV0006[idx].TestedLineStyle == testedLineStyle && cacheAlightenMirrorPtJV0006[idx].UptrendPairsToDraw == uptrendPairsToDraw && cacheAlightenMirrorPtJV0006[idx].DowntrendPairsToDraw == downtrendPairsToDraw && cacheAlightenMirrorPtJV0006[idx].PairLookbackBars == pairLookbackBars && cacheAlightenMirrorPtJV0006[idx].MaxStoredPivots == maxStoredPivots && cacheAlightenMirrorPtJV0006[idx].MinimumTrendBars == minimumTrendBars && cacheAlightenMirrorPtJV0006[idx].MinimumTrendTicks == minimumTrendTicks && cacheAlightenMirrorPtJV0006[idx].UptrendPairColor == uptrendPairColor && cacheAlightenMirrorPtJV0006[idx].DowntrendPairColor == downtrendPairColor && cacheAlightenMirrorPtJV0006[idx].SGPairColor == sGPairColor && cacheAlightenMirrorPtJV0006[idx].RLPairColor == rLPairColor && cacheAlightenMirrorPtJV0006[idx].UseWicksForGainLoss == useWicksForGainLoss && cacheAlightenMirrorPtJV0006[idx].GainLossToleranceTicks == gainLossToleranceTicks && cacheAlightenMirrorPtJV0006[idx].TestTouchToleranceTicks == testTouchToleranceTicks && cacheAlightenMirrorPtJV0006[idx].TestCloseHoldTicks == testCloseHoldTicks && cacheAlightenMirrorPtJV0006[idx].ShowTestedPairLevels == showTestedPairLevels && cacheAlightenMirrorPtJV0006[idx].SupportTestDotColor == supportTestDotColor && cacheAlightenMirrorPtJV0006[idx].ResistanceTestDotColor == resistanceTestDotColor && cacheAlightenMirrorPtJV0006[idx].ShowLegacyGainedLostLevels == showLegacyGainedLostLevels && cacheAlightenMirrorPtJV0006[idx].LegacyNumberOfLevels == legacyNumberOfLevels && cacheAlightenMirrorPtJV0006[idx].LegacyExtendRightBars == legacyExtendRightBars && cacheAlightenMirrorPtJV0006[idx].LegacyMaxActiveLines == legacyMaxActiveLines && cacheAlightenMirrorPtJV0006[idx].LegacyGainLineWidth == legacyGainLineWidth && cacheAlightenMirrorPtJV0006[idx].LegacyLossLineWidth == legacyLossLineWidth && cacheAlightenMirrorPtJV0006[idx].LegacyGainLineColor == legacyGainLineColor && cacheAlightenMirrorPtJV0006[idx].LegacyLossLineColor == legacyLossLineColor && cacheAlightenMirrorPtJV0006[idx].LegacyGainTestLineColor == legacyGainTestLineColor && cacheAlightenMirrorPtJV0006[idx].LegacyLossTestLineColor == legacyLossTestLineColor && cacheAlightenMirrorPtJV0006[idx].LegacyCloseThroughAction == legacyCloseThroughAction && cacheAlightenMirrorPtJV0006[idx].ShowLegacyFirstTouchDots == showLegacyFirstTouchDots && cacheAlightenMirrorPtJV0006[idx].LegacyGainDotColor == legacyGainDotColor && cacheAlightenMirrorPtJV0006[idx].LegacyLossDotColor == legacyLossDotColor && cacheAlightenMirrorPtJV0006[idx].ShowPairLevelLabels == showPairLevelLabels && cacheAlightenMirrorPtJV0006[idx].LabelBarsRight == labelBarsRight && cacheAlightenMirrorPtJV0006[idx].LabelPixelOffset == labelPixelOffset && cacheAlightenMirrorPtJV0006[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorPtJV0006[idx].PairBoundsPairLineWidth == pairBoundsPairLineWidth && cacheAlightenMirrorPtJV0006[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtJV0006[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtJV0006[idx].ZigZagLineWidth == zigZagLineWidth && cacheAlightenMirrorPtJV0006[idx].CalcOnlyMode == calcOnlyMode && cacheAlightenMirrorPtJV0006[idx].MaxReportDistanceTicks == maxReportDistanceTicks && cacheAlightenMirrorPtJV0006[idx].EqualsInput(input))
-						return cacheAlightenMirrorPtJV0006[idx];
-			return CacheIndicator<AlightenMirrorPtJV0006>(new AlightenMirrorPtJV0006(){ BarsToProcess = barsToProcess, UseConfirmedPairsOnly = useConfirmedPairsOnly, UseWicksForPairLevels = useWicksForPairLevels, NearestPairLineWidth = nearestPairLineWidth, PairLineWidthStep = pairLineWidthStep, UntestedLineStyle = untestedLineStyle, TestedLineStyle = testedLineStyle, UptrendPairsToDraw = uptrendPairsToDraw, DowntrendPairsToDraw = downtrendPairsToDraw, PairLookbackBars = pairLookbackBars, MaxStoredPivots = maxStoredPivots, MinimumTrendBars = minimumTrendBars, MinimumTrendTicks = minimumTrendTicks, UptrendPairColor = uptrendPairColor, DowntrendPairColor = downtrendPairColor, SGPairColor = sGPairColor, RLPairColor = rLPairColor, UseWicksForGainLoss = useWicksForGainLoss, GainLossToleranceTicks = gainLossToleranceTicks, TestTouchToleranceTicks = testTouchToleranceTicks, TestCloseHoldTicks = testCloseHoldTicks, ShowTestedPairLevels = showTestedPairLevels, SupportTestDotColor = supportTestDotColor, ResistanceTestDotColor = resistanceTestDotColor, ShowLegacyGainedLostLevels = showLegacyGainedLostLevels, LegacyNumberOfLevels = legacyNumberOfLevels, LegacyExtendRightBars = legacyExtendRightBars, LegacyMaxActiveLines = legacyMaxActiveLines, LegacyGainLineWidth = legacyGainLineWidth, LegacyLossLineWidth = legacyLossLineWidth, LegacyGainLineColor = legacyGainLineColor, LegacyLossLineColor = legacyLossLineColor, LegacyGainTestLineColor = legacyGainTestLineColor, LegacyLossTestLineColor = legacyLossTestLineColor, LegacyCloseThroughAction = legacyCloseThroughAction, ShowLegacyFirstTouchDots = showLegacyFirstTouchDots, LegacyGainDotColor = legacyGainDotColor, LegacyLossDotColor = legacyLossDotColor, ShowPairLevelLabels = showPairLevelLabels, LabelBarsRight = labelBarsRight, LabelPixelOffset = labelPixelOffset, LabelFontSize = labelFontSize, PairBoundsPairLineWidth = pairBoundsPairLineWidth, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagLineWidth = zigZagLineWidth, CalcOnlyMode = calcOnlyMode, MaxReportDistanceTicks = maxReportDistanceTicks }, input, ref cacheAlightenMirrorPtJV0006);
+			if (cacheAlightenMirrorPtJV0007 != null)
+				for (int idx = 0; idx < cacheAlightenMirrorPtJV0007.Length; idx++)
+					if (cacheAlightenMirrorPtJV0007[idx] != null && cacheAlightenMirrorPtJV0007[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtJV0007[idx].UseConfirmedPairsOnly == useConfirmedPairsOnly && cacheAlightenMirrorPtJV0007[idx].UseWicksForPairLevels == useWicksForPairLevels && cacheAlightenMirrorPtJV0007[idx].NearestPairLineWidth == nearestPairLineWidth && cacheAlightenMirrorPtJV0007[idx].PairLineWidthStep == pairLineWidthStep && cacheAlightenMirrorPtJV0007[idx].UntestedLineStyle == untestedLineStyle && cacheAlightenMirrorPtJV0007[idx].TestedLineStyle == testedLineStyle && cacheAlightenMirrorPtJV0007[idx].UptrendPairsToDraw == uptrendPairsToDraw && cacheAlightenMirrorPtJV0007[idx].DowntrendPairsToDraw == downtrendPairsToDraw && cacheAlightenMirrorPtJV0007[idx].PairLookbackBars == pairLookbackBars && cacheAlightenMirrorPtJV0007[idx].MaxStoredPivots == maxStoredPivots && cacheAlightenMirrorPtJV0007[idx].MinimumTrendBars == minimumTrendBars && cacheAlightenMirrorPtJV0007[idx].MinimumTrendTicks == minimumTrendTicks && cacheAlightenMirrorPtJV0007[idx].UptrendPairColor == uptrendPairColor && cacheAlightenMirrorPtJV0007[idx].DowntrendPairColor == downtrendPairColor && cacheAlightenMirrorPtJV0007[idx].SGPairColor == sGPairColor && cacheAlightenMirrorPtJV0007[idx].RLPairColor == rLPairColor && cacheAlightenMirrorPtJV0007[idx].UseWicksForGainLoss == useWicksForGainLoss && cacheAlightenMirrorPtJV0007[idx].GainLossToleranceTicks == gainLossToleranceTicks && cacheAlightenMirrorPtJV0007[idx].TestTouchToleranceTicks == testTouchToleranceTicks && cacheAlightenMirrorPtJV0007[idx].TestCloseHoldTicks == testCloseHoldTicks && cacheAlightenMirrorPtJV0007[idx].ShowTestedPairLevels == showTestedPairLevels && cacheAlightenMirrorPtJV0007[idx].SupportTestDotColor == supportTestDotColor && cacheAlightenMirrorPtJV0007[idx].ResistanceTestDotColor == resistanceTestDotColor && cacheAlightenMirrorPtJV0007[idx].ShowLegacyGainedLostLevels == showLegacyGainedLostLevels && cacheAlightenMirrorPtJV0007[idx].LegacyNumberOfLevels == legacyNumberOfLevels && cacheAlightenMirrorPtJV0007[idx].LegacyExtendRightBars == legacyExtendRightBars && cacheAlightenMirrorPtJV0007[idx].LegacyMaxActiveLines == legacyMaxActiveLines && cacheAlightenMirrorPtJV0007[idx].LegacyGainLineWidth == legacyGainLineWidth && cacheAlightenMirrorPtJV0007[idx].LegacyLossLineWidth == legacyLossLineWidth && cacheAlightenMirrorPtJV0007[idx].LegacyGainLineColor == legacyGainLineColor && cacheAlightenMirrorPtJV0007[idx].LegacyLossLineColor == legacyLossLineColor && cacheAlightenMirrorPtJV0007[idx].LegacyGainTestLineColor == legacyGainTestLineColor && cacheAlightenMirrorPtJV0007[idx].LegacyLossTestLineColor == legacyLossTestLineColor && cacheAlightenMirrorPtJV0007[idx].LegacyCloseThroughAction == legacyCloseThroughAction && cacheAlightenMirrorPtJV0007[idx].ShowLegacyFirstTouchDots == showLegacyFirstTouchDots && cacheAlightenMirrorPtJV0007[idx].LegacyGainDotColor == legacyGainDotColor && cacheAlightenMirrorPtJV0007[idx].LegacyLossDotColor == legacyLossDotColor && cacheAlightenMirrorPtJV0007[idx].ShowPairLevelLabels == showPairLevelLabels && cacheAlightenMirrorPtJV0007[idx].LabelBarsRight == labelBarsRight && cacheAlightenMirrorPtJV0007[idx].LabelPixelOffset == labelPixelOffset && cacheAlightenMirrorPtJV0007[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorPtJV0007[idx].PairBoundsPairLineWidth == pairBoundsPairLineWidth && cacheAlightenMirrorPtJV0007[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtJV0007[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtJV0007[idx].ZigZagLineWidth == zigZagLineWidth && cacheAlightenMirrorPtJV0007[idx].CalcOnlyMode == calcOnlyMode && cacheAlightenMirrorPtJV0007[idx].MaxReportDistanceTicks == maxReportDistanceTicks && cacheAlightenMirrorPtJV0007[idx].EqualsInput(input))
+						return cacheAlightenMirrorPtJV0007[idx];
+			return CacheIndicator<AlightenMirrorPtJV0007>(new AlightenMirrorPtJV0007(){ BarsToProcess = barsToProcess, UseConfirmedPairsOnly = useConfirmedPairsOnly, UseWicksForPairLevels = useWicksForPairLevels, NearestPairLineWidth = nearestPairLineWidth, PairLineWidthStep = pairLineWidthStep, UntestedLineStyle = untestedLineStyle, TestedLineStyle = testedLineStyle, UptrendPairsToDraw = uptrendPairsToDraw, DowntrendPairsToDraw = downtrendPairsToDraw, PairLookbackBars = pairLookbackBars, MaxStoredPivots = maxStoredPivots, MinimumTrendBars = minimumTrendBars, MinimumTrendTicks = minimumTrendTicks, UptrendPairColor = uptrendPairColor, DowntrendPairColor = downtrendPairColor, SGPairColor = sGPairColor, RLPairColor = rLPairColor, UseWicksForGainLoss = useWicksForGainLoss, GainLossToleranceTicks = gainLossToleranceTicks, TestTouchToleranceTicks = testTouchToleranceTicks, TestCloseHoldTicks = testCloseHoldTicks, ShowTestedPairLevels = showTestedPairLevels, SupportTestDotColor = supportTestDotColor, ResistanceTestDotColor = resistanceTestDotColor, ShowLegacyGainedLostLevels = showLegacyGainedLostLevels, LegacyNumberOfLevels = legacyNumberOfLevels, LegacyExtendRightBars = legacyExtendRightBars, LegacyMaxActiveLines = legacyMaxActiveLines, LegacyGainLineWidth = legacyGainLineWidth, LegacyLossLineWidth = legacyLossLineWidth, LegacyGainLineColor = legacyGainLineColor, LegacyLossLineColor = legacyLossLineColor, LegacyGainTestLineColor = legacyGainTestLineColor, LegacyLossTestLineColor = legacyLossTestLineColor, LegacyCloseThroughAction = legacyCloseThroughAction, ShowLegacyFirstTouchDots = showLegacyFirstTouchDots, LegacyGainDotColor = legacyGainDotColor, LegacyLossDotColor = legacyLossDotColor, ShowPairLevelLabels = showPairLevelLabels, LabelBarsRight = labelBarsRight, LabelPixelOffset = labelPixelOffset, LabelFontSize = labelFontSize, PairBoundsPairLineWidth = pairBoundsPairLineWidth, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagLineWidth = zigZagLineWidth, CalcOnlyMode = calcOnlyMode, MaxReportDistanceTicks = maxReportDistanceTicks }, input, ref cacheAlightenMirrorPtJV0007);
 		}
 	}
 }
@@ -2052,14 +2274,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		public Indicators.AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			return indicator.AlightenMirrorPtJV0006(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
+			return indicator.AlightenMirrorPtJV0007(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
 		}
 
-		public Indicators.AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(ISeries<double> input , int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		public Indicators.AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(ISeries<double> input , int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			return indicator.AlightenMirrorPtJV0006(input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
+			return indicator.AlightenMirrorPtJV0007(input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
 		}
 	}
 }
@@ -2068,14 +2290,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		public Indicators.AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			return indicator.AlightenMirrorPtJV0006(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
+			return indicator.AlightenMirrorPtJV0007(Input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
 		}
 
-		public Indicators.AlightenMirrorPtJV0006 AlightenMirrorPtJV0006(ISeries<double> input , int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
+		public Indicators.AlightenMirrorPtJV0007 AlightenMirrorPtJV0007(ISeries<double> input , int barsToProcess, bool useConfirmedPairsOnly, bool useWicksForPairLevels, int nearestPairLineWidth, int pairLineWidthStep, DashStyleHelper untestedLineStyle, DashStyleHelper testedLineStyle, int uptrendPairsToDraw, int downtrendPairsToDraw, int pairLookbackBars, int maxStoredPivots, int minimumTrendBars, int minimumTrendTicks, Color uptrendPairColor, Color downtrendPairColor, Color sGPairColor, Color rLPairColor, bool useWicksForGainLoss, int gainLossToleranceTicks, int testTouchToleranceTicks, int testCloseHoldTicks, bool showTestedPairLevels, Color supportTestDotColor, Color resistanceTestDotColor, bool showLegacyGainedLostLevels, int legacyNumberOfLevels, int legacyExtendRightBars, int legacyMaxActiveLines, int legacyGainLineWidth, int legacyLossLineWidth, Color legacyGainLineColor, Color legacyLossLineColor, Color legacyGainTestLineColor, Color legacyLossTestLineColor, string legacyCloseThroughAction, bool showLegacyFirstTouchDots, Color legacyGainDotColor, Color legacyLossDotColor, bool showPairLevelLabels, int labelBarsRight, int labelPixelOffset, int labelFontSize, int pairBoundsPairLineWidth, bool showZigZag, Color zigZagColor, int zigZagLineWidth, bool calcOnlyMode, int maxReportDistanceTicks)
 		{
-			return indicator.AlightenMirrorPtJV0006(input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
+			return indicator.AlightenMirrorPtJV0007(input, barsToProcess, useConfirmedPairsOnly, useWicksForPairLevels, nearestPairLineWidth, pairLineWidthStep, untestedLineStyle, testedLineStyle, uptrendPairsToDraw, downtrendPairsToDraw, pairLookbackBars, maxStoredPivots, minimumTrendBars, minimumTrendTicks, uptrendPairColor, downtrendPairColor, sGPairColor, rLPairColor, useWicksForGainLoss, gainLossToleranceTicks, testTouchToleranceTicks, testCloseHoldTicks, showTestedPairLevels, supportTestDotColor, resistanceTestDotColor, showLegacyGainedLostLevels, legacyNumberOfLevels, legacyExtendRightBars, legacyMaxActiveLines, legacyGainLineWidth, legacyLossLineWidth, legacyGainLineColor, legacyLossLineColor, legacyGainTestLineColor, legacyLossTestLineColor, legacyCloseThroughAction, showLegacyFirstTouchDots, legacyGainDotColor, legacyLossDotColor, showPairLevelLabels, labelBarsRight, labelPixelOffset, labelFontSize, pairBoundsPairLineWidth, showZigZag, zigZagColor, zigZagLineWidth, calcOnlyMode, maxReportDistanceTicks);
 		}
 	}
 }
