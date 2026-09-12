@@ -480,3 +480,60 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
 	}
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private BnBTraderVPVWAPV0001[] cacheBnBTraderVPVWAPV0001;
+		public BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			return BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+		}
+
+		public BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input, bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			if (cacheBnBTraderVPVWAPV0001 != null)
+				for (int idx = 0; idx < cacheBnBTraderVPVWAPV0001.Length; idx++)
+					if (cacheBnBTraderVPVWAPV0001[idx] != null && cacheBnBTraderVPVWAPV0001[idx].ShowVP == showVP && cacheBnBTraderVPVWAPV0001[idx].ShowVWAP == showVWAP && cacheBnBTraderVPVWAPV0001[idx].VPWidth == vPWidth && cacheBnBTraderVPVWAPV0001[idx].VPOpacity == vPOpacity && cacheBnBTraderVPVWAPV0001[idx].VAPercentage == vAPercentage && cacheBnBTraderVPVWAPV0001[idx].SD1_Mult == sD1_Mult && cacheBnBTraderVPVWAPV0001[idx].SD2_Mult == sD2_Mult && cacheBnBTraderVPVWAPV0001[idx].SD3_Mult == sD3_Mult && cacheBnBTraderVPVWAPV0001[idx].ShowNakedPOCs == showNakedPOCs && cacheBnBTraderVPVWAPV0001[idx].ShowPriorDay == showPriorDay && cacheBnBTraderVPVWAPV0001[idx].EqualsInput(input))
+						return cacheBnBTraderVPVWAPV0001[idx];
+			return CacheIndicator<BnBTraderVPVWAPV0001>(new BnBTraderVPVWAPV0001(){ ShowVP = showVP, ShowVWAP = showVWAP, VPWidth = vPWidth, VPOpacity = vPOpacity, VAPercentage = vAPercentage, SD1_Mult = sD1_Mult, SD2_Mult = sD2_Mult, SD3_Mult = sD3_Mult, ShowNakedPOCs = showNakedPOCs, ShowPriorDay = showPriorDay }, input, ref cacheBnBTraderVPVWAPV0001);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			return indicator.BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+		}
+
+		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			return indicator.BnBTraderVPVWAPV0001(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			return indicator.BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+		}
+
+		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		{
+			return indicator.BnBTraderVPVWAPV0001(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+		}
+	}
+}
+
+#endregion
