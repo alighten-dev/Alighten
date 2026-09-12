@@ -19,7 +19,7 @@ instrument comes from whatever chart you apply it to).
 
 ![The reference chart: NQ 09-26, 1-minute, with the Mirror dashboard, session volume profile and VWAP.](docs/reference-chart.jpg)
 
-The chart is a single price panel carrying ten indicators. Reading it:
+The chart is a single price panel carrying eleven indicators. Reading it:
 
 * A **session volume profile** on the right edge, with **VAH** (red), **POC** (yellow) and **VAL**
   (green) extended left across the session as horizontal rails.
@@ -52,6 +52,7 @@ open. Values below are read directly out of the template.
 | Research log | enabled |
 | Drawing caps | 500 per zone set |
 | Zone merging | off for both sets |
+| Mirror source bars to process | 500 (`SrcBarsToProcess`) |
 
 So **every zone band on the chart is an inside zone** — the primary confluence set is switched off
 entirely. And although all six engines run and keep feeding the zone search, level *drawing* is
@@ -77,6 +78,7 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 | `AlightenBarTimerV3.cs` | Flicker-free bar countdown (Direct2D) |
 | `AlightenVerticalLineAtIntervalV0001.cs` | Vertical session/interval dividers |
 | `NebulaNT8NoCloud.cs` | Trend/reversal overlay (third party — see [Attribution](#attribution)) |
+| `LabelRemover.cs` | Strips the text labels the other indicators write onto the chart |
 
 Plus two NinjaTrader built-ins that ship with the platform and need no installation:
 `CurrentDayOHL` and `DrawingToolTile`.
@@ -98,18 +100,27 @@ and compiled even though you never add them to a chart:
 
 #### Zone rule files
 
-Read at runtime, **not** compiled. They must sit in `Documents\NinjaTrader 8\` — *not* in
-`bin\Custom\`. See `NinjaTrader/ZoneFiles/README.md`.
+Read at runtime, **not** compiled — so they are plain text files you copy into place, not something
+you compile in the NinjaScript Editor.
 
-| File | Indicator setting |
-|---|---|
-| `MirrorGroupsV0040.txt` | `12. Signal Groups` → Groups File |
-| `MirrorInsideZonesV0040.txt` | `13. Inside Zones` → Inside Zones File |
+**Where to get them:** both live in this repo at
+**[`NinjaTrader/ZoneFiles/`](NinjaTrader/ZoneFiles/)**. Download them from there and copy them into
+`Documents\NinjaTrader 8\` — the user data folder itself, ***not*** `bin\Custom\`. The indicator
+resolves a bare filename against that folder.
+
+| File | Get it from | Indicator setting |
+|---|---|---|
+| `MirrorGroupsV0040.txt` | [`NinjaTrader/ZoneFiles/MirrorGroupsV0040.txt`](NinjaTrader/ZoneFiles/MirrorGroupsV0040.txt) | `12. Signal Groups` → Groups File |
+| `MirrorInsideZonesV0040.txt` | [`NinjaTrader/ZoneFiles/MirrorInsideZonesV0040.txt`](NinjaTrader/ZoneFiles/MirrorInsideZonesV0040.txt) | `13. Inside Zones` → Inside Zones File |
+
+For the rule-file syntax and the silent-stub gotcha, see
+[`NinjaTrader/ZoneFiles/README.md`](NinjaTrader/ZoneFiles/README.md).
 
 ### Installation order
 
-1. Copy all 14 `.cs` files above into `Documents\NinjaTrader 8\bin\Custom\Indicators\`.
-2. Copy both zone rule files into `Documents\NinjaTrader 8\`.
+1. Copy all 15 `.cs` files above into `Documents\NinjaTrader 8\bin\Custom\Indicators\`.
+2. Copy both zone rule files from [`NinjaTrader/ZoneFiles/`](NinjaTrader/ZoneFiles/) into
+   `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
 4. Apply `Alighten_20260911.xml` via Chart → Templates → Load.
@@ -224,8 +235,8 @@ behaviour and drawing caps:
 
 | Set | Property group | Rule file | Intent |
 |---|---|---|---|
-| **Primary** | `12. Signal Groups` | `ZoneFiles/MirrorGroupsV0040.txt` | confluence stacks spanning 3+ timeframes |
-| **Inside** | `13. Inside Zones` | `ZoneFiles/MirrorInsideZonesV0040.txt` | narrower pairs sitting between a primary zone and price |
+| **Primary** | `12. Signal Groups` | [`MirrorGroupsV0040.txt`](NinjaTrader/ZoneFiles/MirrorGroupsV0040.txt) | confluence stacks spanning 3+ timeframes |
+| **Inside** | `13. Inside Zones` | [`MirrorInsideZonesV0040.txt`](NinjaTrader/ZoneFiles/MirrorInsideZonesV0040.txt) | narrower pairs sitting between a primary zone and price |
 
 On the reference chart only the **Inside** set is enabled, so its zones are not in fact sitting
 between a primary zone and price — there are no primary zones drawn. That is legal, because the
@@ -354,7 +365,6 @@ strategies and Bloodhound.
 * **`VolumeDelta.cs`** — core volume delta calculation engine.
 * **`HigherTimeframeCandles.cs`** — projects HTF candle OHLC onto lower-timeframe charts.
 * **`IndicatorVisualStyleHelper.cs`** — centralized brush/stroke/font styling shared across the suite.
-* **`LabelRemover.cs`** — strips cluttering text labels from all indicators on a chart.
 * **`OrderLineDecorator.cs`** — enhances the presentation of active order lines.
 
 ---

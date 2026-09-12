@@ -67,7 +67,7 @@
             <CandleStyle>
               <CandleStyle xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                 <IsVisible>true</IsVisible>
-                <BarWidth>1.6871983714159662</BarWidth>
+                <BarWidth>1.6207160236606757</BarWidth>
                 <ChartStyleTypeSerialize>1</ChartStyleTypeSerialize>
                 <DownBrushSerialize>DEFAULT</DownBrushSerialize>
                 <UpBrushSerialize>DEFAULT</UpBrushSerialize>
@@ -84,7 +84,7 @@
       </BarsProperties>
     </DataSeries>
     <Indicators>
-      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.DrawingToolTile" Panel="-1" DisplayName="Drawing tool tile">
+      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.DrawingToolTile" Panel="-1" DisplayName="DrawingToolTile">
         <DrawingToolTile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnBarClose</calculate2>
@@ -109,7 +109,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>Drawing tool tile</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
@@ -177,7 +177,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>AlightenButtonPanelV0005</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
@@ -247,7 +247,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>AlightenVerticalLineAtIntervalV0001</Name>
+          <Name />
           <Panel>0</Panel>
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
@@ -311,7 +311,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>Infinite</MaximumBarsLookBack>
-          <Name>AlightenBiasV0003</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots>
             <Plot>
@@ -370,7 +370,7 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0041Signal" Panel="-1" DisplayName="AlightenMirrorV0041Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,True,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,True,False,False,False,False,False,False,True,False,False,False,False,False,False,True,False,False,False,False,False,False,False,False,False,False,False,False,False,800,0)">
+      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0041Signal" Panel="-1" DisplayName="AlightenMirrorV0041Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,True,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,False,False,False,False,False,False,False,False,False,False,False,False,False,True,False,False,False,False,False,False,True,False,False,False,False,False,False,True,False,False,False,False,False,False,False,False,False,False,False,False,False,500,0)">
         <AlightenMirrorV0041Signal xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnEachTick</calculate2>
@@ -395,7 +395,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>AlightenMirrorV0041Signal</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots>
             <Plot>
@@ -969,7 +969,7 @@
           <EnablePatternH>true</EnablePatternH>
           <EnablePatternF>true</EnablePatternF>
           <EnablePatternJ>true</EnablePatternJ>
-          <SrcBarsToProcess>800</SrcBarsToProcess>
+          <SrcBarsToProcess>500</SrcBarsToProcess>
           <MirrorLookbackBars>3</MirrorLookbackBars>
           <EnableInvalidatedCleanup>true</EnableInvalidatedCleanup>
           <ShowPatternATF1_Daily>true</ShowPatternATF1_Daily>
@@ -1078,7 +1078,7 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.CurrentDayOHL" Panel="0" DisplayName="Current day OHL">
+      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.CurrentDayOHL" Panel="0" DisplayName="CurrentDayOHL">
         <CurrentDayOHL xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnBarClose</calculate2>
@@ -1103,7 +1103,7 @@
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>Current day OHL</Name>
+          <Name />
           <Panel>0</Panel>
           <Plots>
             <Plot>
@@ -1197,7 +1197,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>NebulaNT8NoCloud</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots>
             <Plot>
@@ -1340,7 +1340,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>AlightenOrderFlowToolsV0006</Name>
+          <Name />
           <Panel>0</Panel>
           <Plots>
             <Plot>
@@ -1538,7 +1538,7 @@
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>AlightenBarTimerV3</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
@@ -1592,7 +1592,7 @@
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name>BnBTraderVPVWAPV0001</Name>
+          <Name />
           <Panel>-1</Panel>
           <Plots>
             <Plot>
@@ -1786,6 +1786,56 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
+      <Indicator BarsIndex="0" Instrument="NQ 09-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.LabelRemover" Panel="-1" DisplayName="LabelRemover">
+        <LabelRemover xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <IsVisible>true</IsVisible>
+          <calculate2>OnBarClose</calculate2>
+          <AreLinesConfigurable>true</AreLinesConfigurable>
+          <ArePlotsConfigurable>true</ArePlotsConfigurable>
+          <BarsPeriodSerializable>
+            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
+            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
+            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
+            <MarketDataType>Last</MarketDataType>
+            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
+            <ReversalType>Tick</ReversalType>
+            <Value>1</Value>
+            <Value2>1</Value2>
+          </BarsPeriodSerializable>
+          <BarsToLoad>0</BarsToLoad>
+          <Calculate>OnBarClose</Calculate>
+          <Displacement>0</Displacement>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-09-06T00:00:00</From>
+          <IsAutoScale>true</IsAutoScale>
+          <Lines />
+          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
+          <Name />
+          <Panel>-1</Panel>
+          <Plots />
+          <ScaleJustification>Right</ScaleJustification>
+          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
+          <To>2026-09-11T00:00:00</To>
+          <IsDataSeriesRequired>true</IsDataSeriesRequired>
+          <IsOverlay>true</IsOverlay>
+          <SelectedValueSeries>0</SelectedValueSeries>
+          <InputPlot>0</InputPlot>
+          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
+          <PaintPriceMarkers>true</PaintPriceMarkers>
+          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
+          <DrawVerticalGridLines>true</DrawVerticalGridLines>
+          <DrawOnPricePanel>true</DrawOnPricePanel>
+          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
+          <IndicatorId>3542</IndicatorId>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
+          <ZOrder>30074</ZOrder>
+        </LabelRemover>
+        <Input>
+          <PriceType>Close</PriceType>
+        </Input>
+      </Indicator>
     </Indicators>
     <CrosshairType>GlobalNoTimeScroll</CrosshairType>
     <StayInDrawMode>False</StayInDrawMode>
@@ -1809,7 +1859,7 @@
           <Size>11</Size>
         </LabelFont>
         <DataSeriesWatermark>@INSTRUMENT_FULL_ALL</DataSeriesWatermark>
-        <BarDistance>5.56994057</BarDistance>
+        <BarDistance>5.350463</BarDistance>
         <BarMarginRightUser>8</BarMarginRightUser>
         <ChartTimeFormat>TwentyfourHour</ChartTimeFormat>
         <ChartTraderVisibility>Visible</ChartTraderVisibility>
@@ -1943,7 +1993,7 @@
             <AutoScaleMarginUpper>6</AutoScaleMarginUpper>
             <YAxisScalingType>Linear</YAxisScalingType>
             <FixedScaleMaxSerialize>29499.75</FixedScaleMaxSerialize>
-            <FixedScaleMinSerialize>29375.25</FixedScaleMinSerialize>
+            <FixedScaleMinSerialize>29334</FixedScaleMinSerialize>
             <IsInverted>false</IsInverted>
           </ChartScaleProperties>
         </Right>
