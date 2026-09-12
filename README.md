@@ -17,6 +17,8 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 **Built on:** NQ 09-26, 1 Minute, 5 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
+![The reference chart: NQ 09-26, 1-minute, with the Mirror dashboard, session volume profile and VWAP.](docs/reference-chart.jpg)
+
 The chart is a single price panel carrying ten indicators. Reading it:
 
 * A **session volume profile** on the right edge, with **VAH** (red), **POC** (yellow) and **VAL**
@@ -24,12 +26,40 @@ The chart is a single price panel carrying ten indicators. Reading it:
 * The **session VWAP** as a goldenrod curve, with three pairs of gray dashed standard-deviation
   bands at 1σ / 2σ / 3σ.
 * **Prior-day high and low** in deep pink.
-* A dense field of **Mirror levels and zones** — horizontal bands in magenta, green, teal and dark
-  red. Narrow bright bands are individual pattern levels; wider translucent bands are confluence
-  zones. A yellow zigzag traces the structure the pattern engines are keyed to.
+* **Mirror levels and zones** as horizontal bands. Only the *inside* zone set is drawing on this
+  chart — long zones green (`#25D725`), short zones magenta (`#FF00FF`), filled at 5% opacity with a
+  50%-opacity outline, which is why they read as dark tints against the black background. Narrow
+  bright bands are individual pattern levels. A yellow zigzag traces the structure the pattern
+  engines are keyed to.
 * Small arrows, dots and check marks on the bars are **confirmed pattern signals**.
 * Three toolbar buttons — **Mirror Settings**, **Export Levels**, **Clean Mirror** — drive the
   Mirror's live settings modal, its CSV export, and its zone teardown/redraw.
+
+### How this chart is configured
+
+Two of these will surprise anyone reading the screenshot and assuming the Mirror is running wide
+open. Values below are read directly out of the template.
+
+| Setting | Value |
+|---|---|
+| Signal Groups (primary zones) | **disabled** — `EnableSignalGroups = false` |
+| Inside Zones | **enabled** — `MirrorInsideZonesV0040.txt` |
+| Pattern engines computing | all six — A, B, G, H, F, J |
+| Levels actually drawn | **Daily only**, and only for A, G, H and F |
+| Pattern B and Pattern J levels | computed, not drawn |
+| Daily Bias Levels | enabled — goldenrod above, deep sky blue below |
+| Cross arrows | shown |
+| Research log | enabled |
+| Drawing caps | 500 per zone set |
+| Zone merging | off for both sets |
+
+So **every zone band on the chart is an inside zone** — the primary confluence set is switched off
+entirely. And although all six engines run and keep feeding the zone search, level *drawing* is
+restricted to the Daily timeframe for four of the six patterns; Pattern J, the densest source, is
+computing invisibly.
+
+This is worth knowing before you change anything: enabling Signal Groups or turning on more
+timeframes will not "fix" a sparse chart, it will bury it.
 
 ### Files required to reproduce it
 
@@ -196,6 +226,11 @@ behaviour and drawing caps:
 |---|---|---|---|
 | **Primary** | `12. Signal Groups` | `ZoneFiles/MirrorGroupsV0040.txt` | confluence stacks spanning 3+ timeframes |
 | **Inside** | `13. Inside Zones` | `ZoneFiles/MirrorInsideZonesV0040.txt` | narrower pairs sitting between a primary zone and price |
+
+On the reference chart only the **Inside** set is enabled, so its zones are not in fact sitting
+between a primary zone and price — there are no primary zones drawn. That is legal, because the
+engine does not enforce the geometry (see below); it just means the set is being used on its own
+terms rather than as the inner half of a pair.
 
 Draw tags are prefixed per set (`PRI_` / `INS_`) so the two can never fight over one chart object,
 merging never crosses sets, and each writes its own forensics trail — `MirrorZonesV0041_PRI.log`
