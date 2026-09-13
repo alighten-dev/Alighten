@@ -893,6 +893,27 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (tickCount <= 0 || CurrentBars[1] < 0)
                 return;
 
+            // ---- Performance gate ------------------------------------------------
+            // During historical load NT8 feeds every tick of the 1-tick series
+            // (tens of millions of them over 30+ days) through this method. The
+            // per-tick dictionary/tuple/large-trade/imbalance work is what makes the
+            // load crawl. Order-flow output is only rendered for bars inside the
+            // visible window, so skip the heavy work for primary bars older than the
+            // BarsToProcess window. A safety buffer keeps enough prior bars processed
+            // that lookback/lookahead signals at the left edge stay correct and the
+            // rolling/session state re-primes before the window begins.
+            // Realtime is never gated.
+            if (State == State.Historical && BarsToProcess > 0)
+            {
+                int lookbackBuffer = Math.Max(
+                    50,
+                    Math.Max(TrapLookaheadBars, Math.Max(SITrapLookaheadBars, SIStackedImbalanceLookback)) + 10);
+
+                if (CurrentBars[0] < BarsArray[0].Count - (BarsToProcess + lookbackBuffer))
+                    return;
+            }
+            // ----------------------------------------------------------------------
+
             int lag = tickCount - 1 - CurrentBars[1];
             bool inTransition = State == State.Realtime && lag > 1;
 
