@@ -26,8 +26,25 @@ using System.Windows.Automation.Provider;
 namespace NinjaTrader.NinjaScript.Indicators
 {
     // =====================================================================
-    // Pattern G (V0002 — perf-optimized: no per-tick allocations, O(1) expired-
+    // Pattern G (V0003 — perf-optimized: no per-tick allocations, O(1) expired-
     // level lookups, LINQ-free rebuild, bounded pivot lookback window)
+    //
+    // V0003 (2026-09-14) — CLOSED-BAR LEVEL PUBLISHING FIX
+    //   V0002 wrote patternGLongLevel[1] / patternGShortLevel[1] only inside the
+    //   mutually exclusive (longNow && !shortNow) / (shortNow && !longNow) branches.
+    //   A bar that signalled BOTH ways therefore published NEITHER level: both plots
+    //   kept the 0 written by the "clear inherited live values" step just above, the
+    //   Mirror's SyncSingleSignal returned early on 0, and the level was never
+    //   ingested — no CREATE and no REMOVE in the level log — so it could not be
+    //   rebuilt after a reload even though the chart still drew it.
+    //   Each direction's level is now published on its own. patternGSignal is
+    //   unchanged and still reports 0 on an ambiguous bar.
+    //
+    //   KNOWN REMAINING ASYMMETRY (not changed here, by request): the LIVE intrabar
+    //   path (UpdatePatternG_Live_BIP0) still routes both directions through a single
+    //   liveSig, so the losing direction's plots are zeroed mid-bar. A short stamped
+    //   early in a bar is erased if a long wins the tie-break later in the same bar.
+    //   The same exclusive-branch shape also exists in PtA V0010 and PtH V0002.
     //
     // LONG:
     //   A pivot LOW creates a level (body/guide price of the pivot bar).
@@ -47,7 +64,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //   - Live intrabar signal/level update on every tick
     //   - Same plot layout (Signal, SignalMA, Long/Short Level + timestamps)
     // =====================================================================
-    public class AlightenMirrorPtGV0002 : Indicator
+    public class AlightenMirrorPtGV0003 : Indicator
     {
 
 		#region Class Variables
@@ -330,7 +347,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name        = "AlightenMirrorPtGV0002";
+                Name        = "AlightenMirrorPtGV0003";
                 Description = "Pattern G: pivot level gained/lost by close, then wick retest of the level (long/short).";
                 Calculate   = Calculate.OnEachTick;
 
@@ -501,19 +518,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 		                    bool longNow  = patternGLongByBar  != null && patternGLongByBar.ContainsKey(sigBar);
 		                    bool shortNow = patternGShortByBar != null && patternGShortByBar.ContainsKey(sigBar);
 
+		                    // ------------------------------------------------------------------
+		                    // V0003 FIX: publish each direction's LEVEL independently.
+		                    //
+		                    // patternGLongLevel and patternGShortLevel are SEPARATE Series<double>.
+		                    // V0002 gated both writes behind one exclusive direction, so a bar that
+		                    // signalled BOTH ways published NEITHER level. The Mirror reads these
+		                    // plots (GetShortLevelSeries -> PatternGShortLevel) and SyncSingleSignal
+		                    // returns early when the value is 0 -- so such a level was never ingested
+		                    // (no CREATE, and no REMOVE either) and could not rebuild on reload, while
+		                    // the chart still drew it from patternGLevels, which the Mirror never reads.
+		                    // Both-direction bars are rare, which is why this survived: G produced
+		                    // 3,804 correct historical levels alongside it.
+		                    //
+		                    // NOTE: the two TryGetValue out-vars were previously in mutually exclusive
+		                    // branches (separate scopes). They now share one scope and must not collide.
+		                    // ------------------------------------------------------------------
+		                    if (longNow && patternGLongLevelByBar != null
+		                        && patternGLongLevelByBar.TryGetValue(sigBar, out double lvlPriceLong))
+		                        patternGLongLevel[1] = lvlPriceLong;
+
+		                    if (shortNow && patternGShortLevelByBar != null
+		                        && patternGShortLevelByBar.TryGetValue(sigBar, out double lvlPriceShort))
+		                        patternGShortLevel[1] = lvlPriceShort;
+
+		                    // patternGSignal keeps its single-direction semantics UNCHANGED for MA /
+		                    // strategy / Bloodhound consumers: an ambiguous bar still reports 0.
 		                    double sig = 0;
-		                    if (longNow && !shortNow)
-		                    {
-		                        sig = +1;
-		                        if (patternGLongLevelByBar != null && patternGLongLevelByBar.TryGetValue(sigBar, out double lvlPrice))
-		                            patternGLongLevel[1] = lvlPrice;
-		                    }
-		                    else if (shortNow && !longNow)
-		                    {
-		                        sig = -1;
-		                        if (patternGShortLevelByBar != null && patternGShortLevelByBar.TryGetValue(sigBar, out double lvlPrice))
-		                            patternGShortLevel[1] = lvlPrice;
-		                    }
+		                    if (longNow && !shortNow)      sig = +1;
+		                    else if (shortNow && !longNow) sig = -1;
 
 		                    // DataBox / chart-aligned plot (belongs to bar that just closed)
 		                    patternGSignal[1] = sig;
@@ -1648,19 +1681,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorPtGV0002[] cacheAlightenMirrorPtGV0002;
-		public AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		private AlightenMirrorPtGV0003[] cacheAlightenMirrorPtGV0003;
+		public AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return AlightenMirrorPtGV0002(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return AlightenMirrorPtGV0003(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(ISeries<double> input, int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(ISeries<double> input, int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			if (cacheAlightenMirrorPtGV0002 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorPtGV0002.Length; idx++)
-					if (cacheAlightenMirrorPtGV0002[idx] != null && cacheAlightenMirrorPtGV0002[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtGV0002[idx].EnablePatternGSignal == enablePatternGSignal && cacheAlightenMirrorPtGV0002[idx].EnablePatternGLevels == enablePatternGLevels && cacheAlightenMirrorPtGV0002[idx].DrawPatternG == drawPatternG && cacheAlightenMirrorPtGV0002[idx].PatternGMarkerFontSize == patternGMarkerFontSize && cacheAlightenMirrorPtGV0002[idx].PatternGMarkerOffsetTicks == patternGMarkerOffsetTicks && cacheAlightenMirrorPtGV0002[idx].PatternGLongColor == patternGLongColor && cacheAlightenMirrorPtGV0002[idx].PatternGShortColor == patternGShortColor && cacheAlightenMirrorPtGV0002[idx].PatternGLevelWidth == patternGLevelWidth && cacheAlightenMirrorPtGV0002[idx].PatternGLevelDashStyle == patternGLevelDashStyle && cacheAlightenMirrorPtGV0002[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtGV0002[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtGV0002[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtGV0002[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtGV0002[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtGV0002[idx].EqualsInput(input))
-						return cacheAlightenMirrorPtGV0002[idx];
-			return CacheIndicator<AlightenMirrorPtGV0002>(new AlightenMirrorPtGV0002(){ BarsToProcess = barsToProcess, EnablePatternGSignal = enablePatternGSignal, EnablePatternGLevels = enablePatternGLevels, DrawPatternG = drawPatternG, PatternGMarkerFontSize = patternGMarkerFontSize, PatternGMarkerOffsetTicks = patternGMarkerOffsetTicks, PatternGLongColor = patternGLongColor, PatternGShortColor = patternGShortColor, PatternGLevelWidth = patternGLevelWidth, PatternGLevelDashStyle = patternGLevelDashStyle, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtGV0002);
+			if (cacheAlightenMirrorPtGV0003 != null)
+				for (int idx = 0; idx < cacheAlightenMirrorPtGV0003.Length; idx++)
+					if (cacheAlightenMirrorPtGV0003[idx] != null && cacheAlightenMirrorPtGV0003[idx].BarsToProcess == barsToProcess && cacheAlightenMirrorPtGV0003[idx].EnablePatternGSignal == enablePatternGSignal && cacheAlightenMirrorPtGV0003[idx].EnablePatternGLevels == enablePatternGLevels && cacheAlightenMirrorPtGV0003[idx].DrawPatternG == drawPatternG && cacheAlightenMirrorPtGV0003[idx].PatternGMarkerFontSize == patternGMarkerFontSize && cacheAlightenMirrorPtGV0003[idx].PatternGMarkerOffsetTicks == patternGMarkerOffsetTicks && cacheAlightenMirrorPtGV0003[idx].PatternGLongColor == patternGLongColor && cacheAlightenMirrorPtGV0003[idx].PatternGShortColor == patternGShortColor && cacheAlightenMirrorPtGV0003[idx].PatternGLevelWidth == patternGLevelWidth && cacheAlightenMirrorPtGV0003[idx].PatternGLevelDashStyle == patternGLevelDashStyle && cacheAlightenMirrorPtGV0003[idx].ShowDebugLabels == showDebugLabels && cacheAlightenMirrorPtGV0003[idx].ShowZigZag == showZigZag && cacheAlightenMirrorPtGV0003[idx].ZigZagColor == zigZagColor && cacheAlightenMirrorPtGV0003[idx].ZigZagWidth == zigZagWidth && cacheAlightenMirrorPtGV0003[idx].ZigZagStyle == zigZagStyle && cacheAlightenMirrorPtGV0003[idx].EqualsInput(input))
+						return cacheAlightenMirrorPtGV0003[idx];
+			return CacheIndicator<AlightenMirrorPtGV0003>(new AlightenMirrorPtGV0003(){ BarsToProcess = barsToProcess, EnablePatternGSignal = enablePatternGSignal, EnablePatternGLevels = enablePatternGLevels, DrawPatternG = drawPatternG, PatternGMarkerFontSize = patternGMarkerFontSize, PatternGMarkerOffsetTicks = patternGMarkerOffsetTicks, PatternGLongColor = patternGLongColor, PatternGShortColor = patternGShortColor, PatternGLevelWidth = patternGLevelWidth, PatternGLevelDashStyle = patternGLevelDashStyle, ShowDebugLabels = showDebugLabels, ShowZigZag = showZigZag, ZigZagColor = zigZagColor, ZigZagWidth = zigZagWidth, ZigZagStyle = zigZagStyle }, input, ref cacheAlightenMirrorPtGV0003);
 		}
 	}
 }
@@ -1669,14 +1702,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtGV0002(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtGV0003(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(ISeries<double> input , int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(ISeries<double> input , int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtGV0002(input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtGV0003(input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }
@@ -1685,14 +1718,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtGV0002(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtGV0003(Input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 
-		public Indicators.AlightenMirrorPtGV0002 AlightenMirrorPtGV0002(ISeries<double> input , int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
+		public Indicators.AlightenMirrorPtGV0003 AlightenMirrorPtGV0003(ISeries<double> input , int barsToProcess, bool enablePatternGSignal, bool enablePatternGLevels, bool drawPatternG, int patternGMarkerFontSize, int patternGMarkerOffsetTicks, System.Windows.Media.Brush patternGLongColor, System.Windows.Media.Brush patternGShortColor, int patternGLevelWidth, DashStyleHelper patternGLevelDashStyle, bool showDebugLabels, bool showZigZag, System.Windows.Media.Brush zigZagColor, int zigZagWidth, DashStyleHelper zigZagStyle)
 		{
-			return indicator.AlightenMirrorPtGV0002(input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
+			return indicator.AlightenMirrorPtGV0003(input, barsToProcess, enablePatternGSignal, enablePatternGLevels, drawPatternG, patternGMarkerFontSize, patternGMarkerOffsetTicks, patternGLongColor, patternGShortColor, patternGLevelWidth, patternGLevelDashStyle, showDebugLabels, showZigZag, zigZagColor, zigZagWidth, zigZagStyle);
 		}
 	}
 }

@@ -13,7 +13,7 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** `NinjaTrader/Templates/Chart/Alighten_20260911.xml`
+**Template:** `NinjaTrader/Templates/Chart/Alighten_20260915.xml`
 **Built on:** NQ 09-26, 1 Minute, 5 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
@@ -45,19 +45,19 @@ open. Values below are read directly out of the template.
 | Signal Groups (primary zones) | **disabled** — `EnableSignalGroups = false` |
 | Inside Zones | **enabled** — `MirrorInsideZonesV0040.txt` |
 | Pattern engines computing | all six — A, B, G, H, F, J |
-| Levels actually drawn | **Daily only**, and only for A, G, H and F |
+| Levels actually drawn | **Daily and 240m**, and only for A, G, H and F |
 | Pattern B and Pattern J levels | computed, not drawn |
 | Daily Bias Levels | enabled — goldenrod above, deep sky blue below |
 | Cross arrows | shown |
-| Research log | enabled |
+| Research log | **disabled** — `EnableResearchLog = false` |
 | Drawing caps | 500 per zone set |
 | Zone merging | off for both sets |
 | Mirror source bars to process | 500 (`SrcBarsToProcess`) |
 
 So **every zone band on the chart is an inside zone** — the primary confluence set is switched off
 entirely. And although all six engines run and keep feeding the zone search, level *drawing* is
-restricted to the Daily timeframe for four of the six patterns; Pattern J, the densest source, is
-computing invisibly.
+restricted to the Daily and 240m timeframes for four of the six patterns; Pattern J, the densest
+source, is computing invisibly.
 
 This is worth knowing before you change anything: enabling Signal Groups or turning on more
 timeframes will not "fix" a sparse chart, it will bury it.
@@ -70,7 +70,7 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 
 | Indicator | Role on the chart |
 |---|---|
-| `AlightenMirrorV0041Signal.cs` | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
+| `AlightenMirrorV0043Signal.cs` | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
 | `BnBTraderVPVWAPV0001.cs` | Volume profile (POC/VAH/VAL), naked POCs, prior-day H/L, session VWAP + SD bands |
 | `AlightenBiasV0003.cs` | FTG/FTL structural bias |
 | `AlightenOrderFlowToolsV0006.cs` | Speed of tape, net speed of tape, trapped traders, stacked imbalance traps |
@@ -91,11 +91,11 @@ and compiled even though you never add them to a chart:
 
 | Engine | Pattern |
 |---|---|
-| `AlightenMirrorPtAV0010.cs` | A — ZigZag/level tracking, sequential wick-touch signals |
+| `AlightenMirrorPtAV0011.cs` | A — ZigZag/level tracking, sequential wick-touch signals |
 | `AlightenMirrorPtBV0005.cs` | B |
-| `AlightenMirrorPtFV0003.cs` | F — precise breakouts and immediate retests |
-| `AlightenMirrorPtGV0002.cs` | G — level gained/lost arming with wick-retest |
-| `AlightenMirrorPtHV0002.cs` | H — "flipped G": a completed G whose level is then lost or gained |
+| `AlightenMirrorPtFV0004.cs` | F — precise breakouts and immediate retests |
+| `AlightenMirrorPtGV0003.cs` | G — level gained/lost arming with wick-retest |
+| `AlightenMirrorPtHV0003.cs` | H — "flipped G": a completed G whose level is then lost or gained |
 | `AlightenMirrorPtJV0007.cs` | J — paired pivots; the densest source by a wide margin |
 
 #### Zone rule files
@@ -123,7 +123,7 @@ For the rule-file syntax and the silent-stub gotcha, see
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply `Alighten_20260911.xml` via Chart → Templates → Load.
+4. Apply `Alighten_20260915.xml` via Chart → Templates → Load.
 
 ---
 
@@ -159,12 +159,12 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | `AlightenMirrorV0041` | ⚠️ chart runs `AlightenMirrorV0041Signal` |
-| Pattern A source | `AlightenMirrorPtAV0010` | same |
+| Mirror Dashboard | `AlightenMirrorV0043Signal` | same |
+| Pattern A source | `AlightenMirrorPtAV0011` | same |
 | Pattern B source | `AlightenMirrorPtBV0005` | same |
-| Pattern F source | `AlightenMirrorPtFV0003` | same |
-| Pattern G source | `AlightenMirrorPtGV0002` | same |
-| Pattern H source | `AlightenMirrorPtHV0002` | same |
+| Pattern F source | `AlightenMirrorPtFV0004` | same |
+| Pattern G source | `AlightenMirrorPtGV0003` | same |
+| Pattern H source | `AlightenMirrorPtHV0003` | same |
 | Pattern J source | `AlightenMirrorPtJV0007` | same |
 | Volume Profile / VWAP | `BnBTraderVPVWAPV0001` | same |
 | Order Flow Tools | `AlightenOrderFlowToolsV0006` | same |
@@ -177,10 +177,18 @@ promoted or retired.
 | Relative Delta | `AlightenRelativeDeltaV0001` | not on chart |
 | Relative Delta MultiTF | `AlightenRelativeDeltaMultiTFV0002` (V0003 = abandoned experiment) | not on chart |
 
-**Two rows disagree with the chart.** The reference chart runs `AlightenMirrorV0041Signal` (a
-distinct file from `AlightenMirrorV0041`, not a rename) and the older `AlightenBarTimerV3`. Both are
-committed here so the template loads, but decide which is genuinely production and reconcile this
-table rather than letting the chart and the table drift apart.
+**One row still disagrees with the chart.** The reference chart runs the older `AlightenBarTimerV3`
+rather than `AlightenBarTimerV0004`. Both are committed here so the template loads, but decide which
+is genuinely production and reconcile this table rather than letting the chart and the table drift.
+
+**Retired 2026-09-15.** `AlightenMirrorV0041`, `AlightenMirrorV0041Signal`, `AlightenMirrorPtAV0010`,
+`AlightenMirrorPtFV0003`, `AlightenMirrorPtGV0002` and `AlightenMirrorPtHV0002` were removed from
+this repo and from `bin\Custom`. The four pattern engines were superseded by versions that fix a
+closed-bar level-publishing defect: a bar signalling **both** long and short published *neither*
+level, so the Mirror never ingested it — no CREATE and no REMOVE in the level log — and the level
+could not rebuild after a reload even though the chart still drew it. See the header comment in each
+new engine for the full diagnosis. Pattern B was unaffected (it never writes its level plots at `[1]`)
+and Pattern J uses a different multi-slot publish path.
 
 ---
 
@@ -301,12 +309,12 @@ version evaluated over nine million combinations per bar on the same file.
 
 ### Pattern engine notes
 
-* **`AlightenMirrorPtAV0010`** — Pattern A: ZigZag/level tracking with sequential wick-touch signals
+* **`AlightenMirrorPtAV0011`** — Pattern A: ZigZag/level tracking with sequential wick-touch signals
   (consecutive touch bars all signal until the sequence breaks).
-* **`AlightenMirrorPtGV0002`** — Pattern G: level gained/lost arming with wick-retest signals.
-* **`AlightenMirrorPtHV0002`** — Pattern H, the "flipped Pattern G": a completed G pattern whose
+* **`AlightenMirrorPtGV0003`** — Pattern G: level gained/lost arming with wick-retest signals.
+* **`AlightenMirrorPtHV0003`** — Pattern H, the "flipped Pattern G": a completed G pattern whose
   level is then lost or gained arms the opposite-direction retest.
-* **`AlightenMirrorPtFV0003`** — Pattern F: precise breakouts and immediate retests of structure.
+* **`AlightenMirrorPtFV0004`** — Pattern F: precise breakouts and immediate retests of structure.
 * **`AlightenMirrorPtJV0007`** — Pattern J (paired pivots), the densest source by a wide margin.
   Qualified zigzag pairs with minimum trend bars/ticks, levels at the pivot candle's body, endpoint
   gain/loss state machines with first-touch tests, triangle test markers, and optional

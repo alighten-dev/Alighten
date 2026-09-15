@@ -1,4 +1,16 @@
-/* Version ID: 2026-08-08a AlightenMirrorV0041 — V0036 + SIGNAL GROUP ZONES (harvested from
+/* Version ID: 2026-08-29a AlightenMirrorV0043Signal — RESET. An exact copy of
+   AlightenMirrorV0041 as of 2026-08-29, carrying nothing but the rename: class/Name,
+   version-specific toolbar button IDs and captions ("Signal Settings" / "Signal Export" /
+   "Clean Signal"), and its own diagnostic log names (MirrorV0043SignalLevels.log,
+   MirrorZonesV0043Signal_*.log) so it can sit on the same chart as V0041 without either
+   clobbering the other. Zone INPUT files are unchanged - the same production
+   MirrorGroupsV0040.txt / MirrorInsideZonesV0040.txt.
+
+   Prior experimental work (a primary-series pivot engine ported from AlightenBiasV0003,
+   four structure-log CSVs, pivot/zone/sweep markers and a zone-view mode) was removed
+   in full on 2026-08-29. None of it survives here.
+
+   Inherited from V0041: V0036 + SIGNAL GROUP ZONES (harvested from
    AlightenMirrorEntryV0006), so one indicator replaces the V0036 + EntryV0006 pair on a chart.
    Adds: the file-driven confluence zone engine (group "12. Signal Groups" — rules file,
    ANCHORED/ORDERED flags, window-overlap detection, optional merging, FIFO draw cap), the
@@ -53,7 +65,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0041 : Indicator
+    public class AlightenMirrorV0043Signal : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -280,6 +292,25 @@ namespace NinjaTrader.NinjaScript.Indicators
             public bool RepaintPending;
         }
 
+        // ---- Zone-cross signal --------------------------------------------------------
+        // LONG: a bar closes up through a SHORT zone while a LONG zone sits below it.
+        // SHORT: the mirror - closes down through a LONG zone with a SHORT zone above.
+        // No wick and no arming window: the only history it needs is that the opposing
+        // zone exists on the far side, which is known when the bar closes.
+        private int _xLastBar = -1;
+        // The fired signals are kept with their full draw parameters, not just their tags:
+        // the manual Clean calls RemoveDrawObjects(), which wipes every object this
+        // indicator owns, and only levels/zones/daily-bias were being re-issued afterwards.
+        // A signal is a historical fact - it stays even if the zone behind it is later purged.
+        private class CrossMark
+        {
+            public string Tag;
+            public DateTime Time;
+            public double Price;
+            public bool IsLong;
+        }
+        private Queue<CrossMark> _xMarks;
+
         private ZoneSet _zsPri, _zsIns;
         private ZoneSet[] _zoneSets = new ZoneSet[0];
 
@@ -289,11 +320,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         #endregion
 
-        private AlightenMirrorPtAV0010[] _srcA = new AlightenMirrorPtAV0010[NUM_TF];
+        private AlightenMirrorPtAV0011[] _srcA = new AlightenMirrorPtAV0011[NUM_TF];
         private AlightenMirrorPtBV0005[] _srcB = new AlightenMirrorPtBV0005[NUM_TF];
-        private AlightenMirrorPtGV0002[] _srcG = new AlightenMirrorPtGV0002[NUM_TF];
-        private AlightenMirrorPtHV0002[] _srcH = new AlightenMirrorPtHV0002[NUM_TF];
-		private AlightenMirrorPtFV0003[] _srcF = new AlightenMirrorPtFV0003[NUM_TF];
+        private AlightenMirrorPtGV0003[] _srcG = new AlightenMirrorPtGV0003[NUM_TF];
+        private AlightenMirrorPtHV0003[] _srcH = new AlightenMirrorPtHV0003[NUM_TF];
+		private AlightenMirrorPtFV0004[] _srcF = new AlightenMirrorPtFV0004[NUM_TF];
 		private AlightenMirrorPtJV0007[] _srcJ = new AlightenMirrorPtJV0007[NUM_TF];
 
         // Unified tracked-level store: tracked[pattern][tf]
@@ -879,7 +910,43 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="Show Inside Zone Labels", Order=9, GroupName="13. Inside Zones")]
         public bool ShowInsideLabels { get; set; }
 
-        [Display(Name = "Write Level Log", Description = "Append every level created and removed to MirrorV0041Levels.log in the NinjaTrader 8 folder, for diffing against MirrorPtJV0007Signals.log. Diagnostic — leave off in normal use. Capped at 60,000 lines.", Order = 1, GroupName = "13. Diagnostics")]
+        [Display(Name="Show Zone-Cross Arrows", Description="Green up-arrow when a bar closes up through a SHORT zone that has a LONG zone below it. Red down-arrow for the mirror: closes down through a LONG zone with a SHORT zone above it. Drawn on the crossing bar.", Order=1, GroupName="14. Zone Cross Signal")]
+        public bool ShowCrossArrows { get; set; }
+
+        [Display(Name="Require Opposing Zone", Description="On = only fire when a zone of the opposite direction sits on the far side of the one being crossed (a long zone below the short zone crossed upward, or a short zone above the long zone crossed downward) - the sandwiched case. Off = fire on any fresh close through a zone, regardless of what is on the other side. Off by default: a break of support with nothing overhead is still a short, and requiring the opposing zone suppressed those.", Order=2, GroupName="14. Zone Cross Signal")]
+        public bool CrossRequireOpposingZone { get; set; }
+
+        [Display(Name="Inside Zones Only", Description="Restrict the crossed zone (and the opposing zone, when required) to the INSIDE set. Off = primary zones count too.", Order=3, GroupName="14. Zone Cross Signal")]
+        public bool CrossInsideOnly { get; set; }
+
+        [Display(Name="Both Directions", Description="Off = long setups only (cross up through a short zone).", Order=4, GroupName="14. Zone Cross Signal")]
+        public bool CrossBothDirections { get; set; }
+
+        [Range(0, 1440)]
+        [Display(Name="Zone Grace (mins)", Description="How long after a zone's window closes it still counts. Zones keep being respected after their level-overlap window ends.", Order=5, GroupName="14. Zone Cross Signal")]
+        public int CrossGraceMins { get; set; }
+
+        [Range(0, 2000)]
+        [Display(Name="Max Zone Separation (ticks)", Description="How far below the crossed zone the opposing zone may sit and still count. 0 = no limit. Ignored unless Require Opposing Zone is on.", Order=6, GroupName="14. Zone Cross Signal")]
+        public int CrossMaxSeparation { get; set; }
+
+        [Range(10, 1000)]
+        [Display(Name="Max Arrows", Description="FIFO cap on arrow draw objects.", Order=7, GroupName="14. Zone Cross Signal")]
+        public int MaxCrossArrows { get; set; }
+
+        [XmlIgnore]
+        [Display(Name="Long Arrow", Order=8, GroupName="14. Zone Cross Signal")]
+        public Brush CrossLongColor { get; set; }
+        [Browsable(false)]
+        public string CrossLongColorSerialize { get { return Serialize.BrushToString(CrossLongColor); } set { CrossLongColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name="Short Arrow", Order=9, GroupName="14. Zone Cross Signal")]
+        public Brush CrossShortColor { get; set; }
+        [Browsable(false)]
+        public string CrossShortColorSerialize { get { return Serialize.BrushToString(CrossShortColor); } set { CrossShortColor = Serialize.StringToBrush(value); } }
+
+        [Display(Name = "Write Level Log", Description = "Append every level created and removed to MirrorV0043SignalLevels.log in the NinjaTrader 8 folder, for diffing against MirrorPtJV0007Signals.log. Diagnostic — leave off in normal use. Capped at 60,000 lines.", Order = 1, GroupName = "13. Diagnostics")]
         public bool DebugLevelLog { get; set; }
 
         #endregion
@@ -888,8 +955,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0041";
-                Description = "Multi-Timeframe Mirror for Patterns A, B, G, H, and F. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
+                Name = "AlightenMirrorV0043Signal";
+                Description = "SIGNAL branch of the Multi-Timeframe Mirror (Patterns A, B, G, H, F, J) - clean copy of V0041, no signal work. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
                 DrawOnPricePanel = true;
@@ -906,12 +973,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				MirrorLookbackBars = 3;
 				EnableInvalidatedCleanup = true;
 
-                // Visibility defaults per the user's saved production template (2026-08-28,
-                // AlightenMirrorV0041_Default.xml): A/G/H/F show Daily/240m/60m only;
+                // Visibility defaults per the user's saved production template (2026-09-15,
+                // AlightenMirrorV0043Signal_Default.xml): A/G/H/F show Daily/240m only;
                 // B and J draw no levels at all (their zones still feed the group engine).
                 ShowPatternATF1_Daily = true;
                 ShowPatternATF2_240m = true;
-                ShowPatternATF3_60m = true;
+                ShowPatternATF3_60m = false;
                 ShowPatternATF4_30m = false;
                 ShowPatternATF5_15m = false;
                 ShowPatternATF6_10m = false;
@@ -925,21 +992,21 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowPatternBTF7_5m = false;
                 ShowPatternGTF1_Daily = true;
                 ShowPatternGTF2_240m = true;
-                ShowPatternGTF3_60m = true;
+                ShowPatternGTF3_60m = false;
                 ShowPatternGTF4_30m = false;
                 ShowPatternGTF5_15m = false;
                 ShowPatternGTF6_10m = false;
                 ShowPatternGTF7_5m = false;
                 ShowPatternHTF1_Daily = true;
                 ShowPatternHTF2_240m = true;
-                ShowPatternHTF3_60m = true;
+                ShowPatternHTF3_60m = false;
                 ShowPatternHTF4_30m = false;
                 ShowPatternHTF5_15m = false;
                 ShowPatternHTF6_10m = false;
                 ShowPatternHTF7_5m = false;
                 ShowPatternFTF1_Daily = true;
                 ShowPatternFTF2_240m = true;
-                ShowPatternFTF3_60m = true;
+                ShowPatternFTF3_60m = false;
                 ShowPatternFTF4_30m = false;
                 ShowPatternFTF5_15m = false;
                 ShowPatternFTF6_10m = false;
@@ -973,7 +1040,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 LabelFontSize = 12;
                 LabelOffsetTicks = 5;
                 SyncThrottleMs = 0;
-                EnableResearchLog = true;
+                EnableResearchLog = false;   // per saved template; enable per-instance for MFE/MAE research capture
                 ResearchTargetTicks = 100;
                 ExportMode = false;
 
@@ -986,7 +1053,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 DailyBiasLevelDash = DashStyleHelper.Solid;
                 ShowDailyBiasLabels = true;
 
-                EnableSignalGroups  = true;
+                EnableSignalGroups  = false;  // per saved template; inside zones only by default
                 GroupsFileName = "MirrorGroupsV0040.txt";
                 GroupShortColor = Brushes.White;
                 GroupLongColor      = Brushes.DeepSkyBlue;
@@ -1007,6 +1074,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                 MergeInsideZones    = false;
                 ShowInsideLabels    = false;
                 MaxInsideZoneDrawings = 500;
+
+                ShowCrossArrows     = true;
+                CrossRequireOpposingZone = false;  // a break with nothing on the far side still counts
+                CrossInsideOnly     = true;
+                CrossBothDirections = true;
+                CrossGraceMins      = 60;
+                CrossMaxSeparation  = 0;      // no limit
+                MaxCrossArrows      = 200;
+                CrossLongColor      = Brushes.Lime;
+                CrossShortColor     = Brushes.Red;
 
                 DebugLevelLog       = false;  // diagnostic only; tick "Write Level Log" to enable
 
@@ -1159,7 +1236,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     try
                     {
                         _lvlLogPath = System.IO.Path.Combine(
-                            NinjaTrader.Core.Globals.UserDataDir, "MirrorV0041Levels.log");
+                            NinjaTrader.Core.Globals.UserDataDir, "MirrorV0043SignalLevels.log");
                         _lvlLogLines = 0;
                         System.IO.File.AppendAllText(_lvlLogPath,
                             "\r\n======== LOAD " + DateTime.Now.ToString("HH:mm:ss") + "  "
@@ -1167,6 +1244,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                     catch { _lvlLogPath = null; }
                 }
+
+                _xLastBar = -1;
+                _xMarks = new Queue<CrossMark>();
 
                 BuildZoneSets();
                 foreach (ZoneSet zs in _zoneSets) LoadGroupRules(zs);
@@ -1194,7 +1274,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                     if (EnablePatternA)
                     {
-                        _srcA[t] = AlightenMirrorPtAV0010(
+                        _srcA[t] = AlightenMirrorPtAV0011(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
@@ -1208,21 +1288,21 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                     if (EnablePatternG)
                     {
-                        _srcG[t] = AlightenMirrorPtGV0002(
+                        _srcG[t] = AlightenMirrorPtGV0003(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternH)
                     {
-                        _srcH[t] = AlightenMirrorPtHV0002(
+                        _srcH[t] = AlightenMirrorPtHV0003(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternF)
                     {
-                        _srcF[t] = AlightenMirrorPtFV0003(
+                        _srcF[t] = AlightenMirrorPtFV0004(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
@@ -1277,7 +1357,18 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 if (ChartControl != null)
                 {
-                    ChartControl.Dispatcher.InvokeAsync(() => { TryRemoveToolbarButton(); });
+                    // InvokeAsync only QUEUES the teardown, and a recompile discards this
+                    // instance before the queue drains - which is how buttons end up stranded
+                    // on the chart window still wired to a dead instance. When we are already
+                    // on the UI thread, run it synchronously so it cannot be skipped. Off the
+                    // UI thread we still queue it: a blocking Invoke there can deadlock against
+                    // a busy UI thread, which is a worse failure than a stale button.
+                    try
+                    {
+                        if (ChartControl.Dispatcher.CheckAccess()) TryRemoveToolbarButton();
+                        else ChartControl.Dispatcher.InvokeAsync(() => { TryRemoveToolbarButton(); });
+                    }
+                    catch { }
                 }
             }
         }
@@ -1452,6 +1543,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         RedrawDailyBiasLevels();
                     }
+
+                    if (IsFirstTickOfBar)
+                        CheckZoneCross();   // after UpdateSignalGroups: reads the live zone map
 
                     DateTime now = Times[0][0];
                     for (int p = 0; p < NUM_PAT; p++)
@@ -1982,7 +2076,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // from a broken one -- that ambiguity cost a debugging session, so both sets report
             // their state to the Output window whether they run or not.
             NinjaTrader.Code.Output.Process(string.Format(
-                "[AlightenMirrorV0041] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
+                "[AlightenMirrorV0043Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
                 _zsPri.Enabled ? "ON" : "OFF", _zsPri.FileName,
                 _zsIns.Enabled ? "ON" : "OFF", _zsIns.FileName), PrintTo.OutputTab1);
         }
@@ -2009,7 +2103,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (!System.IO.File.Exists(path))
                 {
                     System.IO.File.WriteAllText(path,
-                        "# AlightenMirrorV0041 signal groups\r\n" +
+                        "# AlightenMirrorV0043Signal signal groups\r\n" +
                         "# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T\r\n" +
                         "# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)\r\n" +
                         "# Optional extra flag: ; ANCHORED   (others on the highest-TF member's protected side)\r\n" +
@@ -2017,7 +2111,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         "# Example: the triple J short stack within 100 ticks:\r\n" +
                         "J15S, J30S, J60S; 100T\r\n" +
                         "J15L, J30L, J60L; 100T\r\n");
-                    Print("[AlightenMirrorV0041] created groups file with examples: " + path);
+                    Print("[AlightenMirrorV0043Signal] created groups file with examples: " + path);
                 }
 
                 foreach (string raw in System.IO.File.ReadAllLines(path))
@@ -2029,7 +2123,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     string[] segs = line.Split(';');
                     if (segs.Length < 2)
                     {
-                        Print("[AlightenMirrorV0041] groups file: missing '; <ticks>T' in row: " + line);
+                        Print("[AlightenMirrorV0043Signal] groups file: missing '; <ticks>T' in row: " + line);
                         continue;
                     }
 
@@ -2037,7 +2131,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     int maxTicks;
                     if (!int.TryParse(tickPart, out maxTicks) || maxTicks <= 0)
                     {
-                        Print("[AlightenMirrorV0041] groups file: bad tick spread in row: " + line);
+                        Print("[AlightenMirrorV0043Signal] groups file: bad tick spread in row: " + line);
                         continue;
                     }
 
@@ -2051,7 +2145,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         else if (flag == "ORDERED")
                             rule.Ordered = true;
                         else if (flag.Length > 0)
-                            Print("[AlightenMirrorV0041] groups file: unknown flag '" + flag + "' in row: " + line);
+                            Print("[AlightenMirrorV0043Signal] groups file: unknown flag '" + flag + "' in row: " + line);
                     }
 
                     bool ok = true;
@@ -2070,7 +2164,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         if (p < 0 || t < 0 || (dirKey != "L" && dirKey != "S"))
                         {
-                            Print("[AlightenMirrorV0041] groups file: bad signal token '" + tok + "' in row: " + line);
+                            Print("[AlightenMirrorV0043Signal] groups file: bad signal token '" + tok + "' in row: " + line);
                             ok = false;
                             break;
                         }
@@ -2093,16 +2187,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
 
-                Print("[AlightenMirrorV0041] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
+                Print("[AlightenMirrorV0043Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
 
                 zs.LogPath = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir,
-                    "MirrorZonesV0041_" + zs.Name + ".log");
+                    "MirrorZonesV0043Signal_" + zs.Name + ".log");
                 GrpLog(zs, "======== LOAD " + (Instrument != null ? Instrument.FullName : "?")
                     + " rules=" + zs.Rules.Count + " ========");
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0041] groups file error: " + ex.Message);
+                Print("[AlightenMirrorV0043Signal] groups file error: " + ex.Message);
             }
         }
 
@@ -2621,6 +2715,118 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		#endregion
 
+		#region Zone Cross Signal
+
+        // One closed primary bar. Fires when the bar closes THROUGH one zone while an
+        // opposing zone sits on the far side of it:
+        //   LONG  - closes above a SHORT zone that has a LONG zone below it
+        //   SHORT - closes below a LONG zone that has a SHORT zone above it
+        // "Fresh" means the previous close was still on the near side, so a bar that was
+        // already beyond the zone does not re-fire on every bar it stays there.
+        private void CheckZoneCross()
+        {
+            if (!ShowCrossArrows || ExportMode || _zoneSets.Length == 0) return;
+
+            int b = State == State.Historical ? CurrentBars[0] : CurrentBars[0] - 1;
+            if (b <= _xLastBar || b < 2) return;
+            _xLastBar = b;
+
+            int ago = CurrentBars[0] - b;
+            if (ago < 0 || ago + 1 > CurrentBars[0]) return;
+
+            double h = Highs[0][ago], l = Lows[0][ago];
+            double c = Closes[0][ago], pc = Closes[0][ago + 1];
+            DateTime t = Times[0][ago];
+            TimeSpan grace = TimeSpan.FromMinutes(CrossGraceMins);
+            double sep = CrossMaxSeparation > 0 && TickSize > 0 ? CrossMaxSeparation * TickSize : double.MaxValue;
+
+            foreach (ZoneSet zs in _zoneSets)
+            {
+                if (CrossInsideOnly && zs.Name != "INS") continue;
+                foreach (var kv in zs.Active)
+                {
+                    ActiveGroup g = kv.Value;
+                    if (g.IdentifiedTime > t || t > g.EndTime + grace) continue;
+
+                    // LONG: closed up through this SHORT zone, with a LONG zone below it
+                    if (!g.IsLong && c > g.ZoneMax && pc <= g.ZoneMax
+                        && (!CrossRequireOpposingZone || HasOpposingZone(false, g.ZoneMin, sep, t, grace)))
+                    {
+                        DrawCrossArrow(b, t, true, l);
+                        return;
+                    }
+
+                    // SHORT: closed down through this LONG zone, with a SHORT zone above it
+                    if (g.IsLong && CrossBothDirections && c < g.ZoneMin && pc >= g.ZoneMin
+                        && (!CrossRequireOpposingZone || HasOpposingZone(true, g.ZoneMax, sep, t, grace)))
+                    {
+                        DrawCrossArrow(b, t, false, h);
+                        return;
+                    }
+                }
+            }
+        }
+
+        // Is there a zone on the far side of the one just crossed?
+        //   wantAbove=false -> a LONG zone BELOW `edge`  (the long setup)
+        //   wantAbove=true  -> a SHORT zone ABOVE `edge` (the short setup)
+        private bool HasOpposingZone(bool wantAbove, double edge, double sep, DateTime t, TimeSpan grace)
+        {
+            foreach (ZoneSet zs in _zoneSets)
+            {
+                if (CrossInsideOnly && zs.Name != "INS") continue;
+                foreach (var kv in zs.Active)
+                {
+                    ActiveGroup g = kv.Value;
+                    if (g.IdentifiedTime > t || t > g.EndTime + grace) continue;
+
+                    if (!wantAbove)
+                    {
+                        if (!g.IsLong) continue;
+                        if (g.ZoneMax < edge && edge - g.ZoneMax <= sep) return true;
+                    }
+                    else
+                    {
+                        if (g.IsLong) continue;
+                        if (g.ZoneMin > edge && g.ZoneMin - edge <= sep) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private void DrawCrossArrow(int barIdx, DateTime t, bool isLong, double px)
+        {
+            CrossMark m = new CrossMark
+            {
+                Tag = "MirXC_" + barIdx + (isLong ? "L" : "S"),
+                Time = t, Price = px, IsLong = isLong
+            };
+            DrawOneCross(m);
+
+            _xMarks.Enqueue(m);
+            while (_xMarks.Count > MaxCrossArrows)
+                RemoveDrawObject(_xMarks.Dequeue().Tag);
+        }
+
+        private void DrawOneCross(CrossMark m)
+        {
+            if (ExportMode) return;
+            double off = 6 * TickSize;
+            if (m.IsLong) Draw.ArrowUp  (this, m.Tag, false, m.Time, m.Price - off, CrossLongColor);
+            else          Draw.ArrowDown(this, m.Tag, false, m.Time, m.Price + off, CrossShortColor);
+        }
+
+        // Re-issue every signal still held. Called from ForceUISync after RemoveDrawObjects(),
+        // alongside the level and zone redraws.
+        private void RedrawCrossArrows()
+        {
+            if (!ShowCrossArrows || ExportMode || _xMarks == null) return;
+            foreach (CrossMark m in _xMarks) DrawOneCross(m);
+        }
+
+        #endregion
+
 		#region Cleanup Helpers
 
         // PERF: move levels that ended more than MirrorLookbackBars HTF bars ago out of
@@ -2692,12 +2898,50 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 		#region Settings Modal
 
+        // The Click lambdas capture `this`. Held as fields so teardown can unsubscribe them -
+        // otherwise the Button keeps a strong reference to a discarded indicator instance and
+        // the whole object graph (tracked levels, zone sets, hosted sources) leaks with it.
+        private RoutedEventHandler _hSettings, _hExport, _hClean;
+
+        private const string TB_SETTINGS_ID = "AlightenMirrorV0043SignalSettingsBtn";
+        private const string TB_EXPORT_ID   = "AlightenMirrorV0043SignalExportBtn";
+        private const string TB_CLEAN_ID    = "AlightenMirrorV0043SignalCleanBtn";
+
+        // A recompile discards this instance before the Terminated teardown - which is queued
+        // on the chart Dispatcher - ever runs, so the PREVIOUS build's buttons stay parented to
+        // the chart window. They keep the old build's caption, and their Click lambdas still
+        // capture the dead instance, so pressing one runs the old build's code. Sweep any button
+        // carrying one of our automation ids before adding fresh ones.
+        private void RemoveOrphanToolbarButtons()
+        {
+            if (chartWindow == null || chartWindow.MainMenu == null) return;
+            try
+            {
+                string[] ids = { TB_SETTINGS_ID, TB_EXPORT_ID, TB_CLEAN_ID };
+                List<System.Windows.UIElement> doomed = new List<System.Windows.UIElement>();
+                foreach (System.Windows.UIElement el in chartWindow.MainMenu)
+                {
+                    FrameworkElement fe = el as FrameworkElement;
+                    if (fe == null) continue;
+                    string id = AutomationProperties.GetAutomationId(fe);
+                    if (!string.IsNullOrEmpty(id) && ids.Contains(id)) doomed.Add(el);
+                }
+                foreach (System.Windows.UIElement el in doomed) chartWindow.MainMenu.Remove(el);
+                if (doomed.Count > 0)
+                    Print("[AlightenMirrorV0043Signal] cleared " + doomed.Count
+                        + " orphaned toolbar button(s) left by a previous build");
+            }
+            catch (Exception ex) { Print("[AlightenMirrorV0043Signal] orphan sweep: " + ex.Message); }
+        }
+
 		private void CreateToolbarButton()
         {
             try {
                 if (ChartControl == null) return;
                 chartWindow = Window.GetWindow(ChartControl.Parent) as NinjaTrader.Gui.Chart.Chart;
                 if (chartWindow == null || settingsButton != null) return;
+
+                RemoveOrphanToolbarButtons();
 
                 // Button IDs are VERSION-SPECIFIC. Every Mirror from V0034 to V0040 registers
                 // "AlightenMirrorV33SettingsBtn" / "AlightenMirrorV33ExportBtn" -- a hardcoded ID
@@ -2706,33 +2950,45 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // and is skipped when a recompile discards the instance first) gets REUSED, and
                 // the click runs the dead instance's handler. Symptom: "[MirrorV0034] ForceUISync
                 // Error" from a version that is on no chart.
-                settingsButton = IndicatorVisualStyleHelper.CreateSettingsButton("Mirror Settings", "AlightenMirrorV0041SettingsBtn", (s, e) => OpenSettingsWindow());
+                _hSettings = (s, e) => OpenSettingsWindow();
+                settingsButton = IndicatorVisualStyleHelper.CreateSettingsButton("Mirror Settings", TB_SETTINGS_ID, _hSettings);
                 settingsButton.Width = 110;
-                settingsButton.ToolTip = "Configure Mirror V0041 visibility settings";
+                settingsButton.ToolTip = "Configure Mirror V0043Signal visibility settings";
                 chartWindow.MainMenu.Add(settingsButton);
 
-                exportButton = IndicatorVisualStyleHelper.CreateSettingsButton("Export Levels", "AlightenMirrorV0041ExportBtn", (s, e) => ExportLevelsToCsv());
+                _hExport = (s, e) => ExportLevelsToCsv();
+                exportButton = IndicatorVisualStyleHelper.CreateSettingsButton("Export Levels", TB_EXPORT_ID, _hExport);
                 exportButton.Width = 110;
-                exportButton.ToolTip = "Export tracked levels to CSV (V0041)";
+                exportButton.ToolTip = "Export tracked levels to CSV (V0043Signal)";
                 chartWindow.MainMenu.Add(exportButton);
 
                 // V0036: one-click Clean Invalid (same as the modal button). Danger
                 // palette keeps it red through hover/theme repaints.
-                cleanButton = IndicatorVisualStyleHelper.CreateDangerDialogButton("Clean Mirror", (s, e) => { PerformManualRefreshCleanup(); ForceUISync(); });
+                _hClean = (s, e) => { PerformManualRefreshCleanup(); ForceUISync(); };
+                cleanButton = IndicatorVisualStyleHelper.CreateDangerDialogButton("Clean Mirror", _hClean);
+                AutomationProperties.SetAutomationId(cleanButton, TB_CLEAN_ID);
                 cleanButton.Width = 100;
                 cleanButton.Height = 28;
                 cleanButton.Margin = new Thickness(6, 3, 6, 3);
                 cleanButton.ToolTip = "Remove currently-active levels price has crossed, purge failed zones, and rebuild active zones (same as the modal's Clean Invalid)";
                 chartWindow.MainMenu.Add(cleanButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0041] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0043Signal] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
         {
+            // Unsubscribe BEFORE removing: a button that outlives this call (a menu already torn
+            // down, an exception mid-way) must not still be able to invoke a dead instance.
+            try { if (settingsButton != null && _hSettings != null) settingsButton.Click -= _hSettings; } catch { }
+            try { if (exportButton   != null && _hExport   != null) exportButton.Click   -= _hExport;   } catch { }
+            try { if (cleanButton    != null && _hClean    != null) cleanButton.Click    -= _hClean;    } catch { }
+
             try { if (chartWindow != null && settingsButton != null) chartWindow.MainMenu.Remove(settingsButton); } catch { }
             try { if (chartWindow != null && exportButton != null) chartWindow.MainMenu.Remove(exportButton); } catch { }
             try { if (chartWindow != null && cleanButton != null) chartWindow.MainMenu.Remove(cleanButton); } catch { }
             try { if (settingsWindow != null) settingsWindow.Close(); } catch { }
+
+            _hSettings = null; _hExport = null; _hClean = null;
             settingsButton = null; exportButton = null; cleanButton = null; settingsWindow = null; chartWindow = null;
         }
 
@@ -2802,7 +3058,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0041] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0043Signal] Export error: " + ex.Message);
             }
         }
 
@@ -2875,9 +3131,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             sb.AppendLine("  },");
 
-            sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0010\", \"AlightenMirrorPtBV0005\", \"AlightenMirrorPtGV0002\", \"AlightenMirrorPtHV0002\", \"AlightenMirrorPtFV0003\", \"AlightenMirrorPtJV0007\"],");
+            sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0011\", \"AlightenMirrorPtBV0005\", \"AlightenMirrorPtGV0003\", \"AlightenMirrorPtHV0003\", \"AlightenMirrorPtFV0004\", \"AlightenMirrorPtJV0007\"],");
             sb.AppendLine("  \"bar_timestamp\": \"close\",");
-            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0041\"");
+            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0043Signal\"");
             sb.AppendLine("}");
 
             System.IO.File.WriteAllText(metaPath, sb.ToString());
@@ -2927,7 +3183,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0041] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0043Signal] Failed to open settings: {ex.Message}");
 		    }
 		}
 
@@ -3058,6 +3314,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 foreach (ZoneSet zs in _zoneSets) RedrawGroupZones(zs);
 
                 RedrawDailyBiasLevels(); // RemoveDrawObjects() above cleared the level lines too
+                RedrawCrossArrows();     // signals survive a Clean - it cleans levels and zones, not signals
 
                 if (ChartControl != null) ChartControl.InvalidateVisual();
 		    }
@@ -3129,19 +3386,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private AlightenMirrorV0041[] cacheAlightenMirrorV0041;
-		public AlightenMirrorV0041 AlightenMirrorV0041(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		private AlightenMirrorV0043Signal[] cacheAlightenMirrorV0043Signal;
+		public AlightenMirrorV0043Signal AlightenMirrorV0043Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			return AlightenMirrorV0041(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
+			return AlightenMirrorV0043Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
 		}
 
-		public AlightenMirrorV0041 AlightenMirrorV0041(ISeries<double> input, bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		public AlightenMirrorV0043Signal AlightenMirrorV0043Signal(ISeries<double> input, bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			if (cacheAlightenMirrorV0041 != null)
-				for (int idx = 0; idx < cacheAlightenMirrorV0041.Length; idx++)
-					if (cacheAlightenMirrorV0041[idx] != null && cacheAlightenMirrorV0041[idx].EnablePatternA == enablePatternA && cacheAlightenMirrorV0041[idx].EnablePatternB == enablePatternB && cacheAlightenMirrorV0041[idx].EnablePatternG == enablePatternG && cacheAlightenMirrorV0041[idx].EnablePatternH == enablePatternH && cacheAlightenMirrorV0041[idx].EnablePatternF == enablePatternF && cacheAlightenMirrorV0041[idx].EnablePatternJ == enablePatternJ && cacheAlightenMirrorV0041[idx].SrcBarsToProcess == srcBarsToProcess && cacheAlightenMirrorV0041[idx].MirrorLookbackBars == mirrorLookbackBars && cacheAlightenMirrorV0041[idx].EnableInvalidatedCleanup == enableInvalidatedCleanup && cacheAlightenMirrorV0041[idx].ShowPatternATF1_Daily == showPatternATF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternATF2_240m == showPatternATF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternATF3_60m == showPatternATF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternATF4_30m == showPatternATF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternATF5_15m == showPatternATF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternATF6_10m == showPatternATF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternATF7_5m == showPatternATF7_5m && cacheAlightenMirrorV0041[idx].ShowPatternBTF1_Daily == showPatternBTF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternBTF2_240m == showPatternBTF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternBTF3_60m == showPatternBTF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternBTF4_30m == showPatternBTF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternBTF5_15m == showPatternBTF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternBTF6_10m == showPatternBTF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternBTF7_5m == showPatternBTF7_5m && cacheAlightenMirrorV0041[idx].ShowPatternGTF1_Daily == showPatternGTF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternGTF2_240m == showPatternGTF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternGTF3_60m == showPatternGTF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternGTF4_30m == showPatternGTF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternGTF5_15m == showPatternGTF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternGTF6_10m == showPatternGTF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternGTF7_5m == showPatternGTF7_5m && cacheAlightenMirrorV0041[idx].ShowPatternHTF1_Daily == showPatternHTF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternHTF2_240m == showPatternHTF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternHTF3_60m == showPatternHTF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternHTF4_30m == showPatternHTF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternHTF5_15m == showPatternHTF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternHTF6_10m == showPatternHTF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternHTF7_5m == showPatternHTF7_5m && cacheAlightenMirrorV0041[idx].ShowPatternFTF1_Daily == showPatternFTF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternFTF2_240m == showPatternFTF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternFTF3_60m == showPatternFTF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternFTF4_30m == showPatternFTF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternFTF5_15m == showPatternFTF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternFTF6_10m == showPatternFTF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternFTF7_5m == showPatternFTF7_5m && cacheAlightenMirrorV0041[idx].ShowPatternJTF1_Daily == showPatternJTF1_Daily && cacheAlightenMirrorV0041[idx].ShowPatternJTF2_240m == showPatternJTF2_240m && cacheAlightenMirrorV0041[idx].ShowPatternJTF3_60m == showPatternJTF3_60m && cacheAlightenMirrorV0041[idx].ShowPatternJTF4_30m == showPatternJTF4_30m && cacheAlightenMirrorV0041[idx].ShowPatternJTF5_15m == showPatternJTF5_15m && cacheAlightenMirrorV0041[idx].ShowPatternJTF6_10m == showPatternJTF6_10m && cacheAlightenMirrorV0041[idx].ShowPatternJTF7_5m == showPatternJTF7_5m && cacheAlightenMirrorV0041[idx].ColorTF1 == colorTF1 && cacheAlightenMirrorV0041[idx].ColorTF2 == colorTF2 && cacheAlightenMirrorV0041[idx].ColorTF3 == colorTF3 && cacheAlightenMirrorV0041[idx].ColorTF4 == colorTF4 && cacheAlightenMirrorV0041[idx].ColorTF5 == colorTF5 && cacheAlightenMirrorV0041[idx].ColorTF6 == colorTF6 && cacheAlightenMirrorV0041[idx].ColorTF7 == colorTF7 && cacheAlightenMirrorV0041[idx].LevelWidth == levelWidth && cacheAlightenMirrorV0041[idx].LevelDashStyleA == levelDashStyleA && cacheAlightenMirrorV0041[idx].LevelDashStyleB == levelDashStyleB && cacheAlightenMirrorV0041[idx].LevelDashStyleG == levelDashStyleG && cacheAlightenMirrorV0041[idx].LevelDashStyleH == levelDashStyleH && cacheAlightenMirrorV0041[idx].LevelDashStyleF == levelDashStyleF && cacheAlightenMirrorV0041[idx].LevelDashStyleJ == levelDashStyleJ && cacheAlightenMirrorV0041[idx].ShowLevelLabels == showLevelLabels && cacheAlightenMirrorV0041[idx].SyncThrottleMs == syncThrottleMs && cacheAlightenMirrorV0041[idx].EnableResearchLog == enableResearchLog && cacheAlightenMirrorV0041[idx].ResearchTargetTicks == researchTargetTicks && cacheAlightenMirrorV0041[idx].ExportMode == exportMode && cacheAlightenMirrorV0041[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorV0041[idx].LabelOffsetTicks == labelOffsetTicks && cacheAlightenMirrorV0041[idx].EqualsInput(input))
-						return cacheAlightenMirrorV0041[idx];
-			return CacheIndicator<AlightenMirrorV0041>(new AlightenMirrorV0041(){ EnablePatternA = enablePatternA, EnablePatternB = enablePatternB, EnablePatternG = enablePatternG, EnablePatternH = enablePatternH, EnablePatternF = enablePatternF, EnablePatternJ = enablePatternJ, SrcBarsToProcess = srcBarsToProcess, MirrorLookbackBars = mirrorLookbackBars, EnableInvalidatedCleanup = enableInvalidatedCleanup, ShowPatternATF1_Daily = showPatternATF1_Daily, ShowPatternATF2_240m = showPatternATF2_240m, ShowPatternATF3_60m = showPatternATF3_60m, ShowPatternATF4_30m = showPatternATF4_30m, ShowPatternATF5_15m = showPatternATF5_15m, ShowPatternATF6_10m = showPatternATF6_10m, ShowPatternATF7_5m = showPatternATF7_5m, ShowPatternBTF1_Daily = showPatternBTF1_Daily, ShowPatternBTF2_240m = showPatternBTF2_240m, ShowPatternBTF3_60m = showPatternBTF3_60m, ShowPatternBTF4_30m = showPatternBTF4_30m, ShowPatternBTF5_15m = showPatternBTF5_15m, ShowPatternBTF6_10m = showPatternBTF6_10m, ShowPatternBTF7_5m = showPatternBTF7_5m, ShowPatternGTF1_Daily = showPatternGTF1_Daily, ShowPatternGTF2_240m = showPatternGTF2_240m, ShowPatternGTF3_60m = showPatternGTF3_60m, ShowPatternGTF4_30m = showPatternGTF4_30m, ShowPatternGTF5_15m = showPatternGTF5_15m, ShowPatternGTF6_10m = showPatternGTF6_10m, ShowPatternGTF7_5m = showPatternGTF7_5m, ShowPatternHTF1_Daily = showPatternHTF1_Daily, ShowPatternHTF2_240m = showPatternHTF2_240m, ShowPatternHTF3_60m = showPatternHTF3_60m, ShowPatternHTF4_30m = showPatternHTF4_30m, ShowPatternHTF5_15m = showPatternHTF5_15m, ShowPatternHTF6_10m = showPatternHTF6_10m, ShowPatternHTF7_5m = showPatternHTF7_5m, ShowPatternFTF1_Daily = showPatternFTF1_Daily, ShowPatternFTF2_240m = showPatternFTF2_240m, ShowPatternFTF3_60m = showPatternFTF3_60m, ShowPatternFTF4_30m = showPatternFTF4_30m, ShowPatternFTF5_15m = showPatternFTF5_15m, ShowPatternFTF6_10m = showPatternFTF6_10m, ShowPatternFTF7_5m = showPatternFTF7_5m, ShowPatternJTF1_Daily = showPatternJTF1_Daily, ShowPatternJTF2_240m = showPatternJTF2_240m, ShowPatternJTF3_60m = showPatternJTF3_60m, ShowPatternJTF4_30m = showPatternJTF4_30m, ShowPatternJTF5_15m = showPatternJTF5_15m, ShowPatternJTF6_10m = showPatternJTF6_10m, ShowPatternJTF7_5m = showPatternJTF7_5m, ColorTF1 = colorTF1, ColorTF2 = colorTF2, ColorTF3 = colorTF3, ColorTF4 = colorTF4, ColorTF5 = colorTF5, ColorTF6 = colorTF6, ColorTF7 = colorTF7, LevelWidth = levelWidth, LevelDashStyleA = levelDashStyleA, LevelDashStyleB = levelDashStyleB, LevelDashStyleG = levelDashStyleG, LevelDashStyleH = levelDashStyleH, LevelDashStyleF = levelDashStyleF, LevelDashStyleJ = levelDashStyleJ, ShowLevelLabels = showLevelLabels, SyncThrottleMs = syncThrottleMs, EnableResearchLog = enableResearchLog, ResearchTargetTicks = researchTargetTicks, ExportMode = exportMode, LabelFontSize = labelFontSize, LabelOffsetTicks = labelOffsetTicks }, input, ref cacheAlightenMirrorV0041);
+			if (cacheAlightenMirrorV0043Signal != null)
+				for (int idx = 0; idx < cacheAlightenMirrorV0043Signal.Length; idx++)
+					if (cacheAlightenMirrorV0043Signal[idx] != null && cacheAlightenMirrorV0043Signal[idx].EnablePatternA == enablePatternA && cacheAlightenMirrorV0043Signal[idx].EnablePatternB == enablePatternB && cacheAlightenMirrorV0043Signal[idx].EnablePatternG == enablePatternG && cacheAlightenMirrorV0043Signal[idx].EnablePatternH == enablePatternH && cacheAlightenMirrorV0043Signal[idx].EnablePatternF == enablePatternF && cacheAlightenMirrorV0043Signal[idx].EnablePatternJ == enablePatternJ && cacheAlightenMirrorV0043Signal[idx].SrcBarsToProcess == srcBarsToProcess && cacheAlightenMirrorV0043Signal[idx].MirrorLookbackBars == mirrorLookbackBars && cacheAlightenMirrorV0043Signal[idx].EnableInvalidatedCleanup == enableInvalidatedCleanup && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF1_Daily == showPatternATF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF2_240m == showPatternATF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF3_60m == showPatternATF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF4_30m == showPatternATF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF5_15m == showPatternATF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF6_10m == showPatternATF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternATF7_5m == showPatternATF7_5m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF1_Daily == showPatternBTF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF2_240m == showPatternBTF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF3_60m == showPatternBTF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF4_30m == showPatternBTF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF5_15m == showPatternBTF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF6_10m == showPatternBTF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternBTF7_5m == showPatternBTF7_5m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF1_Daily == showPatternGTF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF2_240m == showPatternGTF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF3_60m == showPatternGTF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF4_30m == showPatternGTF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF5_15m == showPatternGTF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF6_10m == showPatternGTF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternGTF7_5m == showPatternGTF7_5m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF1_Daily == showPatternHTF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF2_240m == showPatternHTF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF3_60m == showPatternHTF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF4_30m == showPatternHTF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF5_15m == showPatternHTF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF6_10m == showPatternHTF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternHTF7_5m == showPatternHTF7_5m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF1_Daily == showPatternFTF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF2_240m == showPatternFTF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF3_60m == showPatternFTF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF4_30m == showPatternFTF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF5_15m == showPatternFTF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF6_10m == showPatternFTF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternFTF7_5m == showPatternFTF7_5m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF1_Daily == showPatternJTF1_Daily && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF2_240m == showPatternJTF2_240m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF3_60m == showPatternJTF3_60m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF4_30m == showPatternJTF4_30m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF5_15m == showPatternJTF5_15m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF6_10m == showPatternJTF6_10m && cacheAlightenMirrorV0043Signal[idx].ShowPatternJTF7_5m == showPatternJTF7_5m && cacheAlightenMirrorV0043Signal[idx].ColorTF1 == colorTF1 && cacheAlightenMirrorV0043Signal[idx].ColorTF2 == colorTF2 && cacheAlightenMirrorV0043Signal[idx].ColorTF3 == colorTF3 && cacheAlightenMirrorV0043Signal[idx].ColorTF4 == colorTF4 && cacheAlightenMirrorV0043Signal[idx].ColorTF5 == colorTF5 && cacheAlightenMirrorV0043Signal[idx].ColorTF6 == colorTF6 && cacheAlightenMirrorV0043Signal[idx].ColorTF7 == colorTF7 && cacheAlightenMirrorV0043Signal[idx].LevelWidth == levelWidth && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleA == levelDashStyleA && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleB == levelDashStyleB && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleG == levelDashStyleG && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleH == levelDashStyleH && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleF == levelDashStyleF && cacheAlightenMirrorV0043Signal[idx].LevelDashStyleJ == levelDashStyleJ && cacheAlightenMirrorV0043Signal[idx].ShowLevelLabels == showLevelLabels && cacheAlightenMirrorV0043Signal[idx].SyncThrottleMs == syncThrottleMs && cacheAlightenMirrorV0043Signal[idx].EnableResearchLog == enableResearchLog && cacheAlightenMirrorV0043Signal[idx].ResearchTargetTicks == researchTargetTicks && cacheAlightenMirrorV0043Signal[idx].ExportMode == exportMode && cacheAlightenMirrorV0043Signal[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorV0043Signal[idx].LabelOffsetTicks == labelOffsetTicks && cacheAlightenMirrorV0043Signal[idx].EqualsInput(input))
+						return cacheAlightenMirrorV0043Signal[idx];
+			return CacheIndicator<AlightenMirrorV0043Signal>(new AlightenMirrorV0043Signal(){ EnablePatternA = enablePatternA, EnablePatternB = enablePatternB, EnablePatternG = enablePatternG, EnablePatternH = enablePatternH, EnablePatternF = enablePatternF, EnablePatternJ = enablePatternJ, SrcBarsToProcess = srcBarsToProcess, MirrorLookbackBars = mirrorLookbackBars, EnableInvalidatedCleanup = enableInvalidatedCleanup, ShowPatternATF1_Daily = showPatternATF1_Daily, ShowPatternATF2_240m = showPatternATF2_240m, ShowPatternATF3_60m = showPatternATF3_60m, ShowPatternATF4_30m = showPatternATF4_30m, ShowPatternATF5_15m = showPatternATF5_15m, ShowPatternATF6_10m = showPatternATF6_10m, ShowPatternATF7_5m = showPatternATF7_5m, ShowPatternBTF1_Daily = showPatternBTF1_Daily, ShowPatternBTF2_240m = showPatternBTF2_240m, ShowPatternBTF3_60m = showPatternBTF3_60m, ShowPatternBTF4_30m = showPatternBTF4_30m, ShowPatternBTF5_15m = showPatternBTF5_15m, ShowPatternBTF6_10m = showPatternBTF6_10m, ShowPatternBTF7_5m = showPatternBTF7_5m, ShowPatternGTF1_Daily = showPatternGTF1_Daily, ShowPatternGTF2_240m = showPatternGTF2_240m, ShowPatternGTF3_60m = showPatternGTF3_60m, ShowPatternGTF4_30m = showPatternGTF4_30m, ShowPatternGTF5_15m = showPatternGTF5_15m, ShowPatternGTF6_10m = showPatternGTF6_10m, ShowPatternGTF7_5m = showPatternGTF7_5m, ShowPatternHTF1_Daily = showPatternHTF1_Daily, ShowPatternHTF2_240m = showPatternHTF2_240m, ShowPatternHTF3_60m = showPatternHTF3_60m, ShowPatternHTF4_30m = showPatternHTF4_30m, ShowPatternHTF5_15m = showPatternHTF5_15m, ShowPatternHTF6_10m = showPatternHTF6_10m, ShowPatternHTF7_5m = showPatternHTF7_5m, ShowPatternFTF1_Daily = showPatternFTF1_Daily, ShowPatternFTF2_240m = showPatternFTF2_240m, ShowPatternFTF3_60m = showPatternFTF3_60m, ShowPatternFTF4_30m = showPatternFTF4_30m, ShowPatternFTF5_15m = showPatternFTF5_15m, ShowPatternFTF6_10m = showPatternFTF6_10m, ShowPatternFTF7_5m = showPatternFTF7_5m, ShowPatternJTF1_Daily = showPatternJTF1_Daily, ShowPatternJTF2_240m = showPatternJTF2_240m, ShowPatternJTF3_60m = showPatternJTF3_60m, ShowPatternJTF4_30m = showPatternJTF4_30m, ShowPatternJTF5_15m = showPatternJTF5_15m, ShowPatternJTF6_10m = showPatternJTF6_10m, ShowPatternJTF7_5m = showPatternJTF7_5m, ColorTF1 = colorTF1, ColorTF2 = colorTF2, ColorTF3 = colorTF3, ColorTF4 = colorTF4, ColorTF5 = colorTF5, ColorTF6 = colorTF6, ColorTF7 = colorTF7, LevelWidth = levelWidth, LevelDashStyleA = levelDashStyleA, LevelDashStyleB = levelDashStyleB, LevelDashStyleG = levelDashStyleG, LevelDashStyleH = levelDashStyleH, LevelDashStyleF = levelDashStyleF, LevelDashStyleJ = levelDashStyleJ, ShowLevelLabels = showLevelLabels, SyncThrottleMs = syncThrottleMs, EnableResearchLog = enableResearchLog, ResearchTargetTicks = researchTargetTicks, ExportMode = exportMode, LabelFontSize = labelFontSize, LabelOffsetTicks = labelOffsetTicks }, input, ref cacheAlightenMirrorV0043Signal);
 		}
 	}
 }
@@ -3150,14 +3407,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.AlightenMirrorV0041 AlightenMirrorV0041(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		public Indicators.AlightenMirrorV0043Signal AlightenMirrorV0043Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			return indicator.AlightenMirrorV0041(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
+			return indicator.AlightenMirrorV0043Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
 		}
 
-		public Indicators.AlightenMirrorV0041 AlightenMirrorV0041(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		public Indicators.AlightenMirrorV0043Signal AlightenMirrorV0043Signal(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			return indicator.AlightenMirrorV0041(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
+			return indicator.AlightenMirrorV0043Signal(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
 		}
 	}
 }
@@ -3166,14 +3423,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.AlightenMirrorV0041 AlightenMirrorV0041(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		public Indicators.AlightenMirrorV0043Signal AlightenMirrorV0043Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			return indicator.AlightenMirrorV0041(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
+			return indicator.AlightenMirrorV0043Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
 		}
 
-		public Indicators.AlightenMirrorV0041 AlightenMirrorV0041(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
+		public Indicators.AlightenMirrorV0043Signal AlightenMirrorV0043Signal(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
 		{
-			return indicator.AlightenMirrorV0041(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
+			return indicator.AlightenMirrorV0043Signal(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
 		}
 	}
 }
