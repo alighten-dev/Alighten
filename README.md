@@ -13,8 +13,8 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** [`NinjaTrader/Templates/Chart/Alighten_20260915.xml`](NinjaTrader/Templates/Chart/Alighten_20260915.xml)
-**Built on:** NQ 09-26, 1 Minute, 5 days back (the template stores the period and days-back; the
+**Template:** [`NinjaTrader/Templates/Chart/Alighten_20260916.xml`](NinjaTrader/Templates/Chart/Alighten_20260916.xml)
+**Built on:** NQ 12-26, 1 Minute, 5 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
 ![The reference chart: NQ 09-26, 1-minute, with the Mirror dashboard, session volume profile and VWAP.](docs/reference-chart.jpg)
@@ -70,7 +70,7 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 
 | Indicator | Role on the chart |
 |---|---|
-| [`AlightenMirrorV0043Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0043Signal.cs) | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
+| [`AlightenMirrorV0044Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs) | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
 | [`BnBTraderVPVWAPV0001.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs) | Volume profile (POC/VAH/VAL), naked POCs, prior-day H/L, session VWAP + SD bands |
 | [`AlightenBiasV0003.cs`](NinjaTrader/Indicators/AlightenBiasV0003.cs) | FTG/FTL structural bias |
 | [`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | Speed of tape, net speed of tape, trapped traders, stacked imbalance traps |
@@ -123,7 +123,7 @@ For the rule-file syntax and the silent-stub gotcha, see
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply [`Alighten_20260915.xml`](NinjaTrader/Templates/Chart/Alighten_20260915.xml) via
+4. Apply [`Alighten_20260916.xml`](NinjaTrader/Templates/Chart/Alighten_20260916.xml) via
    Chart → Templates → Load.
 
 ---
@@ -160,7 +160,7 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | [`AlightenMirrorV0043Signal`](NinjaTrader/Indicators/AlightenMirrorV0043Signal.cs) | same |
+| Mirror Dashboard | [`AlightenMirrorV0044Signal`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs) | same |
 | Pattern A source | [`AlightenMirrorPtAV0011`](NinjaTrader/Indicators/AlightenMirrorPtAV0011.cs) | same |
 | Pattern B source | [`AlightenMirrorPtBV0005`](NinjaTrader/Indicators/AlightenMirrorPtBV0005.cs) | same |
 | Pattern F source | [`AlightenMirrorPtFV0004`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs) | same |
@@ -181,6 +181,16 @@ promoted or retired.
 **One row still disagrees with the chart.** The reference chart runs the older [`AlightenBarTimerV3`](NinjaTrader/Indicators/AlightenBarTimerV3.cs)
 rather than [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs). Both are committed here so the template loads, but decide which
 is genuinely production and reconcile this table rather than letting the chart and the table drift.
+
+**Retired 2026-09-16.** `AlightenMirrorV0043Signal` was removed from this repo, superseded by
+[`AlightenMirrorV0044Signal`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs), which fixes the
+daily-bias pivot port. `ProcessDailyBiasBar` fired only four of `AlightenBiasV0003`'s six two-bar
+pivot conditions, so an outside day (higher high **and** lower low) recorded one pivot where the Bias
+records two. Pivots alternate high/low, so a dropped pivot also shifted every later same-side
+replacement: 284 vs 220 pivots over 775 ETH daily bars, with the visible N-level set differing on
+73.5% of days. The symptom was a *newer* daily level missing while an older one still drew. The two
+added conditions are `prevRed && currGreen && isHigh` and `prevGreen && currRed && isLow`. Verified
+2026-09-16 against the Bias on a daily chart. The daily-bias `Number Of Levels (N)` default is now 7.
 
 **Retired 2026-09-15.** `AlightenMirrorV0041`, `AlightenMirrorV0041Signal`, `AlightenMirrorPtAV0010`,
 `AlightenMirrorPtFV0003`, `AlightenMirrorPtGV0002` and `AlightenMirrorPtHV0002` were removed from

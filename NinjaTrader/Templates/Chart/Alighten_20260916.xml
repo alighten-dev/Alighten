@@ -54,7 +54,7 @@
           <PositionPenWinnerSerialize>DEFAULT</PositionPenWinnerSerialize>
           <ShortExecutionBrushSerialize>DEFAULT</ShortExecutionBrushSerialize>
           <BarsSeriesId>1f0bc0f153e64c64b2830c28816765df</BarsSeriesId>
-          <Id>f3ed8da3ee0c44ac9da7d9dffc60185f</Id>
+          <Id>04b7b6ebca4f4ebfafc20fefe66861cb</Id>
           <Instrument>NQ 12-26</Instrument>
           <IsLinked>true</IsLinked>
           <IsPrimarySeries>true</IsPrimarySeries>
@@ -67,7 +67,7 @@
             <CandleStyle>
               <CandleStyle xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                 <IsVisible>true</IsVisible>
-                <BarWidth>2.0683143719440769</BarWidth>
+                <BarWidth>1.5242883557589575</BarWidth>
                 <ChartStyleTypeSerialize>1</ChartStyleTypeSerialize>
                 <DownBrushSerialize>DEFAULT</DownBrushSerialize>
                 <UpBrushSerialize>DEFAULT</UpBrushSerialize>
@@ -105,7 +105,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -114,7 +114,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -125,7 +125,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>34</IndicatorId>
+          <IndicatorId>7127</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>-1.7976931348623157E+308</MaxSerialized>
           <MinSerialized>1.7976931348623157E+308</MinSerialized>
@@ -173,7 +173,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -182,7 +182,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -193,7 +193,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>37</IndicatorId>
+          <IndicatorId>7128</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -243,7 +243,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -252,7 +252,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -263,10 +263,10 @@
           <DrawVerticalGridLines>false</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>40</IndicatorId>
+          <IndicatorId>7129</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>-1.7976931348623157E+308</MaxSerialized>
-          <MinSerialized>1.7976931348623157E+308</MinSerialized>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
           <ZOrder>0</ZOrder>
           <IntervalMinutes>30</IntervalMinutes>
           <UseSessionOpenAsAnchor>true</UseSessionOpenAsAnchor>
@@ -307,7 +307,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>Infinite</MaximumBarsLookBack>
@@ -330,7 +330,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -341,7 +341,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>43</IndicatorId>
+          <IndicatorId>7130</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -391,7 +391,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -440,7 +440,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -451,7 +451,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>false</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>51</IndicatorId>
+          <IndicatorId>7131</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -485,7 +485,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -534,7 +534,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -545,7 +545,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>94</IndicatorId>
+          <IndicatorId>7132</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -628,7 +628,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -742,7 +742,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -753,7 +753,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>97</IndicatorId>
+          <IndicatorId>7133</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -826,7 +826,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -835,7 +835,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -846,7 +846,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>100</IndicatorId>
+          <IndicatorId>7134</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -880,7 +880,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1046,7 +1046,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1057,7 +1057,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>103</IndicatorId>
+          <IndicatorId>7135</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -1100,7 +1100,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1109,7 +1109,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1120,7 +1120,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>106</IndicatorId>
+          <IndicatorId>7136</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -1130,8 +1130,8 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0043Signal" Panel="-1" DisplayName="AlightenMirrorV0043Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,False,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,False,False,False,False,False,False,False,500,0)">
-        <AlightenMirrorV0043Signal xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0044Signal" Panel="-1" DisplayName="AlightenMirrorV0044Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,False,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,False,False,False,False,False,False,False,500,0)">
+        <AlightenMirrorV0044Signal xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnEachTick</calculate2>
           <AreLinesConfigurable>true</AreLinesConfigurable>
@@ -1151,7 +1151,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-10T00:00:00</From>
+          <From>2026-09-11T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1707,7 +1707,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-15T00:00:00</To>
+          <To>2026-09-16T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1718,7 +1718,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>10354</IndicatorId>
+          <IndicatorId>7757</IndicatorId>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
           <ZOrder>30076</ZOrder>
@@ -1793,7 +1793,7 @@
           <ResearchTargetTicks>100</ResearchTargetTicks>
           <ExportMode>false</ExportMode>
           <EnableDailyBiasLevels>true</EnableDailyBiasLevels>
-          <DailyBiasLevelCount>4</DailyBiasLevelCount>
+          <DailyBiasLevelCount>7</DailyBiasLevelCount>
           <DailyBiasRelevanceDays>300</DailyBiasRelevanceDays>
           <DailyBiasAboveColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDAA520&lt;/SolidColorBrush&gt;</DailyBiasAboveColorSerialize>
           <DailyBiasBelowColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00BFFF&lt;/SolidColorBrush&gt;</DailyBiasBelowColorSerialize>
@@ -1832,7 +1832,7 @@
           <CrossLongColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</CrossLongColorSerialize>
           <CrossShortColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</CrossShortColorSerialize>
           <DebugLevelLog>false</DebugLevelLog>
-        </AlightenMirrorV0043Signal>
+        </AlightenMirrorV0044Signal>
         <Input>
           <PriceType>Close</PriceType>
         </Input>
@@ -1860,7 +1860,7 @@
           <Size>11</Size>
         </LabelFont>
         <DataSeriesWatermark>@INSTRUMENT_FULL_ALL</DataSeriesWatermark>
-        <BarDistance>6.828117</BarDistance>
+        <BarDistance>5.032121</BarDistance>
         <BarMarginRightUser>8</BarMarginRightUser>
         <ChartTimeFormat>TwentyfourHour</ChartTimeFormat>
         <ChartTraderVisibility>Visible</ChartTraderVisibility>
@@ -1979,7 +1979,7 @@
     </Properties>
     <ChartPanels>
       <ChartPanel>
-        <Height>978.666666666667</Height>
+        <Height>977.333333333333</Height>
         <HoldChartTraderOrders>false</HoldChartTraderOrders>
         <IsMaximized>false</IsMaximized>
         <Right>
@@ -1993,8 +1993,8 @@
             <AutoScaleMarginLower>6</AutoScaleMarginLower>
             <AutoScaleMarginUpper>6</AutoScaleMarginUpper>
             <YAxisScalingType>Linear</YAxisScalingType>
-            <FixedScaleMaxSerialize>29379</FixedScaleMaxSerialize>
-            <FixedScaleMinSerialize>29107.25</FixedScaleMinSerialize>
+            <FixedScaleMaxSerialize>29549.75</FixedScaleMaxSerialize>
+            <FixedScaleMinSerialize>29083.25</FixedScaleMinSerialize>
             <IsInverted>false</IsInverted>
           </ChartScaleProperties>
         </Right>
@@ -2093,7 +2093,7 @@
 &lt;/Pen&gt;</StopMarketSerialize>
       </ChartTraderProperties>
     </Properties>
-    <Account>Playback101</Account>
+    <Account>SimChallenge2</Account>
     <ATM>1C 200x100</ATM>
     <Instrument>NQ 12-26</Instrument>
     <Quantity>1</Quantity>
