@@ -60,6 +60,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private class BarMark { public int signal, plus, bigPlus, profit; public bool skullUp, skullDown, retestUp, retestDown; }
         private BarMark MarkFor(int bar) { return markers.GetOrAdd(bar, b => new BarMark()); }
 
+
         protected override void OnStateChange()
         {
             if (State == State.SetDefaults)
@@ -76,11 +77,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                 CloudType = "Simple";
                 CandleColoring = "Waddah";
                 Theme = "Standard";
+                ShowStrongBuy = true;
+                ShowBasicBuy = true;
+                ShowStrongSell = true;
+                ShowBasicSell = true;
                 ShowHEMA = false;
                 ShowPlus = true;
                 ShowBigPlus = true;
                 EnhanceStrongSignals = true;
-                ShowProfit = true;
+                ShowFullProfit = true;
+                ShowPartialProfit = true;
                 Show921 = false;
                 IgnoreDoji = false;
                 ProfitThreshold = 5;
@@ -93,6 +99,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowRetests = false;
                 ShowDashboard = false;
                 DashboardPosition = "Top Right";
+                SignalIconSize = 13;
                 UseQuadratic921 = false;
                 SimpleCloudOpacity = 80;
                 LowCloudOpacity = 80;
@@ -216,7 +223,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             varMaSeries[0] = CurrentBar == 210 ? Close[0] : ((2 - c) * varMaSeries[1] + c * Close[0]) / 2.0;
             fanSeries[0] = SimpleAverage(varMaSeries, FantailMaLength);
             mgSeries[0] = CurrentBar == 210 || mgSeries[1] == 0 ? EMAValue(Close, 14, 0) : mgSeries[1] + (Close[0] - mgSeries[1]) / (14.0 * Math.Pow(Math.Max(0.000001, Close[0] / mgSeries[1]), 4));
-
             // HEMA
             double alpha = 2.0 / (AlphaLength + 1.0), gamma = 2.0 / (GammaLength + 1.0);
             hemaSeries[0] = CurrentBar == 210 ? Close[0] : (1 - alpha) * (hemaSeries[1] + bHSeries[1]) + alpha * Close[0];
@@ -361,16 +367,18 @@ namespace NinjaTrader.NinjaScript.Indicators
             bool basicBuy = !bigBuy && buyChar;
             bool basicSell = !bigSell && sellChar;
 
-            if (basicBuy || strongBuy) { Values[0][0] = strongBuy ? 2 : 1; MarkFor(CurrentBar).signal = strongBuy ? 2 : 1; FireAlert(strongBuy ? "Buy Signal Super" : "Buy Signal Basic", true); }
-            if (basicSell || strongSell) { Values[0][0] = strongSell ? -2 : -1; MarkFor(CurrentBar).signal = strongSell ? -2 : -1; FireAlert(strongSell ? "Sell Signal Super" : "Sell Signal Basic", false); }
+            if (strongBuy && ShowStrongBuy) { Values[0][0] = 2; MarkFor(CurrentBar).signal = 2; FireAlert("Buy Signal Super", true); }
+            if (basicBuy && ShowBasicBuy)   { Values[0][0] = 1; MarkFor(CurrentBar).signal = 1; FireAlert("Buy Signal Basic", true); }
+            if (strongSell && ShowStrongSell) { Values[0][0] = -2; MarkFor(CurrentBar).signal = -2; FireAlert("Sell Signal Super", false); }
+            if (basicSell && ShowBasicSell)   { Values[0][0] = -1; MarkFor(CurrentBar).signal = -1; FireAlert("Sell Signal Basic", false); }
 
             if (ShowPlus && gapGreen && prevWave == UpTrend) { Values[1][0] = 1; MarkFor(CurrentBar).plus = 1; }
             if (ShowPlus && gapRed && prevWave == DownTrend) { Values[1][0] = -1; MarkFor(CurrentBar).plus = -1; }
             if (ShowBigPlus && pBuyVodka && prevWave == UpTrend) { Values[1][0] = 2; MarkFor(CurrentBar).bigPlus = 1; }
             if (ShowBigPlus && pSellVodka && prevWave == DownTrend) { Values[1][0] = -2; MarkFor(CurrentBar).bigPlus = -1; }
 
-            if (ShowProfit && tpCount >= MaxProfitThreshold) { Values[2][0] = wave == UpTrend ? 1 : -1; MarkFor(CurrentBar).profit = wave == UpTrend ? 1 : -1; }
-            else if (ShowProfit && tpCount >= ProfitThreshold) { Values[2][0] = wave == UpTrend ? 2 : -2; MarkFor(CurrentBar).profit = wave == UpTrend ? 2 : -2; }
+            if (tpCount >= MaxProfitThreshold) { if (ShowFullProfit) { Values[2][0] = wave == UpTrend ? 1 : -1; MarkFor(CurrentBar).profit = wave == UpTrend ? 1 : -1; } }
+            else if (tpCount >= ProfitThreshold) { if (ShowPartialProfit) { Values[2][0] = wave == UpTrend ? 2 : -2; MarkFor(CurrentBar).profit = wave == UpTrend ? 2 : -2; } }
 
             // EMA / rational quadratic cross
             double kernel = (Show921 && UseQuadratic921) ? RationalQuadratic() : ema21[0];
@@ -591,7 +599,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             SharpDX.Direct2D1.SolidColorBrush bear  = DxSolid(bearBrush);
             SharpDX.Direct2D1.SolidColorBrush part  = DxSolid(partialProfitBrush);
             SharpDX.Direct2D1.SolidColorBrush skull = DxSolid(skullBrush);
-            SharpDX.DirectWrite.TextFormat gf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", 13f);
+            SharpDX.DirectWrite.TextFormat gf = new SharpDX.DirectWrite.TextFormat(NinjaTrader.Core.Globals.DirectWriteFactory, "Arial", (float)SignalIconSize);
             gf.TextAlignment = SharpDX.DirectWrite.TextAlignment.Center;
             gf.ParagraphAlignment = SharpDX.DirectWrite.ParagraphAlignment.Center;
             gf.WordWrapping = SharpDX.DirectWrite.WordWrapping.NoWrap;
@@ -635,7 +643,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void DrawGlyph(string g, float cx, float cy, SharpDX.Direct2D1.Brush b, SharpDX.DirectWrite.TextFormat f)
         {
-            RenderTarget.DrawText(g, f, new SharpDX.RectangleF(cx - 12f, cy - 10f, 24f, 20f), b);
+            float s = f.FontSize;
+            RenderTarget.DrawText(g, f, new SharpDX.RectangleF(cx - s, cy - s, 2f * s, 2f * s), b);
         }
 
         private void RenderDashboard(ChartControl chartControl, ChartScale chartScale)
@@ -729,17 +738,27 @@ namespace NinjaTrader.NinjaScript.Indicators
         public string CandleColoring { get; set; }
         [NinjaScriptProperty][TypeConverter(typeof(NebulaThemeConverter))][Display(Name="Theme",Order=3,GroupName="Visible Settings")]
         public string Theme { get; set; }
+        [NinjaScriptProperty][Display(Name="Show Strong Buy (➊)",Order=1,GroupName="Signals")]
+        public bool ShowStrongBuy { get; set; }
+        [NinjaScriptProperty][Display(Name="Show Basic Buy (①)",Order=2,GroupName="Signals")]
+        public bool ShowBasicBuy { get; set; }
+        [NinjaScriptProperty][Display(Name="Show Strong Sell (➊)",Order=3,GroupName="Signals")]
+        public bool ShowStrongSell { get; set; }
+        [NinjaScriptProperty][Display(Name="Show Basic Sell (①)",Order=4,GroupName="Signals")]
+        public bool ShowBasicSell { get; set; }
         [NinjaScriptProperty][Display(Name="Show HEMA",Order=4,GroupName="Visible Settings")]
         public bool ShowHEMA { get; set; }
-        [NinjaScriptProperty][Display(Name="Show +",Order=5,GroupName="Visible Settings")]
+        [NinjaScriptProperty][Display(Name="Show +",Order=5,GroupName="Signals")]
         public bool ShowPlus { get; set; }
-        [NinjaScriptProperty][Display(Name="Show Big +",Order=6,GroupName="Visible Settings")]
+        [NinjaScriptProperty][Display(Name="Show Big +",Order=6,GroupName="Signals")]
         public bool ShowBigPlus { get; set; }
         [NinjaScriptProperty][Display(Name="Enhance Strong Signals",Order=7,GroupName="Visible Settings")]
         public bool EnhanceStrongSignals { get; set; }
-        [NinjaScriptProperty][Display(Name="Show Profit",Order=8,GroupName="Visible Settings")]
-        public bool ShowProfit { get; set; }
-        [NinjaScriptProperty][Display(Name="Show 9/21",Order=9,GroupName="Visible Settings")]
+        [NinjaScriptProperty][Display(Name="Show Full Profit (✔)",Order=7,GroupName="Signals")]
+        public bool ShowFullProfit { get; set; }
+        [NinjaScriptProperty][Display(Name="Show Partial Profit (✓)",Order=8,GroupName="Signals")]
+        public bool ShowPartialProfit { get; set; }
+        [NinjaScriptProperty][Display(Name="Show 9/21 Skull",Order=9,GroupName="Signals")]
         public bool Show921 { get; set; }
 
         [NinjaScriptProperty][Display(Name="Ignore Doji",Order=1,GroupName="Basic Settings")]
@@ -758,14 +777,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         [NinjaScriptProperty][Range(1,10)][Display(Name="Line Width",Order=4,GroupName="Tidal Wave")]
         public int ImbalanceLineWidth { get; set; }
 
-        [NinjaScriptProperty][Display(Name="Show Reversal Pattern",Order=1,GroupName="Advanced")]
+        [NinjaScriptProperty][Display(Name="Show Reversal Bar",Order=10,GroupName="Signals")]
         public bool ShowReversalPattern { get; set; }
-        [NinjaScriptProperty][Display(Name="Show Retests",Order=2,GroupName="Advanced")]
+        [NinjaScriptProperty][Display(Name="Show Retests",Order=11,GroupName="Signals")]
         public bool ShowRetests { get; set; }
         [NinjaScriptProperty][Display(Name="Show Dashboard (signal legend)",Order=20,GroupName="Advanced")]
         public bool ShowDashboard { get; set; }
         [NinjaScriptProperty][TypeConverter(typeof(NebulaDashPositionConverter))][Display(Name="Dashboard Position",Order=21,GroupName="Advanced")]
         public string DashboardPosition { get; set; }
+        [NinjaScriptProperty][Range(6,40)][Display(Name="Signal Icon Size",Order=22,GroupName="Advanced")]
+        public int SignalIconSize { get; set; }
         [NinjaScriptProperty][Display(Name="Use Quadratic 9/21",Order=3,GroupName="Advanced")]
         public bool UseQuadratic921 { get; set; }
         [NinjaScriptProperty][Range(0,100)][Display(Name="Cloud Opacity",Order=4,GroupName="Advanced")]
@@ -894,3 +915,60 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
     }
 }
+
+#region NinjaScript generated code. Neither change nor remove.
+
+namespace NinjaTrader.NinjaScript.Indicators
+{
+	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
+	{
+		private NebulaNT8NoCloud[] cacheNebulaNT8NoCloud;
+		public NebulaNT8NoCloud NebulaNT8NoCloud(string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			return NebulaNT8NoCloud(Input, cloudType, candleColoring, theme, showStrongBuy, showBasicBuy, showStrongSell, showBasicSell, showHEMA, showPlus, showBigPlus, enhanceStrongSignals, showFullProfit, showPartialProfit, show921, ignoreDoji, profitThreshold, maxProfitThreshold, maxDojiTicks, showVolumeImbalanceLines, imbalanceLineBars, imbalanceLineWidth, showReversalPattern, showRetests, showDashboard, dashboardPosition, signalIconSize, useQuadratic921, simpleCloudOpacity, lowCloudOpacity, highCloudOpacity, adxLength, diLength, fantailAdxLength, fantailWeighting, fantailMaLength, waeSensitivity, waeFastLength, waeSlowLength, waeChannelLength, waeMultiplier, trampolineBbThreshold, trampolineRsiLower, trampolineRsiUpper, squeezeTolerance, squeezeAdxThreshold, watchSignalLookback, alphaLength, gammaLength, kernelLookback, kernelRelativeWeight, kernelStartBar, enableAlerts);
+		}
+
+		public NebulaNT8NoCloud NebulaNT8NoCloud(ISeries<double> input, string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			if (cacheNebulaNT8NoCloud != null)
+				for (int idx = 0; idx < cacheNebulaNT8NoCloud.Length; idx++)
+					if (cacheNebulaNT8NoCloud[idx] != null && cacheNebulaNT8NoCloud[idx].CloudType == cloudType && cacheNebulaNT8NoCloud[idx].CandleColoring == candleColoring && cacheNebulaNT8NoCloud[idx].Theme == theme && cacheNebulaNT8NoCloud[idx].ShowStrongBuy == showStrongBuy && cacheNebulaNT8NoCloud[idx].ShowBasicBuy == showBasicBuy && cacheNebulaNT8NoCloud[idx].ShowStrongSell == showStrongSell && cacheNebulaNT8NoCloud[idx].ShowBasicSell == showBasicSell && cacheNebulaNT8NoCloud[idx].ShowHEMA == showHEMA && cacheNebulaNT8NoCloud[idx].ShowPlus == showPlus && cacheNebulaNT8NoCloud[idx].ShowBigPlus == showBigPlus && cacheNebulaNT8NoCloud[idx].EnhanceStrongSignals == enhanceStrongSignals && cacheNebulaNT8NoCloud[idx].ShowFullProfit == showFullProfit && cacheNebulaNT8NoCloud[idx].ShowPartialProfit == showPartialProfit && cacheNebulaNT8NoCloud[idx].Show921 == show921 && cacheNebulaNT8NoCloud[idx].IgnoreDoji == ignoreDoji && cacheNebulaNT8NoCloud[idx].ProfitThreshold == profitThreshold && cacheNebulaNT8NoCloud[idx].MaxProfitThreshold == maxProfitThreshold && cacheNebulaNT8NoCloud[idx].MaxDojiTicks == maxDojiTicks && cacheNebulaNT8NoCloud[idx].ShowVolumeImbalanceLines == showVolumeImbalanceLines && cacheNebulaNT8NoCloud[idx].ImbalanceLineBars == imbalanceLineBars && cacheNebulaNT8NoCloud[idx].ImbalanceLineWidth == imbalanceLineWidth && cacheNebulaNT8NoCloud[idx].ShowReversalPattern == showReversalPattern && cacheNebulaNT8NoCloud[idx].ShowRetests == showRetests && cacheNebulaNT8NoCloud[idx].ShowDashboard == showDashboard && cacheNebulaNT8NoCloud[idx].DashboardPosition == dashboardPosition && cacheNebulaNT8NoCloud[idx].SignalIconSize == signalIconSize && cacheNebulaNT8NoCloud[idx].UseQuadratic921 == useQuadratic921 && cacheNebulaNT8NoCloud[idx].SimpleCloudOpacity == simpleCloudOpacity && cacheNebulaNT8NoCloud[idx].LowCloudOpacity == lowCloudOpacity && cacheNebulaNT8NoCloud[idx].HighCloudOpacity == highCloudOpacity && cacheNebulaNT8NoCloud[idx].AdxLength == adxLength && cacheNebulaNT8NoCloud[idx].DiLength == diLength && cacheNebulaNT8NoCloud[idx].FantailAdxLength == fantailAdxLength && cacheNebulaNT8NoCloud[idx].FantailWeighting == fantailWeighting && cacheNebulaNT8NoCloud[idx].FantailMaLength == fantailMaLength && cacheNebulaNT8NoCloud[idx].WaeSensitivity == waeSensitivity && cacheNebulaNT8NoCloud[idx].WaeFastLength == waeFastLength && cacheNebulaNT8NoCloud[idx].WaeSlowLength == waeSlowLength && cacheNebulaNT8NoCloud[idx].WaeChannelLength == waeChannelLength && cacheNebulaNT8NoCloud[idx].WaeMultiplier == waeMultiplier && cacheNebulaNT8NoCloud[idx].TrampolineBbThreshold == trampolineBbThreshold && cacheNebulaNT8NoCloud[idx].TrampolineRsiLower == trampolineRsiLower && cacheNebulaNT8NoCloud[idx].TrampolineRsiUpper == trampolineRsiUpper && cacheNebulaNT8NoCloud[idx].SqueezeTolerance == squeezeTolerance && cacheNebulaNT8NoCloud[idx].SqueezeAdxThreshold == squeezeAdxThreshold && cacheNebulaNT8NoCloud[idx].WatchSignalLookback == watchSignalLookback && cacheNebulaNT8NoCloud[idx].AlphaLength == alphaLength && cacheNebulaNT8NoCloud[idx].GammaLength == gammaLength && cacheNebulaNT8NoCloud[idx].KernelLookback == kernelLookback && cacheNebulaNT8NoCloud[idx].KernelRelativeWeight == kernelRelativeWeight && cacheNebulaNT8NoCloud[idx].KernelStartBar == kernelStartBar && cacheNebulaNT8NoCloud[idx].EnableAlerts == enableAlerts && cacheNebulaNT8NoCloud[idx].EqualsInput(input))
+						return cacheNebulaNT8NoCloud[idx];
+			return CacheIndicator<NebulaNT8NoCloud>(new NebulaNT8NoCloud(){ CloudType = cloudType, CandleColoring = candleColoring, Theme = theme, ShowStrongBuy = showStrongBuy, ShowBasicBuy = showBasicBuy, ShowStrongSell = showStrongSell, ShowBasicSell = showBasicSell, ShowHEMA = showHEMA, ShowPlus = showPlus, ShowBigPlus = showBigPlus, EnhanceStrongSignals = enhanceStrongSignals, ShowFullProfit = showFullProfit, ShowPartialProfit = showPartialProfit, Show921 = show921, IgnoreDoji = ignoreDoji, ProfitThreshold = profitThreshold, MaxProfitThreshold = maxProfitThreshold, MaxDojiTicks = maxDojiTicks, ShowVolumeImbalanceLines = showVolumeImbalanceLines, ImbalanceLineBars = imbalanceLineBars, ImbalanceLineWidth = imbalanceLineWidth, ShowReversalPattern = showReversalPattern, ShowRetests = showRetests, ShowDashboard = showDashboard, DashboardPosition = dashboardPosition, SignalIconSize = signalIconSize, UseQuadratic921 = useQuadratic921, SimpleCloudOpacity = simpleCloudOpacity, LowCloudOpacity = lowCloudOpacity, HighCloudOpacity = highCloudOpacity, AdxLength = adxLength, DiLength = diLength, FantailAdxLength = fantailAdxLength, FantailWeighting = fantailWeighting, FantailMaLength = fantailMaLength, WaeSensitivity = waeSensitivity, WaeFastLength = waeFastLength, WaeSlowLength = waeSlowLength, WaeChannelLength = waeChannelLength, WaeMultiplier = waeMultiplier, TrampolineBbThreshold = trampolineBbThreshold, TrampolineRsiLower = trampolineRsiLower, TrampolineRsiUpper = trampolineRsiUpper, SqueezeTolerance = squeezeTolerance, SqueezeAdxThreshold = squeezeAdxThreshold, WatchSignalLookback = watchSignalLookback, AlphaLength = alphaLength, GammaLength = gammaLength, KernelLookback = kernelLookback, KernelRelativeWeight = kernelRelativeWeight, KernelStartBar = kernelStartBar, EnableAlerts = enableAlerts }, input, ref cacheNebulaNT8NoCloud);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
+{
+	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
+	{
+		public Indicators.NebulaNT8NoCloud NebulaNT8NoCloud(string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			return indicator.NebulaNT8NoCloud(Input, cloudType, candleColoring, theme, showStrongBuy, showBasicBuy, showStrongSell, showBasicSell, showHEMA, showPlus, showBigPlus, enhanceStrongSignals, showFullProfit, showPartialProfit, show921, ignoreDoji, profitThreshold, maxProfitThreshold, maxDojiTicks, showVolumeImbalanceLines, imbalanceLineBars, imbalanceLineWidth, showReversalPattern, showRetests, showDashboard, dashboardPosition, signalIconSize, useQuadratic921, simpleCloudOpacity, lowCloudOpacity, highCloudOpacity, adxLength, diLength, fantailAdxLength, fantailWeighting, fantailMaLength, waeSensitivity, waeFastLength, waeSlowLength, waeChannelLength, waeMultiplier, trampolineBbThreshold, trampolineRsiLower, trampolineRsiUpper, squeezeTolerance, squeezeAdxThreshold, watchSignalLookback, alphaLength, gammaLength, kernelLookback, kernelRelativeWeight, kernelStartBar, enableAlerts);
+		}
+
+		public Indicators.NebulaNT8NoCloud NebulaNT8NoCloud(ISeries<double> input , string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			return indicator.NebulaNT8NoCloud(input, cloudType, candleColoring, theme, showStrongBuy, showBasicBuy, showStrongSell, showBasicSell, showHEMA, showPlus, showBigPlus, enhanceStrongSignals, showFullProfit, showPartialProfit, show921, ignoreDoji, profitThreshold, maxProfitThreshold, maxDojiTicks, showVolumeImbalanceLines, imbalanceLineBars, imbalanceLineWidth, showReversalPattern, showRetests, showDashboard, dashboardPosition, signalIconSize, useQuadratic921, simpleCloudOpacity, lowCloudOpacity, highCloudOpacity, adxLength, diLength, fantailAdxLength, fantailWeighting, fantailMaLength, waeSensitivity, waeFastLength, waeSlowLength, waeChannelLength, waeMultiplier, trampolineBbThreshold, trampolineRsiLower, trampolineRsiUpper, squeezeTolerance, squeezeAdxThreshold, watchSignalLookback, alphaLength, gammaLength, kernelLookback, kernelRelativeWeight, kernelStartBar, enableAlerts);
+		}
+	}
+}
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
+	{
+		public Indicators.NebulaNT8NoCloud NebulaNT8NoCloud(string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			return indicator.NebulaNT8NoCloud(Input, cloudType, candleColoring, theme, showStrongBuy, showBasicBuy, showStrongSell, showBasicSell, showHEMA, showPlus, showBigPlus, enhanceStrongSignals, showFullProfit, showPartialProfit, show921, ignoreDoji, profitThreshold, maxProfitThreshold, maxDojiTicks, showVolumeImbalanceLines, imbalanceLineBars, imbalanceLineWidth, showReversalPattern, showRetests, showDashboard, dashboardPosition, signalIconSize, useQuadratic921, simpleCloudOpacity, lowCloudOpacity, highCloudOpacity, adxLength, diLength, fantailAdxLength, fantailWeighting, fantailMaLength, waeSensitivity, waeFastLength, waeSlowLength, waeChannelLength, waeMultiplier, trampolineBbThreshold, trampolineRsiLower, trampolineRsiUpper, squeezeTolerance, squeezeAdxThreshold, watchSignalLookback, alphaLength, gammaLength, kernelLookback, kernelRelativeWeight, kernelStartBar, enableAlerts);
+		}
+
+		public Indicators.NebulaNT8NoCloud NebulaNT8NoCloud(ISeries<double> input , string cloudType, string candleColoring, string theme, bool showStrongBuy, bool showBasicBuy, bool showStrongSell, bool showBasicSell, bool showHEMA, bool showPlus, bool showBigPlus, bool enhanceStrongSignals, bool showFullProfit, bool showPartialProfit, bool show921, bool ignoreDoji, int profitThreshold, int maxProfitThreshold, int maxDojiTicks, bool showVolumeImbalanceLines, int imbalanceLineBars, int imbalanceLineWidth, bool showReversalPattern, bool showRetests, bool showDashboard, string dashboardPosition, int signalIconSize, bool useQuadratic921, int simpleCloudOpacity, int lowCloudOpacity, int highCloudOpacity, int adxLength, int diLength, int fantailAdxLength, double fantailWeighting, int fantailMaLength, int waeSensitivity, int waeFastLength, int waeSlowLength, int waeChannelLength, double waeMultiplier, double trampolineBbThreshold, int trampolineRsiLower, int trampolineRsiUpper, int squeezeTolerance, int squeezeAdxThreshold, int watchSignalLookback, int alphaLength, int gammaLength, double kernelLookback, double kernelRelativeWeight, int kernelStartBar, bool enableAlerts)
+		{
+			return indicator.NebulaNT8NoCloud(input, cloudType, candleColoring, theme, showStrongBuy, showBasicBuy, showStrongSell, showBasicSell, showHEMA, showPlus, showBigPlus, enhanceStrongSignals, showFullProfit, showPartialProfit, show921, ignoreDoji, profitThreshold, maxProfitThreshold, maxDojiTicks, showVolumeImbalanceLines, imbalanceLineBars, imbalanceLineWidth, showReversalPattern, showRetests, showDashboard, dashboardPosition, signalIconSize, useQuadratic921, simpleCloudOpacity, lowCloudOpacity, highCloudOpacity, adxLength, diLength, fantailAdxLength, fantailWeighting, fantailMaLength, waeSensitivity, waeFastLength, waeSlowLength, waeChannelLength, waeMultiplier, trampolineBbThreshold, trampolineRsiLower, trampolineRsiUpper, squeezeTolerance, squeezeAdxThreshold, watchSignalLookback, alphaLength, gammaLength, kernelLookback, kernelRelativeWeight, kernelStartBar, enableAlerts);
+		}
+	}
+}
+
+#endregion

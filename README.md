@@ -13,7 +13,7 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** [`NinjaTrader/Templates/Chart/Alighten_20260916.xml`](NinjaTrader/Templates/Chart/Alighten_20260916.xml)
+**Template:** [`NinjaTrader/Templates/Chart/Alighten_20260918.xml`](NinjaTrader/Templates/Chart/Alighten_20260918.xml)
 **Built on:** NQ 12-26, 1 Minute, 5 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
@@ -53,6 +53,8 @@ open. Values below are read directly out of the template.
 | Drawing caps | 500 per zone set |
 | Zone merging | off for both sets |
 | Mirror source bars to process | 500 (`SrcBarsToProcess`) |
+| Volume profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) — 68% value area, 250 rows |
+| BnB VWAP | VWAP + SD bands and prior-day H/L on; **its own volume profile is off** (`ShowVP = false`) |
 
 So **every zone band on the chart is an inside zone** — the primary confluence set is switched off
 entirely. And although all six engines run and keep feeding the zone search, level *drawing* is
@@ -70,8 +72,9 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 
 | Indicator | Role on the chart |
 |---|---|
-| [`AlightenMirrorV0044Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs) | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
-| [`BnBTraderVPVWAPV0001.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs) | Volume profile (POC/VAH/VAL), naked POCs, prior-day H/L, session VWAP + SD bands |
+| [`AlightenMirrorV0045Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0045Signal.cs) | The Mirror dashboard — levels, zones, signals, the three toolbar buttons |
+| [`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | Session VWAP + SD bands and prior-day H/L — its own volume profile is off on this chart |
+| [`RedTailVolumeProfile.cs`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | Session volume profile — POC / VAH / VAL (third party — see [Attribution](#attribution)) |
 | [`AlightenBiasV0003.cs`](NinjaTrader/Indicators/AlightenBiasV0003.cs) | FTG/FTL structural bias |
 | [`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | Speed of tape, net speed of tape, trapped traders, stacked imbalance traps |
 | [`AlightenButtonPanelV0005.cs`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | On-chart order flow / execution controls |
@@ -96,7 +99,7 @@ and compiled even though you never add them to a chart:
 | [`AlightenMirrorPtFV0004.cs`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs) | F — precise breakouts and immediate retests |
 | [`AlightenMirrorPtGV0003.cs`](NinjaTrader/Indicators/AlightenMirrorPtGV0003.cs) | G — level gained/lost arming with wick-retest |
 | [`AlightenMirrorPtHV0003.cs`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs) | H — "flipped G": a completed G whose level is then lost or gained |
-| [`AlightenMirrorPtJV0007.cs`](NinjaTrader/Indicators/AlightenMirrorPtJV0007.cs) | J — paired pivots; the densest source by a wide margin |
+| [`AlightenMirrorPtJV0008.cs`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs) | J — paired pivots; the densest source by a wide margin |
 
 #### Zone rule files
 
@@ -123,7 +126,7 @@ For the rule-file syntax and the silent-stub gotcha, see
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply [`Alighten_20260916.xml`](NinjaTrader/Templates/Chart/Alighten_20260916.xml) via
+4. Apply [`Alighten_20260918.xml`](NinjaTrader/Templates/Chart/Alighten_20260918.xml) via
    Chart → Templates → Load.
 
 ---
@@ -134,7 +137,7 @@ Worth knowing, because it determines what still has to be version-controlled alo
 
 **It does carry** the complete settings for every indicator instance. Each indicator is serialized
 with its full public property set — custom parameters, every plot's brush, dash style and width,
-plus panel assignment, Z-order, `Calculate` mode and `MaximumBarsLookBack`. The [`BnBTraderVPVWAPV0001`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs)
+plus panel assignment, Z-order, `Calculate` mode and `MaximumBarsLookBack`. The [`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs)
 node, for example, stores 45 properties including `VPWidth = 160`, `VPOpacity = 40`,
 `VAPercentage = 70`, `SD1/2/3_Mult = 1/2/3`, `ShowNakedPOCs`, `ShowPriorDay`, and the full plot
 palette (VWAP Curve goldenrod, POC yellow, VAH red, VAL green, PDH/PDL deep pink, SD bands in three
@@ -160,14 +163,15 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | [`AlightenMirrorV0044Signal`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs) | same |
+| Mirror Dashboard | [`AlightenMirrorV0045Signal`](NinjaTrader/Indicators/AlightenMirrorV0045Signal.cs) | same |
 | Pattern A source | [`AlightenMirrorPtAV0011`](NinjaTrader/Indicators/AlightenMirrorPtAV0011.cs) | same |
 | Pattern B source | [`AlightenMirrorPtBV0005`](NinjaTrader/Indicators/AlightenMirrorPtBV0005.cs) | same |
 | Pattern F source | [`AlightenMirrorPtFV0004`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs) | same |
 | Pattern G source | [`AlightenMirrorPtGV0003`](NinjaTrader/Indicators/AlightenMirrorPtGV0003.cs) | same |
 | Pattern H source | [`AlightenMirrorPtHV0003`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs) | same |
-| Pattern J source | [`AlightenMirrorPtJV0007`](NinjaTrader/Indicators/AlightenMirrorPtJV0007.cs) | same |
-| Volume Profile / VWAP | [`BnBTraderVPVWAPV0001`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs) | same |
+| Pattern J source | [`AlightenMirrorPtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs) | same |
+| VWAP | [`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | same — volume profile switched off |
+| Volume Profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | same |
 | Order Flow Tools | [`AlightenOrderFlowToolsV0006`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | same |
 | Bias | [`AlightenBiasV0003`](NinjaTrader/Indicators/AlightenBiasV0003.cs) | same |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
@@ -182,8 +186,33 @@ promoted or retired.
 rather than [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs). Both are committed here so the template loads, but decide which
 is genuinely production and reconcile this table rather than letting the chart and the table drift.
 
+**Retired 2026-09-18.** `BnBTraderVPVWAPV0001` was removed from this repo, superseded by
+[`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs). Its two feature switches only hid
+the drawing: the 1-tick secondary series, the volume-at-price accumulation, the value-area
+calculation and the whole VWAP accumulation ran regardless. In V0002 they disable the work.
+**Show Volume Profile** off means the 1-tick series is never added and no profile is built -
+so a different volume profile can run alongside this VWAP without paying for two - and naked
+POCs go with it. **Show VWAP** off stops all VWAP accumulation and resets the seven VWAP
+plots. Prior-day H/L is independent of both. The VWAP never read the tick series (it uses
+the chart bars: typical price x bar volume historically, per-tick volume deltas live), so it
+is identical with the profile off.
+
+**Retired 2026-09-18.** `AlightenMirrorV0044Signal` and `AlightenMirrorPtJV0007` were removed from
+this repo, superseded by [`AlightenMirrorV0045Signal`](NinjaTrader/Indicators/AlightenMirrorV0045Signal.cs)
+and [`AlightenMirrorPtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs). The Mirror is a
+rename-only copy; the real change is in Pattern J. V0007's realtime path published ONE node per side
+into slot 0 and chose it by `Dictionary` enumeration order, while the closed-bar path fills all four
+slots - so on a forming HTF bar a hosting Mirror saw one arbitrary J level, and an inside zone whose
+partner sat within its tick cap of a different node could not form until the bar closed. Measured on
+2026-09-17 02:50 (10m): the live level was J@29457.00, 19 ticks from A@29461.75, so rule
+`A10L, J10L; 10T` refused a zone; at the close 29459.25/29459.50/29460.00 arrived 7-10 ticks from A
+and it appeared at 03:01 - all four nodes had existed while the bar was forming. V0008 collects every
+qualifying node (deduped), applies the same `CapSlotsByDistance` filter as the closed path, and writes
+all four slots. Tradeoff: provisional values repaint by design, so more zones flicker intrabar.
+Verified against 2026-09-17 02:50 and 2026-09-15 14:50.
+
 **Retired 2026-09-16.** `AlightenMirrorV0043Signal` was removed from this repo, superseded by
-[`AlightenMirrorV0044Signal`](NinjaTrader/Indicators/AlightenMirrorV0044Signal.cs), which fixes the
+`AlightenMirrorV0045Signal` (itself retired 2026-09-18), which fixed the
 daily-bias pivot port. `ProcessDailyBiasBar` fired only four of `AlightenBiasV0003`'s six two-bar
 pivot conditions, so an outside day (higher high **and** lower low) recorded one pivot where the Bias
 records two. Pivots alternate high/low, so a dropped pivot also shifted every later same-side
@@ -326,7 +355,7 @@ version evaluated over nine million combinations per bar on the same file.
 * **[`AlightenMirrorPtHV0003`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs)** — Pattern H, the "flipped Pattern G": a completed G pattern whose
   level is then lost or gained arms the opposite-direction retest.
 * **[`AlightenMirrorPtFV0004`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs)** — Pattern F: precise breakouts and immediate retests of structure.
-* **[`AlightenMirrorPtJV0007`](NinjaTrader/Indicators/AlightenMirrorPtJV0007.cs)** — Pattern J (paired pivots), the densest source by a wide margin.
+* **[`AlightenMirrorPtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs)** — Pattern J (paired pivots), the densest source by a wide margin.
   Qualified zigzag pairs with minimum trend bars/ticks, levels at the pivot candle's body, endpoint
   gain/loss state machines with first-touch tests, triangle test markers, and optional
   flip-invalidation of past signals. Serves both standalone chart use and Mirror hosting via
@@ -337,7 +366,7 @@ version evaluated over nine million combinations per bar on the same file.
 
 ## Volume profile and VWAP
 
-**[`BnBTraderVPVWAPV0001.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs)** — session volume profile (POC / VAH / VAL), naked POCs, prior-day
+**[`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs)** — session volume profile (POC / VAH / VAL), naked POCs, prior-day
 high/low, and session VWAP with three standard-deviation band pairs.
 
 Originally the work of **BnBTrader**, derived from `BnBTraderRbsScalperV9` — the VWAP engine
@@ -352,6 +381,32 @@ OrderFlow+ uses) rather than the true 1σ figure of 68%, so VAH/VAL line up with
 
 Exposes `VWAP_Curve`, `POC_Data`, `VAH_Data`, `VAL_Data`, `PDH_Data`, `PDL_Data` as series for
 strategies and Bloodhound.
+
+**On the reference chart BnB's own profile is switched off** (`Show Volume Profile = false`); in
+V0002 that also skips the 1-tick series entirely, so it costs nothing. BnB supplies the VWAP and
+prior-day high/low, and RedTail supplies the profile.
+
+### RedTail volume profile
+
+**[`RedTailVolumeProfile.cs`](NinjaTrader/Indicators/RedTailVolumeProfile.cs)** — by **RedTail
+Indicators**. Session, weekly, composite and move profiles, naked levels, value-area lines and alerts.
+
+Its VAH/VAL will not match BnB's exactly, and that is expected rather than a bug. The session
+profile differs in four ways:
+
+1. **Volume source.** It is built from the chart bars, spreading each bar's whole volume evenly
+   across every row the bar's high-low touches. BnB puts each trade at the exact price it traded.
+   RedTail's own 1-tick series feeds only its per-bar candle profiles, never the session profile.
+2. **Row size.** A fixed 250 rows span the session high to low, so the row height depends on the
+   day's range - about 1.2 points on a 300-point NQ day - and VAH/VAL snap to that grid. BnB uses
+   one row per tick.
+3. **Value-area percentage.** 68% by default, against BnB's 70%.
+4. **Expansion.** It grows the value area one row at a time; BnB uses the standard Market Profile
+   paired-row walk (two rows above against two below).
+
+Setting RedTail to 70% and raising **Number of Volume Bars** toward one row per tick removes the
+second and third differences. The first cannot be removed: the session profile has no
+information about where volume traded inside each bar, so on larger bars the gap grows.
 
 ---
 
@@ -410,8 +465,11 @@ indicators construct — the callers stop compiling, and NinjaTrader only rewrit
 
 ## Attribution
 
-* **[`BnBTraderVPVWAPV0001.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0001.cs)** — original VWAP work by **BnBTrader** (from
+* **[`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs)** — original VWAP work by **BnBTrader** (from
   `BnBTraderRbsScalperV9`); volume profile updated by Alighten. Included with permission.
 * **[`NebulaNT8NoCloud.cs`](NinjaTrader/Indicators/NebulaNT8NoCloud.cs)** — converted from the TradingView Pine script "Nebula v2.2", which is
   **MPL-2.0** and credits **TraderOracle** plus the component authors named there. Included with
   permission; redistribution carries MPL-2.0 attribution obligations.
+* **[`RedTailVolumeProfile.cs`](NinjaTrader/Indicators/RedTailVolumeProfile.cs)** — by **RedTail Indicators**
+  (@_hawkeye_13), under the **Mozilla Public License 2.0**; the licence notice is kept in the file
+  header. This is the current version, which adds `GetCurrentVALevels()` for RedTailMarketStructure.

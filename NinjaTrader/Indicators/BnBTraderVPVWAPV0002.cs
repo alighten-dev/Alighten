@@ -1,5 +1,12 @@
 // =====================================================================================
-// BnBTraderVPVWAPV0001
+// BnBTraderVPVWAPV0002
+//
+// V0002 (2026-09-18): both switches now disable the WORK, not just the drawing, so a
+// different volume profile can run alongside this VWAP.
+//   Show Volume Profile = false: no tick series, no profile, no value area, POC/VAH/VAL
+//     reset, and naked POCs go with it.
+//   Show VWAP = false: no VWAP accumulation and all seven VWAP plots reset.
+//   Prior-day H/L is independent of both.
 //
 // Original work by BnBTrader. The VWAP engine — session anchoring, the cumulative
 // price*volume / price^2*volume accumulators and the standard-deviation bands — is his,
@@ -34,7 +41,7 @@ using SharpDX.DirectWrite;
 namespace NinjaTrader.NinjaScript.Indicators
 {
 	[Description("Session volume profile (POC / VAH / VAL), naked POCs, prior-day H/L and session VWAP with standard-deviation bands. Derived from BnBTraderRbsScalperV9: the VWAP math is carried over unchanged, the volume profile is rebuilt on a 1-tick secondary series so it matches NinjaTrader OrderFlow+ Volume Profile without requiring Tick Replay.")]
-	public class BnBTraderVPVWAPV0001 : Indicator
+	public class BnBTraderVPVWAPV0002 : Indicator
 	{
 		// ---------------------------------------------------------------------------------
 		// Index of the secondary 1-tick series added in State.Configure. This is the ONLY
@@ -42,7 +49,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		// depth context, which this profile never uses, so a plain tick series is both
 		// sufficient and far cheaper.
 		// ---------------------------------------------------------------------------------
-		private const int TickSeries = 1;
+		private int tickSeries = -1;   // V0002: stays -1 when the profile is off and no tick series is added
 
 		// VWAP state - carried over from BnBTraderRbsScalperV9 verbatim.
 		private double pdh, pdl, cumulativePV, cumulativeP2V, cumulativeVol, lastVolume;
@@ -59,9 +66,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private NinjaTrader.Gui.Tools.SimpleFont labelFont;
 
 		#region Properties
-		[NinjaScriptProperty][Display(Name="Show Volume Profile", Order=1, GroupName="1. Structural Settings")]
+		[NinjaScriptProperty][Display(Name="Show Volume Profile", Description="Off = the tick series is never added and no profile is built. Naked POCs go with it.", Order=1, GroupName="1. Structural Settings")]
 		public bool ShowVP { get; set; }
-		[NinjaScriptProperty][Display(Name="Show VWAP & Dev Bands", Order=2, GroupName="1. Structural Settings")]
+		[NinjaScriptProperty][Display(Name="Show VWAP & Dev Bands", Description="Off = no VWAP accumulation and all seven VWAP plots reset. Prior-day H/L is unaffected.", Order=2, GroupName="1. Structural Settings")]
 		public bool ShowVWAP { get; set; }
 		[Range(10, 500), NinjaScriptProperty][Display(Name="VP Width (px)", Order=3, GroupName="1. Structural Settings")]
 		public int VPWidth { get; set; }
@@ -94,7 +101,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		{
 			if (State == State.SetDefaults)
 			{
-				Name = "BnBTraderVPVWAPV0001";
+				Name = "BnBTraderVPVWAPV0002";
 				Description = "Session volume profile (POC / VAH / VAL), naked POCs, prior-day H/L and session VWAP with standard-deviation bands. Profile is built from a 1-tick secondary series to match NinjaTrader OrderFlow+ Volume Profile without Tick Replay.";
 				Calculate = Calculate.OnEachTick; IsOverlay = true;
 
@@ -130,7 +137,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 				// Real traded prices and volumes over history, with no Tick Replay. The tick
 				// series is loaded for the same range as the chart, so Days-to-Load is the
 				// knob that controls how heavy this is.
-				AddDataSeries(BarsPeriodType.Tick, 1);
+				// V0002: the tick series only feeds the volume profile and is the costly part of this
+				// indicator. With the profile off it is never added, so another profile can own that work.
+				if (ShowVP)
+				{
+					AddDataSeries(BarsPeriodType.Tick, 1);
+					tickSeries = 1;
+				}
 			}
 			else if (State == State.DataLoaded)
 			{
@@ -149,19 +162,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 			// no historical/realtime seam - the three ways BnB's profile could disagree
 			// with itself.
 			// ---------------------------------------------------------------------------
-			if (BarsInProgress == TickSeries)
+			if (tickSeries >= 0 && BarsInProgress == tickSeries)
 			{
-				if (CurrentBars[TickSeries] < 0) return;
+				if (CurrentBars[tickSeries] < 0) return;
 
 				lock (dataLock)
 				{
 					// Explicitly the TICK series, not whichever series Bars happens to track.
-					if (BarsArray[TickSeries].IsFirstBarOfSession) RollProfileSession();
+					if (BarsArray[tickSeries].IsFirstBarOfSession) RollProfileSession();
 
-					long v = (long)Volumes[TickSeries][0];
+					long v = (long)Volumes[tickSeries][0];
 					if (v > 0)
 					{
-						double pk = Instrument.MasterInstrument.RoundToTickSize(Closes[TickSeries][0]);
+						double pk = Instrument.MasterInstrument.RoundToTickSize(Closes[tickSeries][0]);
 						long cur;
 						volProfile.TryGetValue(pk, out cur);
 						volProfile[pk] = cur + v;
@@ -185,61 +198,92 @@ namespace NinjaTrader.NinjaScript.Indicators
 				currentSessionMax = Math.Max(currentSessionMax, High[0]);
 				currentSessionMin = Math.Min(currentSessionMin, Low[0]);
 
-				for (int i = nakedPOCs.Count - 1; i >= 0; i--)
-					if (Low[0] <= nakedPOCs[i] && High[0] >= nakedPOCs[i]) nakedPOCs.RemoveAt(i);
+				// Naked POCs are archived closing POCs, so they go with the profile.
+				if (ShowVP)
+					for (int i = nakedPOCs.Count - 1; i >= 0; i--)
+						if (Low[0] <= nakedPOCs[i] && High[0] >= nakedPOCs[i]) nakedPOCs.RemoveAt(i);
 
 				// ---------------------------------------------------------------------
 				// VWAP - UNCHANGED from BnBTraderRbsScalperV9, including the two-branch
 				// historical/realtime split and the E[x^2]-E[x]^2 variance identity.
 				// This is the part that already matches OF+ VWAP; do not "fix" it.
 				// ---------------------------------------------------------------------
-				bool isRealtimeOrReplay = (State == State.Realtime || Bars.IsTickReplay);
-
-				if (!isRealtimeOrReplay)
+				// V0002: the whole VWAP accumulation is skipped when VWAP is off.
+				if (ShowVWAP)
 				{
-					if (IsFirstTickOfBar)
+					bool isRealtimeOrReplay = (State == State.Realtime || Bars.IsTickReplay);
+
+					if (!isRealtimeOrReplay)
 					{
-						long vol = (long)Volume[0];
-						double typPrice = (High[0] + Low[0] + Close[0]) / 3.0;
-						cumulativePV += typPrice * vol;
-						cumulativeP2V += typPrice * typPrice * vol;
-						cumulativeVol += vol;
+						if (IsFirstTickOfBar)
+						{
+							long vol = (long)Volume[0];
+							double typPrice = (High[0] + Low[0] + Close[0]) / 3.0;
+							cumulativePV += typPrice * vol;
+							cumulativeP2V += typPrice * typPrice * vol;
+							cumulativeVol += vol;
+						}
 					}
-				}
-				else
-				{
-					if (IsFirstTickOfBar) lastVolume = 0;
-
-					double currentVol = Volume[0];
-					double tickVol = currentVol - lastVolume;
-					lastVolume = currentVol;
-
-					if (tickVol > 0)
+					else
 					{
-						double tickPrice = Close[0];
-						cumulativePV += tickPrice * tickVol;
-						cumulativeP2V += tickPrice * tickPrice * tickVol;
-						cumulativeVol += tickVol;
+						if (IsFirstTickOfBar) lastVolume = 0;
+
+						double currentVol = Volume[0];
+						double tickVol = currentVol - lastVolume;
+						lastVolume = currentVol;
+
+						if (tickVol > 0)
+						{
+							double tickPrice = Close[0];
+							cumulativePV += tickPrice * tickVol;
+							cumulativeP2V += tickPrice * tickPrice * tickVol;
+							cumulativeVol += tickVol;
+						}
 					}
+
+					currentVWAP = (cumulativeVol != 0) ? cumulativePV / cumulativeVol : Close[0];
+					double variance = (cumulativeVol != 0) ? (cumulativeP2V / cumulativeVol) - (currentVWAP * currentVWAP) : 0;
+					currentVWAP_SD = variance > 0 ? Math.Sqrt(variance) : 0;
 				}
 
-				currentVWAP = (cumulativeVol != 0) ? cumulativePV / cumulativeVol : Close[0];
-				double variance = (cumulativeVol != 0) ? (cumulativeP2V / cumulativeVol) - (currentVWAP * currentVWAP) : 0;
-				currentVWAP_SD = variance > 0 ? Math.Sqrt(variance) : 0;
-
-				if (profileDirty) { ComputeValueArea(); profileDirty = false; }
+				if (ShowVP && profileDirty) { ComputeValueArea(); profileDirty = false; }
 			}
 
-			Values[0][0] = currentVWAP;
-			Values[1][0] = curPOC; Values[2][0] = curVAH; Values[3][0] = curVAL;
-			Values[4][0] = pdh;    Values[5][0] = pdl;
+			// A disabled feature RESETS its plots, so nothing reads a stale value.
+			if (ShowVWAP)
+			{
+				Values[0][0]  = currentVWAP;
+				Values[6][0]  = currentVWAP + (currentVWAP_SD * SD1_Mult);
+				Values[7][0]  = currentVWAP - (currentVWAP_SD * SD1_Mult);
+				Values[8][0]  = currentVWAP + (currentVWAP_SD * SD2_Mult);
+				Values[9][0]  = currentVWAP - (currentVWAP_SD * SD2_Mult);
+				Values[10][0] = currentVWAP + (currentVWAP_SD * SD3_Mult);
+				Values[11][0] = currentVWAP - (currentVWAP_SD * SD3_Mult);
+			}
+			else
+			{
+				Values[0].Reset();
+				for (int p = 6; p <= 11; p++) Values[p].Reset();
+			}
 
-			Values[6][0]  = currentVWAP + (currentVWAP_SD * SD1_Mult);
-			Values[7][0]  = currentVWAP - (currentVWAP_SD * SD1_Mult);
-			Values[8][0]  = currentVWAP + (currentVWAP_SD * SD2_Mult);
-			Values[9][0]  = currentVWAP - (currentVWAP_SD * SD2_Mult);
-			Values[10][0] = currentVWAP + (currentVWAP_SD * SD3_Mult);
-			Values[11][0] = currentVWAP - (currentVWAP_SD * SD3_Mult);
+			if (ShowVP)
+			{
+				Values[1][0] = curPOC; Values[2][0] = curVAH; Values[3][0] = curVAL;
+			}
+			else
+			{
+				Values[1].Reset(); Values[2].Reset(); Values[3].Reset();
+			}
+
+			// Prior-day H/L needs only the session high/low, so it survives both switches.
+			if (ShowPriorDay)
+			{
+				Values[4][0] = pdh; Values[5][0] = pdl;
+			}
+			else
+			{
+				Values[4].Reset(); Values[5].Reset();
+			}
 
 			// Tags are prefixed so this can sit on the same chart as BnBTraderRbsScalperV9
 			// without the two indicators fighting over identical drawing-object tags.
@@ -345,7 +389,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 			lock (dataLock)
 			{
-				if (volProfile.Count > 0) profileClone = volProfile.ToArray();
+				if (ShowVP && volProfile.Count > 0) profileClone = volProfile.ToArray();
 				if (nakedPOCs.Count > 0) nakedPocClone = nakedPOCs.ToArray();
 				pocLinesClone[0] = curPOC; pocLinesClone[1] = curVAH; pocLinesClone[2] = curVAL;
 				pdLinesClone[0] = pdh; pdLinesClone[1] = pdl;
@@ -400,7 +444,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				if (ShowPriorDay && pdLinesClone[0] > 0) dL(pdLinesClone[0], Plots[4].BrushDX, Plots[4].Width);
 				if (ShowPriorDay && pdLinesClone[1] > 0) dL(pdLinesClone[1], Plots[5].BrushDX, Plots[5].Width);
 
-				if (ShowNakedPOCs && nakedPocClone != null)
+				if (ShowVP && ShowNakedPOCs && nakedPocClone != null)
 				{
 					var strokeStyle = new SharpDX.Direct2D1.StrokeStyle(RenderTarget.Factory, new SharpDX.Direct2D1.StrokeStyleProperties { DashStyle = SharpDX.Direct2D1.DashStyle.Dash });
 					foreach (double npoc in nakedPocClone)
@@ -487,19 +531,19 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
-		private BnBTraderVPVWAPV0001[] cacheBnBTraderVPVWAPV0001;
-		public BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		private BnBTraderVPVWAPV0002[] cacheBnBTraderVPVWAPV0002;
+		public BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			return BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+			return BnBTraderVPVWAPV0002(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
 		}
 
-		public BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input, bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		public BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(ISeries<double> input, bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			if (cacheBnBTraderVPVWAPV0001 != null)
-				for (int idx = 0; idx < cacheBnBTraderVPVWAPV0001.Length; idx++)
-					if (cacheBnBTraderVPVWAPV0001[idx] != null && cacheBnBTraderVPVWAPV0001[idx].ShowVP == showVP && cacheBnBTraderVPVWAPV0001[idx].ShowVWAP == showVWAP && cacheBnBTraderVPVWAPV0001[idx].VPWidth == vPWidth && cacheBnBTraderVPVWAPV0001[idx].VPOpacity == vPOpacity && cacheBnBTraderVPVWAPV0001[idx].VAPercentage == vAPercentage && cacheBnBTraderVPVWAPV0001[idx].SD1_Mult == sD1_Mult && cacheBnBTraderVPVWAPV0001[idx].SD2_Mult == sD2_Mult && cacheBnBTraderVPVWAPV0001[idx].SD3_Mult == sD3_Mult && cacheBnBTraderVPVWAPV0001[idx].ShowNakedPOCs == showNakedPOCs && cacheBnBTraderVPVWAPV0001[idx].ShowPriorDay == showPriorDay && cacheBnBTraderVPVWAPV0001[idx].EqualsInput(input))
-						return cacheBnBTraderVPVWAPV0001[idx];
-			return CacheIndicator<BnBTraderVPVWAPV0001>(new BnBTraderVPVWAPV0001(){ ShowVP = showVP, ShowVWAP = showVWAP, VPWidth = vPWidth, VPOpacity = vPOpacity, VAPercentage = vAPercentage, SD1_Mult = sD1_Mult, SD2_Mult = sD2_Mult, SD3_Mult = sD3_Mult, ShowNakedPOCs = showNakedPOCs, ShowPriorDay = showPriorDay }, input, ref cacheBnBTraderVPVWAPV0001);
+			if (cacheBnBTraderVPVWAPV0002 != null)
+				for (int idx = 0; idx < cacheBnBTraderVPVWAPV0002.Length; idx++)
+					if (cacheBnBTraderVPVWAPV0002[idx] != null && cacheBnBTraderVPVWAPV0002[idx].ShowVP == showVP && cacheBnBTraderVPVWAPV0002[idx].ShowVWAP == showVWAP && cacheBnBTraderVPVWAPV0002[idx].VPWidth == vPWidth && cacheBnBTraderVPVWAPV0002[idx].VPOpacity == vPOpacity && cacheBnBTraderVPVWAPV0002[idx].VAPercentage == vAPercentage && cacheBnBTraderVPVWAPV0002[idx].SD1_Mult == sD1_Mult && cacheBnBTraderVPVWAPV0002[idx].SD2_Mult == sD2_Mult && cacheBnBTraderVPVWAPV0002[idx].SD3_Mult == sD3_Mult && cacheBnBTraderVPVWAPV0002[idx].ShowNakedPOCs == showNakedPOCs && cacheBnBTraderVPVWAPV0002[idx].ShowPriorDay == showPriorDay && cacheBnBTraderVPVWAPV0002[idx].EqualsInput(input))
+						return cacheBnBTraderVPVWAPV0002[idx];
+			return CacheIndicator<BnBTraderVPVWAPV0002>(new BnBTraderVPVWAPV0002(){ ShowVP = showVP, ShowVWAP = showVWAP, VPWidth = vPWidth, VPOpacity = vPOpacity, VAPercentage = vAPercentage, SD1_Mult = sD1_Mult, SD2_Mult = sD2_Mult, SD3_Mult = sD3_Mult, ShowNakedPOCs = showNakedPOCs, ShowPriorDay = showPriorDay }, input, ref cacheBnBTraderVPVWAPV0002);
 		}
 	}
 }
@@ -508,14 +552,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		public Indicators.BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			return indicator.BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+			return indicator.BnBTraderVPVWAPV0002(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
 		}
 
-		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		public Indicators.BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			return indicator.BnBTraderVPVWAPV0001(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+			return indicator.BnBTraderVPVWAPV0002(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
 		}
 	}
 }
@@ -524,14 +568,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		public Indicators.BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			return indicator.BnBTraderVPVWAPV0001(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+			return indicator.BnBTraderVPVWAPV0002(Input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
 		}
 
-		public Indicators.BnBTraderVPVWAPV0001 BnBTraderVPVWAPV0001(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
+		public Indicators.BnBTraderVPVWAPV0002 BnBTraderVPVWAPV0002(ISeries<double> input , bool showVP, bool showVWAP, int vPWidth, int vPOpacity, double vAPercentage, double sD1_Mult, double sD2_Mult, double sD3_Mult, bool showNakedPOCs, bool showPriorDay)
 		{
-			return indicator.BnBTraderVPVWAPV0001(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
+			return indicator.BnBTraderVPVWAPV0002(input, showVP, showVWAP, vPWidth, vPOpacity, vAPercentage, sD1_Mult, sD2_Mult, sD3_Mult, showNakedPOCs, showPriorDay);
 		}
 	}
 }
