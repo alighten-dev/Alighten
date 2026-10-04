@@ -9,19 +9,19 @@
       <BarsProperties>
         <BarsProperties xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <BarsPeriod>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriod>
           <RangeType>Days</RangeType>
-          <BarsBack>50</BarsBack>
-          <DaysBack>5</DaysBack>
+          <BarsBack>4000</BarsBack>
+          <DaysBack>3</DaysBack>
           <From>2026-06-30T00:00:00</From>
           <IsStableSession>true</IsStableSession>
           <To>2099-12-01T00:00:00</To>
@@ -30,8 +30,8 @@
           <CenterPriceOnScale>false</CenterPriceOnScale>
           <DisplayInDataBox>true</DisplayInDataBox>
           <Label>NQ 12-26</Label>
-          <MaxSerialized>29516.75</MaxSerialized>
-          <MinSerialized>29376.75</MinSerialized>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
           <MonthsBack>0</MonthsBack>
           <Panel>0</Panel>
           <PriceMarker>
@@ -54,11 +54,11 @@
           <PositionPenWinnerSerialize>DEFAULT</PositionPenWinnerSerialize>
           <ShortExecutionBrushSerialize>DEFAULT</ShortExecutionBrushSerialize>
           <BarsSeriesId>1f0bc0f153e64c64b2830c28816765df</BarsSeriesId>
-          <Id>04b7b6ebca4f4ebfafc20fefe66861cb</Id>
+          <Id>dc7118f077c94aa0bce94d9913c9a82d</Id>
           <Instrument>NQ 12-26</Instrument>
           <IsLinked>true</IsLinked>
           <IsPrimarySeries>true</IsPrimarySeries>
-          <ZOrder>1</ZOrder>
+          <ZOrder>2</ZOrder>
           <WeeksBack>1</WeeksBack>
           <YearsBack>0</YearsBack>
         </BarsProperties>
@@ -67,7 +67,7 @@
             <CandleStyle>
               <CandleStyle xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                 <IsVisible>true</IsVisible>
-                <BarWidth>2.7565455291775218</BarWidth>
+                <BarWidth>5.7309315757928552</BarWidth>
                 <ChartStyleTypeSerialize>1</ChartStyleTypeSerialize>
                 <DownBrushSerialize>DEFAULT</DownBrushSerialize>
                 <UpBrushSerialize>DEFAULT</UpBrushSerialize>
@@ -91,21 +91,21 @@
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -114,7 +114,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -125,7 +125,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>52</IndicatorId>
+          <IndicatorId>133</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>-1.7976931348623157E+308</MaxSerialized>
           <MinSerialized>1.7976931348623157E+308</MinSerialized>
@@ -159,21 +159,21 @@
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -182,7 +182,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -193,7 +193,7 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>55</IndicatorId>
+          <IndicatorId>136</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
@@ -229,21 +229,21 @@
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -252,7 +252,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -263,11 +263,11 @@
           <DrawVerticalGridLines>false</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>58</IndicatorId>
+          <IndicatorId>139</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>-1.7976931348623157E+308</MaxSerialized>
           <MinSerialized>1.7976931348623157E+308</MinSerialized>
-          <ZOrder>0</ZOrder>
+          <ZOrder>1</ZOrder>
           <IntervalMinutes>30</IntervalMinutes>
           <UseSessionOpenAsAnchor>true</UseSessionOpenAsAnchor>
           <CustomAnchorTime>2026-08-23T18:00:00</CustomAnchorTime>
@@ -286,585 +286,6 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenBiasV0003" Panel="-1" DisplayName="AlightenBiasV0003(500,#FF2F4F4F,False,#FFFFA500,#FF1E90FF,#FF32CD32,#FF1E90FF,#FF006400,#FFDC143C,Solid,2,#FFFF0000,6,300,False,False,False,#FFFFFF00)">
-        <AlightenBiasV0003 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-          <IsVisible>true</IsVisible>
-          <calculate2>OnBarClose</calculate2>
-          <AreLinesConfigurable>true</AreLinesConfigurable>
-          <ArePlotsConfigurable>true</ArePlotsConfigurable>
-          <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
-            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
-            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
-            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
-            <MarketDataType>Last</MarketDataType>
-            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
-            <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
-            <Value2>1</Value2>
-          </BarsPeriodSerializable>
-          <BarsToLoad>0</BarsToLoad>
-          <Calculate>OnBarClose</Calculate>
-          <Displacement>0</Displacement>
-          <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>true</IsAutoScale>
-          <Lines />
-          <MaximumBarsLookBack>Infinite</MaximumBarsLookBack>
-          <Name />
-          <Panel>-1</Panel>
-          <Plots>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>Bias</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-          </Plots>
-          <ScaleJustification>Right</ScaleJustification>
-          <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
-          <IsDataSeriesRequired>true</IsDataSeriesRequired>
-          <IsOverlay>true</IsOverlay>
-          <SelectedValueSeries>0</SelectedValueSeries>
-          <InputPlot>0</InputPlot>
-          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>true</PaintPriceMarkers>
-          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
-          <DrawVerticalGridLines>true</DrawVerticalGridLines>
-          <DrawOnPricePanel>true</DrawOnPricePanel>
-          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>61</IndicatorId>
-          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>0</MaxSerialized>
-          <MinSerialized>0</MinSerialized>
-          <ZOrder>30040</ZOrder>
-          <BarsToProcess>500</BarsToProcess>
-          <DrawZigZags>true</DrawZigZags>
-          <NumberOfLevels>6</NumberOfLevels>
-          <RelevanceFactor>300</RelevanceFactor>
-          <ZigZagColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</ZigZagColorSerialize>
-          <LevelLineColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</LevelLineColorSerialize>
-          <LevelLineColorGainedSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF006400&lt;/SolidColorBrush&gt;</LevelLineColorGainedSerialize>
-          <LevelLineColorLostSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDC143C&lt;/SolidColorBrush&gt;</LevelLineColorLostSerialize>
-          <LevelLineWidth>2</LevelLineWidth>
-          <LevelLineDashStyle>Solid</LevelLineDashStyle>
-          <ShowContainmentBox>false</ShowContainmentBox>
-          <ContainmentBoxColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF2F4F4F&lt;/SolidColorBrush&gt;</ContainmentBoxColorSerialize>
-          <GainColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF32CD32&lt;/SolidColorBrush&gt;</GainColorSerialize>
-          <LossColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</LossColorSerialize>
-          <FailedGainColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</FailedGainColorSerialize>
-          <FailedLossColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</FailedLossColorSerialize>
-          <ShowGainLoss>false</ShowGainLoss>
-          <ShowFTGFTL>false</ShowFTGFTL>
-          <DebugPrints>false</DebugPrints>
-        </AlightenBiasV0003>
-        <Input>
-          <PriceType>Close</PriceType>
-        </Input>
-      </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.CurrentDayOHL" Panel="0" DisplayName="CurrentDayOHL">
-        <CurrentDayOHL xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-          <IsVisible>true</IsVisible>
-          <calculate2>OnBarClose</calculate2>
-          <AreLinesConfigurable>true</AreLinesConfigurable>
-          <ArePlotsConfigurable>true</ArePlotsConfigurable>
-          <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
-            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
-            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
-            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
-            <MarketDataType>Last</MarketDataType>
-            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
-            <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
-            <Value2>1</Value2>
-          </BarsPeriodSerializable>
-          <BarsToLoad>0</BarsToLoad>
-          <Calculate>OnBarClose</Calculate>
-          <Displacement>0</Displacement>
-          <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>false</IsAutoScale>
-          <Lines />
-          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name />
-          <Panel>0</Panel>
-          <Plots>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDAA520&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Dash</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>2</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>Current open</Name>
-              <PlotStyle>Square</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF2E8B57&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Dash</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>2</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>Current high</Name>
-              <PlotStyle>Square</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Dash</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>2</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>Current low</Name>
-              <PlotStyle>Square</PlotStyle>
-            </Plot>
-          </Plots>
-          <ScaleJustification>Right</ScaleJustification>
-          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
-          <IsDataSeriesRequired>true</IsDataSeriesRequired>
-          <IsOverlay>true</IsOverlay>
-          <SelectedValueSeries>0</SelectedValueSeries>
-          <InputPlot>0</InputPlot>
-          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>true</PaintPriceMarkers>
-          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
-          <DrawVerticalGridLines>true</DrawVerticalGridLines>
-          <DrawOnPricePanel>false</DrawOnPricePanel>
-          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>64</IndicatorId>
-          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>0</MaxSerialized>
-          <MinSerialized>0</MinSerialized>
-          <ZOrder>30058</ZOrder>
-          <ShowHigh>true</ShowHigh>
-          <ShowLow>true</ShowLow>
-          <ShowOpen>true</ShowOpen>
-        </CurrentDayOHL>
-        <Input>
-          <PriceType>Close</PriceType>
-        </Input>
-      </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.NebulaNT8NoCloud" Panel="-1" DisplayName="NebulaNT8NoCloud(14,20,Waddah,Simple,Top Right,14,True,True,2,6,10,20,50,False,50,3,21,8,15,80,1,7,5,False,False,False,True,False,False,False,False,False,False,False,True,True,False,13,80,21,2,Standard,0.0015,25,72,False,20,20,2,150,40,35)">
-        <NebulaNT8NoCloud xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-          <IsVisible>true</IsVisible>
-          <calculate2>OnBarClose</calculate2>
-          <AreLinesConfigurable>true</AreLinesConfigurable>
-          <ArePlotsConfigurable>true</ArePlotsConfigurable>
-          <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
-            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
-            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
-            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
-            <MarketDataType>Last</MarketDataType>
-            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
-            <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
-            <Value2>1</Value2>
-          </BarsPeriodSerializable>
-          <BarsToLoad>0</BarsToLoad>
-          <Calculate>OnBarClose</Calculate>
-          <Displacement>0</Displacement>
-          <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>true</IsAutoScale>
-          <Lines />
-          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name />
-          <Panel>-1</Panel>
-          <Plots>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>Signal</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>AddSignal</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>ProfitSignal</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-          </Plots>
-          <ScaleJustification>Right</ScaleJustification>
-          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
-          <IsDataSeriesRequired>true</IsDataSeriesRequired>
-          <IsOverlay>true</IsOverlay>
-          <SelectedValueSeries>0</SelectedValueSeries>
-          <InputPlot>0</InputPlot>
-          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>true</PaintPriceMarkers>
-          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
-          <DrawVerticalGridLines>true</DrawVerticalGridLines>
-          <DrawOnPricePanel>true</DrawOnPricePanel>
-          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>67</IndicatorId>
-          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>0</MaxSerialized>
-          <MinSerialized>0</MinSerialized>
-          <ZOrder>30068</ZOrder>
-          <CloudType>Simple</CloudType>
-          <CandleColoring>Waddah</CandleColoring>
-          <Theme>Standard</Theme>
-          <ShowStrongBuy>true</ShowStrongBuy>
-          <ShowBasicBuy>false</ShowBasicBuy>
-          <ShowStrongSell>true</ShowStrongSell>
-          <ShowBasicSell>false</ShowBasicSell>
-          <ShowHEMA>false</ShowHEMA>
-          <ShowPlus>false</ShowPlus>
-          <ShowBigPlus>true</ShowBigPlus>
-          <EnhanceStrongSignals>true</EnhanceStrongSignals>
-          <ShowFullProfit>false</ShowFullProfit>
-          <ShowPartialProfit>false</ShowPartialProfit>
-          <Show921>false</Show921>
-          <IgnoreDoji>false</IgnoreDoji>
-          <ProfitThreshold>5</ProfitThreshold>
-          <MaxProfitThreshold>7</MaxProfitThreshold>
-          <MaxDojiTicks>1</MaxDojiTicks>
-          <ShowVolumeImbalanceLines>false</ShowVolumeImbalanceLines>
-          <ImbalanceLineBars>50</ImbalanceLineBars>
-          <ImbalanceLineWidth>3</ImbalanceLineWidth>
-          <ShowReversalPattern>false</ShowReversalPattern>
-          <ShowRetests>false</ShowRetests>
-          <ShowDashboard>false</ShowDashboard>
-          <DashboardPosition>Top Right</DashboardPosition>
-          <SignalIconSize>13</SignalIconSize>
-          <UseQuadratic921>false</UseQuadratic921>
-          <SimpleCloudOpacity>80</SimpleCloudOpacity>
-          <LowCloudOpacity>80</LowCloudOpacity>
-          <HighCloudOpacity>50</HighCloudOpacity>
-          <AdxLength>14</AdxLength>
-          <DiLength>14</DiLength>
-          <FantailAdxLength>2</FantailAdxLength>
-          <FantailWeighting>10</FantailWeighting>
-          <FantailMaLength>6</FantailMaLength>
-          <WaeSensitivity>150</WaeSensitivity>
-          <WaeFastLength>20</WaeFastLength>
-          <WaeSlowLength>40</WaeSlowLength>
-          <WaeChannelLength>20</WaeChannelLength>
-          <WaeMultiplier>2</WaeMultiplier>
-          <TrampolineBbThreshold>0.0015</TrampolineBbThreshold>
-          <TrampolineRsiLower>25</TrampolineRsiLower>
-          <TrampolineRsiUpper>72</TrampolineRsiUpper>
-          <SqueezeTolerance>2</SqueezeTolerance>
-          <SqueezeAdxThreshold>21</SqueezeAdxThreshold>
-          <WatchSignalLookback>35</WatchSignalLookback>
-          <AlphaLength>20</AlphaLength>
-          <GammaLength>20</GammaLength>
-          <KernelLookback>21</KernelLookback>
-          <KernelRelativeWeight>8</KernelRelativeWeight>
-          <KernelStartBar>15</KernelStartBar>
-          <EnableAlerts>true</EnableAlerts>
-          <BullBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</BullBrushSerialize>
-          <BearBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BearBrushSerialize>
-          <PartialProfitBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF00FF&lt;/SolidColorBrush&gt;</PartialProfitBrushSerialize>
-          <SkullBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</SkullBrushSerialize>
-          <VectorMediumUpBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</VectorMediumUpBrushSerialize>
-          <VectorMediumDownBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFEE82EE&lt;/SolidColorBrush&gt;</VectorMediumDownBrushSerialize>
-        </NebulaNT8NoCloud>
-        <Input>
-          <PriceType>Close</PriceType>
-        </Input>
-      </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenOrderFlowToolsV0006" Panel="0" DisplayName="AlightenOrderFlowToolsV0006(500,20,50,50,1,True,False,True,True,False,True,False,True,BidAsk,VisibleArea,50,25,4,18,10,4,4,0,2,1,★,30,True,1000,1,80,25,15,⛒)">
-        <AlightenOrderFlowToolsV0006 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-          <IsVisible>true</IsVisible>
-          <calculate2>OnEachTick</calculate2>
-          <AreLinesConfigurable>true</AreLinesConfigurable>
-          <ArePlotsConfigurable>true</ArePlotsConfigurable>
-          <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
-            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
-            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
-            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
-            <MarketDataType>Last</MarketDataType>
-            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
-            <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
-            <Value2>1</Value2>
-          </BarsPeriodSerializable>
-          <BarsToLoad>0</BarsToLoad>
-          <Calculate>OnEachTick</Calculate>
-          <Displacement>0</Displacement>
-          <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>true</IsAutoScale>
-          <Lines />
-          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name />
-          <Panel>0</Panel>
-          <Plots>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>TrappedTraders</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>StackedImbTrap</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>SpeedOfTape</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>MaxSpeedOfTape</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>NetSpeedOfTape</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>MaxNetSpeedOfTape</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>ZoneTopPrice</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>ZoneBotPrice</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-          </Plots>
-          <ScaleJustification>Right</ScaleJustification>
-          <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
-          <IsDataSeriesRequired>true</IsDataSeriesRequired>
-          <IsOverlay>true</IsOverlay>
-          <SelectedValueSeries>0</SelectedValueSeries>
-          <InputPlot>0</InputPlot>
-          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>false</PaintPriceMarkers>
-          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
-          <DrawVerticalGridLines>true</DrawVerticalGridLines>
-          <DrawOnPricePanel>true</DrawOnPricePanel>
-          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>70</IndicatorId>
-          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>0</MaxSerialized>
-          <MinSerialized>0</MinSerialized>
-          <ZOrder>30070</ZOrder>
-          <BarsToProcess>500</BarsToProcess>
-          <LargeTradeFindBy>BidAsk</LargeTradeFindBy>
-          <EnableLargeTradeBubbles>true</EnableLargeTradeBubbles>
-          <MinimumVolumeForMarker>25</MinimumVolumeForMarker>
-          <MaximumMarkerSize>50</MaximumMarkerSize>
-          <LargeTradeSizeBy>VisibleArea</LargeTradeSizeBy>
-          <HoverValues>true</HoverValues>
-          <AskBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</AskBrushSeralizer>
-          <BidBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDC143C&lt;/SolidColorBrush&gt;</BidBrushSeralizer>
-          <OutlineBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFA9A9A9&lt;/SolidColorBrush&gt;</OutlineBrushSeralizer>
-          <FillOpacity>50</FillOpacity>
-          <EnableBigTradeZones>true</EnableBigTradeZones>
-          <BigTradeZoneThreshold>50</BigTradeZoneThreshold>
-          <BigTradeZoneOpacity>50</BigTradeZoneOpacity>
-          <BigTradeZoneHeightTicks>20</BigTradeZoneHeightTicks>
-          <SignalFontSize>18</SignalFontSize>
-          <SignalOffsetTicks>10</SignalOffsetTicks>
-          <SignalStackPaddingTicks>4</SignalStackPaddingTicks>
-          <TrapLookaheadBars>1</TrapLookaheadBars>
-          <TrapMoveTicks>15</TrapMoveTicks>
-          <TrapMinTotalVolume>25</TrapMinTotalVolume>
-          <TrapMinDominancePct>80</TrapMinDominancePct>
-          <SpeedWindowMs>1000</SpeedWindowMs>
-          <EnableTrappedTradersSignal>false</EnableTrappedTradersSignal>
-          <TrappedTradersMarker>⛒</TrappedTradersMarker>
-          <TrappedLongBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FA9A&lt;/SolidColorBrush&gt;</TrappedLongBrushSerializer>
-          <TrappedShortBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF1493&lt;/SolidColorBrush&gt;</TrappedShortBrushSerializer>
-          <EnableSITrapSignal>false</EnableSITrapSignal>
-          <SITrapMarker>★</SITrapMarker>
-          <SITrapLongBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</SITrapLongBrushSerializer>
-          <SITrapShortBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF4500&lt;/SolidColorBrush&gt;</SITrapShortBrushSerializer>
-          <DebugPrints>false</DebugPrints>
-          <DebugOnlyCurrentBar>true</DebugOnlyCurrentBar>
-          <DebugMinTotalVol>1</DebugMinTotalVol>
-          <EnableStackedImbalanceTrap>true</EnableStackedImbalanceTrap>
-          <SITrapLookaheadBars>1</SITrapLookaheadBars>
-          <SITrapMoveTicks>30</SITrapMoveTicks>
-          <SIAggregationIntervalTicks>4</SIAggregationIntervalTicks>
-          <SIImbFact>4</SIImbFact>
-          <SIStackedImbalanceLookback>2</SIStackedImbalanceLookback>
-          <SIMinRowVolume>0</SIMinRowVolume>
-          <SIUseSessionOpenForAggregation>true</SIUseSessionOpenForAggregation>
-        </AlightenOrderFlowToolsV0006>
-        <Input>
-          <PriceType>Close</PriceType>
-        </Input>
-      </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenBarTimerV3" Panel="-1" DisplayName="AlightenBarTimerV3(14,#FFFFFFFF,60)">
-        <AlightenBarTimerV3 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-          <IsVisible>true</IsVisible>
-          <calculate2>OnEachTick</calculate2>
-          <AreLinesConfigurable>true</AreLinesConfigurable>
-          <ArePlotsConfigurable>true</ArePlotsConfigurable>
-          <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
-            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
-            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
-            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
-            <MarketDataType>Last</MarketDataType>
-            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
-            <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
-            <Value2>1</Value2>
-          </BarsPeriodSerializable>
-          <BarsToLoad>0</BarsToLoad>
-          <Calculate>OnEachTick</Calculate>
-          <Displacement>0</Displacement>
-          <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>true</IsAutoScale>
-          <Lines />
-          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
-          <Name />
-          <Panel>-1</Panel>
-          <Plots />
-          <ScaleJustification>Right</ScaleJustification>
-          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
-          <IsDataSeriesRequired>true</IsDataSeriesRequired>
-          <IsOverlay>true</IsOverlay>
-          <SelectedValueSeries>0</SelectedValueSeries>
-          <InputPlot>0</InputPlot>
-          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>true</PaintPriceMarkers>
-          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
-          <DrawVerticalGridLines>true</DrawVerticalGridLines>
-          <DrawOnPricePanel>true</DrawOnPricePanel>
-          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>73</IndicatorId>
-          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
-          <MaxSerialized>0</MaxSerialized>
-          <MinSerialized>0</MinSerialized>
-          <ZOrder>30071</ZOrder>
-          <FontSize>14</FontSize>
-          <TimerOffset>60</TimerOffset>
-          <TimerColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFFFF&lt;/SolidColorBrush&gt;</TimerColorSerialize>
-        </AlightenBarTimerV3>
-        <Input>
-          <PriceType>Close</PriceType>
-        </Input>
-      </Indicator>
       <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.LabelRemover" Panel="-1" DisplayName="LabelRemover">
         <LabelRemover xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
@@ -872,21 +293,21 @@
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -895,7 +316,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -906,38 +327,38 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>79</IndicatorId>
+          <IndicatorId>145</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
-          <ZOrder>30074</ZOrder>
+          <ZOrder>30061</ZOrder>
         </LabelRemover>
         <Input>
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0045Signal" Panel="-1" DisplayName="AlightenMirrorV0045Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,False,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,True,False,False,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,True,True,False,False,False,False,False,False,False,False,False,False,False,False,500,0)">
-        <AlightenMirrorV0045Signal xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenMirrorV0047Signal" Panel="-1" DisplayName="AlightenMirrorV0047Signal(#FFFFFFFF,#FFFFFF00,#FFFFA500,#FFFF00FF,#FF1E90FF,#FF00FFFF,#FF00FF00,True,True,True,True,True,True,True,False,False,12,5,Dot,DashDot,DashDotDot,Solid,Dash,DashDot,3,3,100,True,True,True,True,False,False,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False,False,True,True,True,False,False,False,False,True,True,True,False,False,False,False,False,False,False,False,False,False,False,500,0)">
+        <AlightenMirrorV0047Signal xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnEachTick</calculate2>
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1490,10 +911,62 @@
               <Name>PtJ5m</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>RetestSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>RetestPrice</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>RetestZoneEdge</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>GetReadyState</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1504,11 +977,11 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>85</IndicatorId>
+          <IndicatorId>148</IndicatorId>
           <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
-          <ZOrder>30078</ZOrder>
+          <ZOrder>30063</ZOrder>
           <EnablePatternA>true</EnablePatternA>
           <EnablePatternB>true</EnablePatternB>
           <EnablePatternG>true</EnablePatternG>
@@ -1520,7 +993,7 @@
           <EnableInvalidatedCleanup>true</EnableInvalidatedCleanup>
           <ShowPatternATF1_Daily>true</ShowPatternATF1_Daily>
           <ShowPatternATF2_240m>true</ShowPatternATF2_240m>
-          <ShowPatternATF3_60m>false</ShowPatternATF3_60m>
+          <ShowPatternATF3_60m>true</ShowPatternATF3_60m>
           <ShowPatternATF4_30m>false</ShowPatternATF4_30m>
           <ShowPatternATF5_15m>false</ShowPatternATF5_15m>
           <ShowPatternATF6_10m>false</ShowPatternATF6_10m>
@@ -1534,21 +1007,21 @@
           <ShowPatternBTF7_5m>false</ShowPatternBTF7_5m>
           <ShowPatternGTF1_Daily>true</ShowPatternGTF1_Daily>
           <ShowPatternGTF2_240m>true</ShowPatternGTF2_240m>
-          <ShowPatternGTF3_60m>false</ShowPatternGTF3_60m>
+          <ShowPatternGTF3_60m>true</ShowPatternGTF3_60m>
           <ShowPatternGTF4_30m>false</ShowPatternGTF4_30m>
           <ShowPatternGTF5_15m>false</ShowPatternGTF5_15m>
           <ShowPatternGTF6_10m>false</ShowPatternGTF6_10m>
           <ShowPatternGTF7_5m>false</ShowPatternGTF7_5m>
           <ShowPatternHTF1_Daily>true</ShowPatternHTF1_Daily>
           <ShowPatternHTF2_240m>true</ShowPatternHTF2_240m>
-          <ShowPatternHTF3_60m>false</ShowPatternHTF3_60m>
+          <ShowPatternHTF3_60m>true</ShowPatternHTF3_60m>
           <ShowPatternHTF4_30m>false</ShowPatternHTF4_30m>
           <ShowPatternHTF5_15m>false</ShowPatternHTF5_15m>
           <ShowPatternHTF6_10m>false</ShowPatternHTF6_10m>
           <ShowPatternHTF7_5m>false</ShowPatternHTF7_5m>
           <ShowPatternFTF1_Daily>true</ShowPatternFTF1_Daily>
           <ShowPatternFTF2_240m>true</ShowPatternFTF2_240m>
-          <ShowPatternFTF3_60m>false</ShowPatternFTF3_60m>
+          <ShowPatternFTF3_60m>true</ShowPatternFTF3_60m>
           <ShowPatternFTF4_30m>false</ShowPatternFTF4_30m>
           <ShowPatternFTF5_15m>false</ShowPatternFTF5_15m>
           <ShowPatternFTF6_10m>false</ShowPatternFTF6_10m>
@@ -1613,39 +1086,513 @@
           <CrossRequireOpposingZone>false</CrossRequireOpposingZone>
           <CrossInsideOnly>true</CrossInsideOnly>
           <CrossBothDirections>true</CrossBothDirections>
-          <CrossGraceMins>60</CrossGraceMins>
+          <CrossGraceMins>40</CrossGraceMins>
           <CrossMaxSeparation>0</CrossMaxSeparation>
           <MaxCrossArrows>200</MaxCrossArrows>
           <CrossLongColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</CrossLongColorSerialize>
           <CrossShortColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</CrossShortColorSerialize>
+          <EnableRetestSignal>true</EnableRetestSignal>
+          <ShowGetReadySymbol>false</ShowGetReadySymbol>
+          <GetReadySymbol>★</GetReadySymbol>
+          <RetestLongSymbol>▲</RetestLongSymbol>
+          <RetestShortSymbol>▼</RetestShortSymbol>
+          <RetestSymbolFontSize>14</RetestSymbolFontSize>
+          <GetReadyColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFD700&lt;/SolidColorBrush&gt;</GetReadyColorSerialize>
+          <RetestProvisionalColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFF0E68C&lt;/SolidColorBrush&gt;</RetestProvisionalColorSerialize>
+          <RetestConfirmedColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</RetestConfirmedColorSerialize>
+          <RetestWickToleranceTicks>5</RetestWickToleranceTicks>
+          <ShowProvisionalMarks>false</ShowProvisionalMarks>
+          <DebugRetestLog>false</DebugRetestLog>
+          <ShowChartPivotDots>false</ShowChartPivotDots>
+          <RetestRequireNebulaBright>false</RetestRequireNebulaBright>
+          <RetestSoundAlert>true</RetestSoundAlert>
+          <RetestLongSound>Alert2.wav</RetestLongSound>
+          <RetestShortSound>Alert4.wav</RetestShortSound>
+          <RetestAlertProvisional>false</RetestAlertProvisional>
           <DebugLevelLog>false</DebugLevelLog>
-        </AlightenMirrorV0045Signal>
+          <LogFolder>Mirror Logs</LogFolder>
+          <WriteZoneLog>true</WriteZoneLog>
+        </AlightenMirrorV0047Signal>
         <Input>
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.BnBTraderVPVWAPV0002" Panel="-1" DisplayName="BnBTraderVPVWAPV0002(1,2,3,True,True,False,True,70,40,160)">
-        <BnBTraderVPVWAPV0002 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.NebulaNT8NoCloud" Panel="-1" DisplayName="NebulaNT8NoCloud(14,20,Waddah,Simple,Top Right,14,True,True,2,6,10,20,50,False,50,3,21,8,15,80,1,7,5,False,False,False,True,False,False,False,False,False,False,False,True,True,False,13,80,21,2,Standard,0.0015,25,72,False,20,20,2,150,40,35)">
+        <NebulaNT8NoCloud xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
-          <calculate2>OnEachTick</calculate2>
+          <calculate2>OnBarClose</calculate2>
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
+            <Value2>1</Value2>
+          </BarsPeriodSerializable>
+          <BarsToLoad>0</BarsToLoad>
+          <Calculate>OnBarClose</Calculate>
+          <Displacement>0</Displacement>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-10-01T00:00:00</From>
+          <IsAutoScale>true</IsAutoScale>
+          <Lines />
+          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
+          <Name />
+          <Panel>-1</Panel>
+          <Plots>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>Signal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>AddSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>ProfitSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>BrightState</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+          </Plots>
+          <ScaleJustification>Right</ScaleJustification>
+          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
+          <To>2026-10-04T00:00:00</To>
+          <IsDataSeriesRequired>true</IsDataSeriesRequired>
+          <IsOverlay>true</IsOverlay>
+          <SelectedValueSeries>0</SelectedValueSeries>
+          <InputPlot>0</InputPlot>
+          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
+          <PaintPriceMarkers>true</PaintPriceMarkers>
+          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
+          <DrawVerticalGridLines>true</DrawVerticalGridLines>
+          <DrawOnPricePanel>true</DrawOnPricePanel>
+          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
+          <IndicatorId>151</IndicatorId>
+          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
+          <ZOrder>30065</ZOrder>
+          <CloudType>Simple</CloudType>
+          <CandleColoring>Waddah</CandleColoring>
+          <Theme>Standard</Theme>
+          <ShowStrongBuy>true</ShowStrongBuy>
+          <ShowBasicBuy>false</ShowBasicBuy>
+          <ShowStrongSell>true</ShowStrongSell>
+          <ShowBasicSell>false</ShowBasicSell>
+          <ShowHEMA>false</ShowHEMA>
+          <ShowPlus>false</ShowPlus>
+          <ShowBigPlus>true</ShowBigPlus>
+          <EnhanceStrongSignals>true</EnhanceStrongSignals>
+          <ShowFullProfit>false</ShowFullProfit>
+          <ShowPartialProfit>false</ShowPartialProfit>
+          <Show921>false</Show921>
+          <IgnoreDoji>false</IgnoreDoji>
+          <ProfitThreshold>5</ProfitThreshold>
+          <MaxProfitThreshold>7</MaxProfitThreshold>
+          <MaxDojiTicks>1</MaxDojiTicks>
+          <ShowVolumeImbalanceLines>false</ShowVolumeImbalanceLines>
+          <ImbalanceLineBars>50</ImbalanceLineBars>
+          <ImbalanceLineWidth>3</ImbalanceLineWidth>
+          <ShowReversalPattern>false</ShowReversalPattern>
+          <ShowRetests>false</ShowRetests>
+          <ShowDashboard>false</ShowDashboard>
+          <DashboardPosition>Top Right</DashboardPosition>
+          <SignalIconSize>13</SignalIconSize>
+          <UseQuadratic921>false</UseQuadratic921>
+          <SimpleCloudOpacity>80</SimpleCloudOpacity>
+          <LowCloudOpacity>80</LowCloudOpacity>
+          <HighCloudOpacity>50</HighCloudOpacity>
+          <AdxLength>14</AdxLength>
+          <DiLength>14</DiLength>
+          <FantailAdxLength>2</FantailAdxLength>
+          <FantailWeighting>10</FantailWeighting>
+          <FantailMaLength>6</FantailMaLength>
+          <WaeSensitivity>150</WaeSensitivity>
+          <WaeFastLength>20</WaeFastLength>
+          <WaeSlowLength>40</WaeSlowLength>
+          <WaeChannelLength>20</WaeChannelLength>
+          <WaeMultiplier>2</WaeMultiplier>
+          <TrampolineBbThreshold>0.0015</TrampolineBbThreshold>
+          <TrampolineRsiLower>25</TrampolineRsiLower>
+          <TrampolineRsiUpper>72</TrampolineRsiUpper>
+          <SqueezeTolerance>2</SqueezeTolerance>
+          <SqueezeAdxThreshold>21</SqueezeAdxThreshold>
+          <WatchSignalLookback>35</WatchSignalLookback>
+          <AlphaLength>20</AlphaLength>
+          <GammaLength>20</GammaLength>
+          <KernelLookback>21</KernelLookback>
+          <KernelRelativeWeight>8</KernelRelativeWeight>
+          <KernelStartBar>15</KernelStartBar>
+          <EnableAlerts>true</EnableAlerts>
+          <BullBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</BullBrushSerialize>
+          <BearBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BearBrushSerialize>
+          <PartialProfitBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF00FF&lt;/SolidColorBrush&gt;</PartialProfitBrushSerialize>
+          <SkullBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</SkullBrushSerialize>
+          <VectorMediumUpBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</VectorMediumUpBrushSerialize>
+          <VectorMediumDownBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFEE82EE&lt;/SolidColorBrush&gt;</VectorMediumDownBrushSerialize>
+        </NebulaNT8NoCloud>
+        <Input>
+          <PriceType>Close</PriceType>
+        </Input>
+      </Indicator>
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.CurrentDayOHL" Panel="0" DisplayName="CurrentDayOHL">
+        <CurrentDayOHL xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <IsVisible>true</IsVisible>
+          <calculate2>OnBarClose</calculate2>
+          <AreLinesConfigurable>true</AreLinesConfigurable>
+          <ArePlotsConfigurable>true</ArePlotsConfigurable>
+          <BarsPeriodSerializable>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
+            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
+            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
+            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
+            <MarketDataType>Last</MarketDataType>
+            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
+            <ReversalType>Tick</ReversalType>
+            <Value>30</Value>
+            <Value2>1</Value2>
+          </BarsPeriodSerializable>
+          <BarsToLoad>0</BarsToLoad>
+          <Calculate>OnBarClose</Calculate>
+          <Displacement>0</Displacement>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-10-01T00:00:00</From>
+          <IsAutoScale>false</IsAutoScale>
+          <Lines />
+          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
+          <Name />
+          <Panel>0</Panel>
+          <Plots>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDAA520&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Dash</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>2</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>Current open</Name>
+              <PlotStyle>Square</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF2E8B57&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Dash</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>2</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>Current high</Name>
+              <PlotStyle>Square</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Dash</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>2</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>Current low</Name>
+              <PlotStyle>Square</PlotStyle>
+            </Plot>
+          </Plots>
+          <ScaleJustification>Right</ScaleJustification>
+          <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
+          <To>2026-10-04T00:00:00</To>
+          <IsDataSeriesRequired>true</IsDataSeriesRequired>
+          <IsOverlay>true</IsOverlay>
+          <SelectedValueSeries>0</SelectedValueSeries>
+          <InputPlot>0</InputPlot>
+          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
+          <PaintPriceMarkers>true</PaintPriceMarkers>
+          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
+          <DrawVerticalGridLines>true</DrawVerticalGridLines>
+          <DrawOnPricePanel>false</DrawOnPricePanel>
+          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
+          <IndicatorId>154</IndicatorId>
+          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
+          <ZOrder>30067</ZOrder>
+          <ShowHigh>true</ShowHigh>
+          <ShowLow>true</ShowLow>
+          <ShowOpen>true</ShowOpen>
+        </CurrentDayOHL>
+        <Input>
+          <PriceType>Close</PriceType>
+        </Input>
+      </Indicator>
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenOrderFlowToolsV0006" Panel="0" DisplayName="AlightenOrderFlowToolsV0006(500,20,20,50,1,True,False,False,True,False,True,False,True,BidAsk,VisibleArea,50,25,4,18,10,4,4,0,2,1,★,30,True,1000,1,70,10,15,⛒)">
+        <AlightenOrderFlowToolsV0006 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <IsVisible>true</IsVisible>
+          <calculate2>OnEachTick</calculate2>
+          <AreLinesConfigurable>true</AreLinesConfigurable>
+          <ArePlotsConfigurable>true</ArePlotsConfigurable>
+          <BarsPeriodSerializable>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
+            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
+            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
+            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
+            <MarketDataType>Last</MarketDataType>
+            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
+            <ReversalType>Tick</ReversalType>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
+          <From>2026-10-01T00:00:00</From>
+          <IsAutoScale>true</IsAutoScale>
+          <Lines />
+          <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
+          <Name />
+          <Panel>0</Panel>
+          <Plots>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>TrappedTraders</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>StackedImbTrap</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>SpeedOfTape</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>MaxSpeedOfTape</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NetSpeedOfTape</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>MaxNetSpeedOfTape</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>ZoneTopPrice</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>ZoneBotPrice</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+          </Plots>
+          <ScaleJustification>Right</ScaleJustification>
+          <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
+          <To>2026-10-04T00:00:00</To>
+          <IsDataSeriesRequired>true</IsDataSeriesRequired>
+          <IsOverlay>true</IsOverlay>
+          <SelectedValueSeries>0</SelectedValueSeries>
+          <InputPlot>0</InputPlot>
+          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
+          <PaintPriceMarkers>false</PaintPriceMarkers>
+          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
+          <DrawVerticalGridLines>true</DrawVerticalGridLines>
+          <DrawOnPricePanel>true</DrawOnPricePanel>
+          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
+          <IndicatorId>157</IndicatorId>
+          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
+          <MaxSerialized>30542.25</MaxSerialized>
+          <MinSerialized>30371</MinSerialized>
+          <ZOrder>30068</ZOrder>
+          <BarsToProcess>500</BarsToProcess>
+          <LargeTradeFindBy>BidAsk</LargeTradeFindBy>
+          <EnableLargeTradeBubbles>true</EnableLargeTradeBubbles>
+          <MinimumVolumeForMarker>25</MinimumVolumeForMarker>
+          <MaximumMarkerSize>50</MaximumMarkerSize>
+          <LargeTradeSizeBy>VisibleArea</LargeTradeSizeBy>
+          <HoverValues>true</HoverValues>
+          <AskBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</AskBrushSeralizer>
+          <BidBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDC143C&lt;/SolidColorBrush&gt;</BidBrushSeralizer>
+          <OutlineBrushSeralizer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFA9A9A9&lt;/SolidColorBrush&gt;</OutlineBrushSeralizer>
+          <FillOpacity>50</FillOpacity>
+          <EnableBigTradeZones>false</EnableBigTradeZones>
+          <BigTradeZoneThreshold>50</BigTradeZoneThreshold>
+          <BigTradeZoneOpacity>20</BigTradeZoneOpacity>
+          <BigTradeZoneHeightTicks>20</BigTradeZoneHeightTicks>
+          <SignalFontSize>18</SignalFontSize>
+          <SignalOffsetTicks>10</SignalOffsetTicks>
+          <SignalStackPaddingTicks>4</SignalStackPaddingTicks>
+          <TrapLookaheadBars>1</TrapLookaheadBars>
+          <TrapMoveTicks>15</TrapMoveTicks>
+          <TrapMinTotalVolume>10</TrapMinTotalVolume>
+          <TrapMinDominancePct>70</TrapMinDominancePct>
+          <SpeedWindowMs>1000</SpeedWindowMs>
+          <EnableTrappedTradersSignal>false</EnableTrappedTradersSignal>
+          <TrappedTradersMarker>⛒</TrappedTradersMarker>
+          <TrappedLongBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FA9A&lt;/SolidColorBrush&gt;</TrappedLongBrushSerializer>
+          <TrappedShortBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF1493&lt;/SolidColorBrush&gt;</TrappedShortBrushSerializer>
+          <EnableSITrapSignal>false</EnableSITrapSignal>
+          <SITrapMarker>★</SITrapMarker>
+          <SITrapLongBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</SITrapLongBrushSerializer>
+          <SITrapShortBrushSerializer>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF4500&lt;/SolidColorBrush&gt;</SITrapShortBrushSerializer>
+          <DebugPrints>false</DebugPrints>
+          <DebugOnlyCurrentBar>true</DebugOnlyCurrentBar>
+          <DebugMinTotalVol>1</DebugMinTotalVol>
+          <EnableStackedImbalanceTrap>true</EnableStackedImbalanceTrap>
+          <SITrapLookaheadBars>1</SITrapLookaheadBars>
+          <SITrapMoveTicks>30</SITrapMoveTicks>
+          <SIAggregationIntervalTicks>4</SIAggregationIntervalTicks>
+          <SIImbFact>4</SIImbFact>
+          <SIStackedImbalanceLookback>2</SIStackedImbalanceLookback>
+          <SIMinRowVolume>0</SIMinRowVolume>
+          <SIUseSessionOpenForAggregation>true</SIUseSessionOpenForAggregation>
+        </AlightenOrderFlowToolsV0006>
+        <Input>
+          <PriceType>Close</PriceType>
+        </Input>
+      </Indicator>
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.BnBTraderVPVWAPV0002" Panel="-1" DisplayName="BnBTraderVPVWAPV0002(1,2,3,True,True,False,True,70,40,160)">
+        <BnBTraderVPVWAPV0002 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <IsVisible>false</IsVisible>
+          <calculate2>OnEachTick</calculate2>
+          <AreLinesConfigurable>true</AreLinesConfigurable>
+          <ArePlotsConfigurable>true</ArePlotsConfigurable>
+          <BarsPeriodSerializable>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
+            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
+            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
+            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
+            <MarketDataType>Last</MarketDataType>
+            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
+            <ReversalType>Tick</ReversalType>
+            <Value>30</Value>
+            <Value2>1</Value2>
+          </BarsPeriodSerializable>
+          <BarsToLoad>0</BarsToLoad>
+          <Calculate>OnEachTick</Calculate>
+          <Displacement>0</Displacement>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-10-01T00:00:00</From>
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1811,7 +1758,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1822,10 +1769,11 @@
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>3651</IndicatorId>
+          <IndicatorId>160</IndicatorId>
+          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
-          <ZOrder>30080</ZOrder>
+          <ZOrder>30075</ZOrder>
           <ShowVP>false</ShowVP>
           <ShowVWAP>true</ShowVWAP>
           <VPWidth>160</VPWidth>
@@ -1843,29 +1791,29 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.RedTail.RedTailVolumeProfile" Panel="-1" DisplayName="RedTailVolumeProfile(5,True,True,True,True,True,Alert3.wav,Right,50,1,4,False,50,True,False,False,68,Standard,40,80,1,9/18/2026 12:00:00 AM,8/19/2026 12:00:00 AM,30,3,DaysBack,4,20,1700,1759,False,True,False,False,False,False,False,True,False,False,True,True,True,False,False,False,False,False,True,True,False,10,100,60,80,50,14,10,True,False,False,False,False,False,False,True,True,70,False,False,9,30,100,5,40,100,5,5,3,10,5,1,100,Dash,1,40,80,Dot,68,1,Solid,80,2,Solid,80,2,Solid,80,2,250,Solid,85,2,False,830,Dash,85,2,Dash,85,2,Solid,85,2,1800,Solid,85,2,Solid,85,2,Dash,85,2,Dash,85,2,Solid,80,2,Solid,80,2,False,Solid,80,2,Solid,80,2,True,100,Solid,2,0,10,Session,200,Dash,80,1,Dash,80,1,Dash,80,2,Dash,80,2,False,Dash,80,2,Dash,80,2,True,0,0,50,2,True,True,True,1700,False,False,250,50,100,2,Outline,150,5,1759,100,2,68,Both,True,True,True,True,False,False,False,100,2,Solid,68,Standard,50,2,True,True,True,False,False,Solid,80,2,Solid,80,2,Solid,80,2,250,100,2,200,100,2,68,Both,1)">
-        <RedTailVolumeProfile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0005" Panel="-1" DisplayName="AutoAVWAPMTFV0005(True,2,2,Minute5,1,8,False,True,5,False,1800-1700,True,True,True,2,10,10,40,20,18,0,8,True,Day,True,0930-1600,8,1,NewYork,True)">
+        <AutoAVWAPMTFV0005 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnEachTick</calculate2>
           <AreLinesConfigurable>true</AreLinesConfigurable>
           <ArePlotsConfigurable>true</ArePlotsConfigurable>
           <BarsPeriodSerializable>
-            <BarsPeriodTypeSerialize>4</BarsPeriodTypeSerialize>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
             <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
             <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
             <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
             <MarketDataType>Last</MarketDataType>
             <PointAndFigurePriceType>Close</PointAndFigurePriceType>
             <ReversalType>Tick</ReversalType>
-            <Value>1</Value>
+            <Value>30</Value>
             <Value2>1</Value2>
           </BarsPeriodSerializable>
           <BarsToLoad>0</BarsToLoad>
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
-          <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-09-13T00:00:00</From>
-          <IsAutoScale>false</IsAutoScale>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-10-01T00:00:00</From>
+          <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
           <Name />
@@ -1881,7 +1829,371 @@
               <AutoWidth>true</AutoWidth>
               <Max>1.7976931348623157E+308</Max>
               <Min>-1.7976931348623157E+308</Min>
-              <Name>CurrentPOC</Name>
+              <Name>NearAVWAP01</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP02</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP03</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP04</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP05</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP06</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP07</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP08</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP09</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP10</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP11</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP12</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP13</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP14</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP15</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP16</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP17</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP18</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP19</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP20</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP21</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP22</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP23</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>NearAVWAP24</Name>
+              <PlotStyle>PriceBox</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>CrossSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>BarsSinceCross</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>TestSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>BarsSinceTest</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>LiveTest</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
             <Plot>
@@ -1894,521 +2206,230 @@
               <AutoWidth>true</AutoWidth>
               <Max>1.7976931348623157E+308</Max>
               <Min>-1.7976931348623157E+308</Min>
-              <Name>CurrentVAH</Name>
+              <Name>NearestAVWAP</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
             <Plot>
               <IsOpacityVisible>false</IsOpacityVisible>
               <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
               <DashStyleHelper>Solid</DashStyleHelper>
               <Opacity>100</Opacity>
               <Width>1</Width>
               <AutoWidth>true</AutoWidth>
               <Max>1.7976931348623157E+308</Max>
               <Min>-1.7976931348623157E+308</Min>
-              <Name>CurrentVAL</Name>
+              <Name>DistanceTicks</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
             <Plot>
               <IsOpacityVisible>false</IsOpacityVisible>
               <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
               <DashStyleHelper>Solid</DashStyleHelper>
               <Opacity>100</Opacity>
               <Width>1</Width>
               <AutoWidth>true</AutoWidth>
               <Max>1.7976931348623157E+308</Max>
               <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevDayPOC</Name>
+              <Name>Bias</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
             <Plot>
               <IsOpacityVisible>false</IsOpacityVisible>
               <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#01808080&lt;/SolidColorBrush&gt;</BrushSerialize>
               <DashStyleHelper>Solid</DashStyleHelper>
               <Opacity>100</Opacity>
               <Width>1</Width>
               <AutoWidth>true</AutoWidth>
               <Max>1.7976931348623157E+308</Max>
               <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevDayVAH</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevDayVAL</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevDayHigh</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevDayLow</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>OvernightPOC</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>OvernightVAH</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>OvernightVAL</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>OvernightHigh</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>OvernightLow</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevWeekPOC</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevWeekVAH</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevWeekVAL</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevWeekHigh</Name>
-              <PlotStyle>Line</PlotStyle>
-            </Plot>
-            <Plot>
-              <IsOpacityVisible>false</IsOpacityVisible>
-              <IsColorDisabled>false</IsColorDisabled>
-              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
-              <DashStyleHelper>Solid</DashStyleHelper>
-              <Opacity>100</Opacity>
-              <Width>1</Width>
-              <AutoWidth>true</AutoWidth>
-              <Max>1.7976931348623157E+308</Max>
-              <Min>-1.7976931348623157E+308</Min>
-              <Name>PrevWeekLow</Name>
+              <Name>AVWAPSignal</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-09-18T00:00:00</To>
+          <To>2026-10-04T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
           <InputPlot>0</InputPlot>
           <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
-          <PaintPriceMarkers>false</PaintPriceMarkers>
+          <PaintPriceMarkers>true</PaintPriceMarkers>
           <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
           <DrawVerticalGridLines>true</DrawVerticalGridLines>
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
-          <IndicatorId>4623</IndicatorId>
+          <IndicatorId>2859</IndicatorId>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
-          <ZOrder>30081</ZOrder>
-          <ProfileMode>Session</ProfileMode>
-          <Alignment>Right</Alignment>
-          <WeeksLookback>1</WeeksLookback>
-          <SessionsLookback>5</SessionsLookback>
-          <MonthsLookback>1</MonthsLookback>
-          <CompositeRangeType>DaysBack</CompositeRangeType>
-          <CompositeDaysBack>30</CompositeDaysBack>
-          <CompositeWeeksBack>4</CompositeWeeksBack>
-          <CompositeMonthsBack>3</CompositeMonthsBack>
-          <CompositeCustomStartDate>2026-08-19T00:00:00-04:00</CompositeCustomStartDate>
-          <CompositeCustomEndDate>2026-09-18T00:00:00-04:00</CompositeCustomEndDate>
-          <UseCustomSessionTimes>false</UseCustomSessionTimes>
-          <SessionStartTime>1759</SessionStartTime>
-          <SessionEndTime>1700</SessionEndTime>
-          <NumberOfVolumeBars>250</NumberOfVolumeBars>
-          <BarThickness>1</BarThickness>
-          <ProfileWidth>200</ProfileWidth>
-          <VolumeType>Standard</VolumeType>
-          <BarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF808080&lt;/SolidColorBrush&gt;</BarColorSerialize>
-          <BullishBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008000&lt;/SolidColorBrush&gt;</BullishBarColorSerialize>
-          <BearishBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BearishBarColorSerialize>
-          <BarOpacity>50</BarOpacity>
-          <DisplayPoC>true</DisplayPoC>
-          <PoCLineThickness>2</PoCLineThickness>
-          <PoCLineColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</PoCLineColorSerialize>
-          <PoCLineStyle>Solid</PoCLineStyle>
-          <PoCLineOpacity>100</PoCLineOpacity>
-          <ExtendPoCLine>true</ExtendPoCLine>
-          <DisplayValueArea>true</DisplayValueArea>
-          <ValueAreaPercentage>68</ValueAreaPercentage>
-          <ValueAreaBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF0000FF&lt;/SolidColorBrush&gt;</ValueAreaBarColorSerialize>
-          <DisplayValueAreaLines>true</DisplayValueAreaLines>
-          <ValueAreaLinesColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</ValueAreaLinesColorSerialize>
-          <ValueAreaLinesThickness>2</ValueAreaLinesThickness>
-          <ValueAreaLineStyle>Solid</ValueAreaLineStyle>
-          <ValueAreaLinesOpacity>100</ValueAreaLinesOpacity>
-          <ExtendValueAreaLines>true</ExtendValueAreaLines>
-          <UpdateFrequency>100</UpdateFrequency>
-          <EnableDebugPrints>false</EnableDebugPrints>
-          <DisplayPreviousDayPOC>true</DisplayPreviousDayPOC>
-          <PdPOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</PdPOCColorSerialize>
-          <PdPOCLineStyle>Solid</PdPOCLineStyle>
-          <PdPOCThickness>2</PdPOCThickness>
-          <PdPOCOpacity>80</PdPOCOpacity>
-          <DisplayPreviousDayVAH>true</DisplayPreviousDayVAH>
-          <PdVAHColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</PdVAHColorSerialize>
-          <PdVAHLineStyle>Solid</PdVAHLineStyle>
-          <PdVAHThickness>2</PdVAHThickness>
-          <PdVAHOpacity>80</PdVAHOpacity>
-          <DisplayPreviousDayVAL>true</DisplayPreviousDayVAL>
-          <PdVALColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF00FF&lt;/SolidColorBrush&gt;</PdVALColorSerialize>
-          <PdVALLineStyle>Solid</PdVALLineStyle>
-          <PdVALThickness>2</PdVALThickness>
-          <PdVALOpacity>80</PdVALOpacity>
-          <DisplayPreviousDayHigh>false</DisplayPreviousDayHigh>
-          <PdHighColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</PdHighColorSerialize>
-          <PdHighLineStyle>Dash</PdHighLineStyle>
-          <PdHighThickness>2</PdHighThickness>
-          <PdHighOpacity>85</PdHighOpacity>
-          <DisplayPreviousDayLow>false</DisplayPreviousDayLow>
-          <PdLowColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</PdLowColorSerialize>
-          <PdLowLineStyle>Dash</PdLowLineStyle>
-          <PdLowThickness>2</PdLowThickness>
-          <PdLowOpacity>85</PdLowOpacity>
-          <DisplayPreviousWeekPOC>false</DisplayPreviousWeekPOC>
-          <PwPOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFD700&lt;/SolidColorBrush&gt;</PwPOCColorSerialize>
-          <PwPOCLineStyle>Dash</PwPOCLineStyle>
-          <PwPOCThickness>2</PwPOCThickness>
-          <PwPOCOpacity>80</PwPOCOpacity>
-          <DisplayPreviousWeekVAH>false</DisplayPreviousWeekVAH>
-          <PwVAHColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</PwVAHColorSerialize>
-          <PwVAHLineStyle>Dash</PwVAHLineStyle>
-          <PwVAHThickness>2</PwVAHThickness>
-          <PwVAHOpacity>80</PwVAHOpacity>
-          <DisplayPreviousWeekVAL>false</DisplayPreviousWeekVAL>
-          <PwVALColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDA70D6&lt;/SolidColorBrush&gt;</PwVALColorSerialize>
-          <PwVALLineStyle>Dash</PwVALLineStyle>
-          <PwVALThickness>2</PwVALThickness>
-          <PwVALOpacity>80</PwVALOpacity>
-          <DisplayPreviousWeekHigh>false</DisplayPreviousWeekHigh>
-          <PwHighColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</PwHighColorSerialize>
-          <PwHighLineStyle>Dash</PwHighLineStyle>
-          <PwHighThickness>1</PwHighThickness>
-          <PwHighOpacity>80</PwHighOpacity>
-          <DisplayPreviousWeekLow>false</DisplayPreviousWeekLow>
-          <PwLowColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</PwLowColorSerialize>
-          <PwLowLineStyle>Dash</PwLowLineStyle>
-          <PwLowThickness>1</PwLowThickness>
-          <PwLowOpacity>80</PwLowOpacity>
-          <DisplayOvernightPOC>false</DisplayOvernightPOC>
-          <OvernightPOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</OvernightPOCColorSerialize>
-          <OvernightPOCLineStyle>Solid</OvernightPOCLineStyle>
-          <OvernightPOCThickness>2</OvernightPOCThickness>
-          <OvernightPOCOpacity>85</OvernightPOCOpacity>
-          <DisplayOvernightVAH>false</DisplayOvernightVAH>
-          <OvernightVAHColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFADD8E6&lt;/SolidColorBrush&gt;</OvernightVAHColorSerialize>
-          <OvernightVAHLineStyle>Solid</OvernightVAHLineStyle>
-          <OvernightVAHThickness>2</OvernightVAHThickness>
-          <OvernightVAHOpacity>85</OvernightVAHOpacity>
-          <DisplayOvernightVAL>false</DisplayOvernightVAL>
-          <OvernightVALColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFC0CB&lt;/SolidColorBrush&gt;</OvernightVALColorSerialize>
-          <OvernightVALLineStyle>Solid</OvernightVALLineStyle>
-          <OvernightVALThickness>2</OvernightVALThickness>
-          <OvernightVALOpacity>85</OvernightVALOpacity>
-          <DisplayOvernightHigh>false</DisplayOvernightHigh>
-          <OvernightHighColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF90EE90&lt;/SolidColorBrush&gt;</OvernightHighColorSerialize>
-          <OvernightHighLineStyle>Dash</OvernightHighLineStyle>
-          <OvernightHighThickness>2</OvernightHighThickness>
-          <OvernightHighOpacity>85</OvernightHighOpacity>
-          <DisplayOvernightLow>false</DisplayOvernightLow>
-          <OvernightLowColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFF08080&lt;/SolidColorBrush&gt;</OvernightLowColorSerialize>
-          <OvernightLowLineStyle>Dash</OvernightLowLineStyle>
-          <OvernightLowThickness>2</OvernightLowThickness>
-          <OvernightLowOpacity>85</OvernightLowOpacity>
-          <OvernightStartTime>1800</OvernightStartTime>
-          <OvernightEndTime>830</OvernightEndTime>
-          <NakedPOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</NakedPOCColorSerialize>
-          <NakedPOCLineStyle>Solid</NakedPOCLineStyle>
-          <NakedPOCThickness>2</NakedPOCThickness>
-          <NakedPOCOpacity>80</NakedPOCOpacity>
-          <NakedVAHColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</NakedVAHColorSerialize>
-          <NakedVAHLineStyle>Solid</NakedVAHLineStyle>
-          <NakedVAHThickness>2</NakedVAHThickness>
-          <NakedVAHOpacity>80</NakedVAHOpacity>
-          <NakedVALColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF00FF&lt;/SolidColorBrush&gt;</NakedVALColorSerialize>
-          <NakedVALLineStyle>Solid</NakedVALLineStyle>
-          <NakedVALThickness>2</NakedVALThickness>
-          <NakedVALOpacity>80</NakedVALOpacity>
-          <WeeklyNakedPOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF8C00&lt;/SolidColorBrush&gt;</WeeklyNakedPOCColorSerialize>
-          <WeeklyNakedPOCLineStyle>Solid</WeeklyNakedPOCLineStyle>
-          <WeeklyNakedPOCThickness>2</WeeklyNakedPOCThickness>
-          <WeeklyNakedPOCOpacity>80</WeeklyNakedPOCOpacity>
-          <WeeklyNakedVAHColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</WeeklyNakedVAHColorSerialize>
-          <WeeklyNakedVAHLineStyle>Solid</WeeklyNakedVAHLineStyle>
-          <WeeklyNakedVAHThickness>2</WeeklyNakedVAHThickness>
-          <WeeklyNakedVAHOpacity>80</WeeklyNakedVAHOpacity>
-          <WeeklyNakedVALColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF8B008B&lt;/SolidColorBrush&gt;</WeeklyNakedVALColorSerialize>
-          <WeeklyNakedVALLineStyle>Solid</WeeklyNakedVALLineStyle>
-          <WeeklyNakedVALThickness>2</WeeklyNakedVALThickness>
-          <WeeklyNakedVALOpacity>80</WeeklyNakedVALOpacity>
-          <DisplayNakedLevels>true</DisplayNakedLevels>
-          <MaxNakedLevelsToDisplay>5</MaxNakedLevelsToDisplay>
-          <DisplayWeeklyNakedLevels>false</DisplayWeeklyNakedLevels>
-          <MaxWeeklyNakedLevelsToDisplay>3</MaxWeeklyNakedLevelsToDisplay>
-          <KeepFilledLevelsAfterSession>false</KeepFilledLevelsAfterSession>
-          <RemoveAfterTouchCount>0</RemoveAfterTouchCount>
-          <KeepFilledWeeklyLevelsAfterWeek>false</KeepFilledWeeklyLevelsAfterWeek>
-          <RemoveWeeklyAfterTouchCount>0</RemoveWeeklyAfterTouchCount>
-          <ShowTouchCountInLabels>false</ShowTouchCountInLabels>
-          <BritishDateFormat>false</BritishDateFormat>
-          <PreviousDayLineWidth>0</PreviousDayLineWidth>
-          <ShowPriceValuesInLabels>true</ShowPriceValuesInLabels>
-          <LabelFontSize>9</LabelFontSize>
-          <EnableDualProfileMode>false</EnableDualProfileMode>
-          <WeeklyProfileWidth>200</WeeklyProfileWidth>
-          <SessionProfileWidth>150</SessionProfileWidth>
-          <ProfileGap>10</ProfileGap>
-          <UseCustomDailySessionTimes>false</UseCustomDailySessionTimes>
-          <DailySessionStartTime>1759</DailySessionStartTime>
-          <DailySessionEndTime>1700</DailySessionEndTime>
-          <SessionProfileStyle>Outline</SessionProfileStyle>
-          <SessionOutlineSmoothness>50</SessionOutlineSmoothness>
-          <WeeklyNumberOfVolumeBars>250</WeeklyNumberOfVolumeBars>
-          <WeeklyBarThickness>2</WeeklyBarThickness>
-          <WeeklyVolumeType>Both</WeeklyVolumeType>
-          <WeeklyBarOpacity>50</WeeklyBarOpacity>
-          <WeeklyDisplayPoC>true</WeeklyDisplayPoC>
-          <WeeklyPoCLineThickness>2</WeeklyPoCLineThickness>
-          <WeeklyPoCLineOpacity>100</WeeklyPoCLineOpacity>
-          <WeeklyDisplayValueArea>true</WeeklyDisplayValueArea>
-          <WeeklyValueAreaPercentage>68</WeeklyValueAreaPercentage>
-          <WeeklyDisplayValueAreaLines>true</WeeklyDisplayValueAreaLines>
-          <WeeklyValueAreaLinesThickness>2</WeeklyValueAreaLinesThickness>
-          <WeeklyValueAreaLinesOpacity>100</WeeklyValueAreaLinesOpacity>
-          <WeeklyExtendPoCLine>false</WeeklyExtendPoCLine>
-          <WeeklyExtendValueAreaLines>false</WeeklyExtendValueAreaLines>
-          <WeeklyBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF8B0000&lt;/SolidColorBrush&gt;</WeeklyBarColorSerialize>
-          <WeeklyPoCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</WeeklyPoCColorSerialize>
-          <WeeklyVAColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00008B&lt;/SolidColorBrush&gt;</WeeklyVAColorSerialize>
-          <WeeklyVALinesColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</WeeklyVALinesColorSerialize>
-          <SessionNumberOfVolumeBars>250</SessionNumberOfVolumeBars>
-          <SessionBarThickness>2</SessionBarThickness>
-          <SessionVolumeType>Both</SessionVolumeType>
-          <SessionBarOpacity>50</SessionBarOpacity>
-          <SessionDisplayPoC>true</SessionDisplayPoC>
-          <SessionPoCLineThickness>2</SessionPoCLineThickness>
-          <SessionPoCLineOpacity>100</SessionPoCLineOpacity>
-          <SessionDisplayValueArea>true</SessionDisplayValueArea>
-          <SessionValueAreaPercentage>68</SessionValueAreaPercentage>
-          <SessionDisplayValueAreaLines>true</SessionDisplayValueAreaLines>
-          <SessionValueAreaLinesThickness>2</SessionValueAreaLinesThickness>
-          <SessionValueAreaLinesOpacity>100</SessionValueAreaLinesOpacity>
-          <SessionExtendPoCLine>false</SessionExtendPoCLine>
-          <SessionExtendValueAreaLines>false</SessionExtendValueAreaLines>
-          <SessionOutlineColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</SessionOutlineColorSerialize>
-          <SessionPoCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</SessionPoCColorSerialize>
-          <SessionVAColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008B8B&lt;/SolidColorBrush&gt;</SessionVAColorSerialize>
-          <SessionVALinesColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF90EE90&lt;/SolidColorBrush&gt;</SessionVALinesColorSerialize>
-          <EnableGradientFill>false</EnableGradientFill>
-          <GradientIntensity>70</GradientIntensity>
-          <RenderQuality>Adaptive</RenderQuality>
-          <SmoothingPasses>2</SmoothingPasses>
-          <MinBarPixelHeight>2</MinBarPixelHeight>
-          <MaxBarPixelHeight>8</MaxBarPixelHeight>
-          <DisplayLVN>false</DisplayLVN>
-          <LVNNumberOfRows>100</LVNNumberOfRows>
-          <LVNDetectionPercent>5</LVNDetectionPercent>
-          <ShowAdjacentLVNNodes>true</ShowAdjacentLVNNodes>
-          <LVNFillColorSerializable>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF808080&lt;/SolidColorBrush&gt;</LVNFillColorSerializable>
-          <LVNFillOpacity>40</LVNFillOpacity>
-          <LVNBorderColorSerializable>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFA9A9A9&lt;/SolidColorBrush&gt;</LVNBorderColorSerializable>
-          <LVNBorderOpacity>100</LVNBorderOpacity>
-          <EnableDomdicator>false</EnableDomdicator>
-          <DomdicatorWidth>100</DomdicatorWidth>
-          <DomdicatorGap>10</DomdicatorGap>
-          <DomMaxRightExtension>50</DomMaxRightExtension>
-          <ShowDOMVolumeText>true</ShowDOMVolumeText>
-          <DomMaxTextSize>14</DomMaxTextSize>
-          <DomMinTextSize>10</DomMinTextSize>
-          <DomHistoricalOpacity>60</DomHistoricalOpacity>
-          <ShowHistoricalOrders>true</ShowHistoricalOrders>
-          <LiveOrderTickThreshold>30</LiveOrderTickThreshold>
-          <DomLiveOpacity>80</DomLiveOpacity>
-          <MinimumOrdersToStart>5</MinimumOrdersToStart>
-          <DomBidBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008000&lt;/SolidColorBrush&gt;</DomBidBrushSerialize>
-          <DomAskBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</DomAskBrushSerialize>
-          <DomTextBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFFFF&lt;/SolidColorBrush&gt;</DomTextBrushSerialize>
-          <DomOutlierBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</DomOutlierBrushSerialize>
-          <EnableAlerts>true</EnableAlerts>
-          <AlertDistanceTicks>5</AlertDistanceTicks>
-          <AlertOnPreviousDayLevels>true</AlertOnPreviousDayLevels>
-          <AlertOnPreviousWeekLevels>true</AlertOnPreviousWeekLevels>
-          <AlertOnNakedLevels>true</AlertOnNakedLevels>
-          <AlertOnWeeklyNakedLevels>true</AlertOnWeeklyNakedLevels>
-          <AlertOnOvernightLevels>true</AlertOnOvernightLevels>
-          <PlayAlertSound>true</PlayAlertSound>
-          <AlertSoundFile>Alert3.wav</AlertSoundFile>
-          <RearmAlertsOnNewSession>true</RearmAlertsOnNewSession>
-          <EnableMoveProfiles>false</EnableMoveProfiles>
-          <ConsolidationBars>20</ConsolidationBars>
-          <BreakoutThresholdTicks>4</BreakoutThresholdTicks>
-          <MinimumMoveSizeTicks>10</MinimumMoveSizeTicks>
-          <MaxMovesToDisplay>5</MaxMovesToDisplay>
-          <MoveProfileColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFA9A9A9&lt;/SolidColorBrush&gt;</MoveProfileColorSerialize>
-          <MoveProfileOpacity>40</MoveProfileOpacity>
-          <MovePOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</MovePOCColorSerialize>
-          <MovePOCLineStyle>Dash</MovePOCLineStyle>
-          <MovePOCThickness>1</MovePOCThickness>
-          <MoveVALinesColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</MoveVALinesColorSerialize>
-          <MoveVALineStyle>Dot</MoveVALineStyle>
-          <MoveVAThickness>1</MoveVAThickness>
-          <MoveNumberOfVolumeBars>100</MoveNumberOfVolumeBars>
-          <MoveValueAreaPercentage>68</MoveValueAreaPercentage>
-          <MoveVALinesOpacity>80</MoveVALinesOpacity>
-          <EnableCandleProfiles>false</EnableCandleProfiles>
-          <CandleProfileWidth>40</CandleProfileWidth>
-          <CandleProfileOpacity>50</CandleProfileOpacity>
-          <CandleProfileVolumeType>Standard</CandleProfileVolumeType>
-          <CandleProfileShowPOC>true</CandleProfileShowPOC>
-          <CandleProfileShowVA>false</CandleProfileShowVA>
-          <CandleProfileVAPercent>68</CandleProfileVAPercent>
-          <CandleProfileBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</CandleProfileBarColorSerialize>
-          <CandlePOCColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</CandlePOCColorSerialize>
-          <CandleVAColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF6495ED&lt;/SolidColorBrush&gt;</CandleVAColorSerialize>
-          <CandleProfileBullColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008000&lt;/SolidColorBrush&gt;</CandleProfileBullColorSerialize>
-          <CandleProfileBearColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</CandleProfileBearColorSerialize>
-          <CandleProfileShowVALines>false</CandleProfileShowVALines>
-          <CandleVALinesColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</CandleVALinesColorSerialize>
-          <CandleVALinesThickness>1</CandleVALinesThickness>
-          <CandleVALinesOpacity>80</CandleVALinesOpacity>
-          <PdUseIndividualStyles>false</PdUseIndividualStyles>
-          <PdSharedColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</PdSharedColorSerialize>
-          <PdSharedLineStyle>Solid</PdSharedLineStyle>
-          <PdSharedThickness>2</PdSharedThickness>
-          <PdSharedOpacity>80</PdSharedOpacity>
-          <PwUseIndividualStyles>false</PwUseIndividualStyles>
-          <PwSharedColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFD700&lt;/SolidColorBrush&gt;</PwSharedColorSerialize>
-          <PwSharedLineStyle>Dash</PwSharedLineStyle>
-          <PwSharedThickness>2</PwSharedThickness>
-          <PwSharedOpacity>80</PwSharedOpacity>
-          <OnUseIndividualStyles>false</OnUseIndividualStyles>
-          <OnSharedColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</OnSharedColorSerialize>
-          <OnSharedLineStyle>Solid</OnSharedLineStyle>
-          <OnSharedThickness>2</OnSharedThickness>
-          <OnSharedOpacity>85</OnSharedOpacity>
-        </RedTailVolumeProfile>
+          <ZOrder>30085</ZOrder>
+          <DataSeriesMinutes>5</DataSeriesMinutes>
+          <DataSeriesBarsToLoad>0</DataSeriesBarsToLoad>
+          <DebugLog>true</DebugLog>
+          <CalcTimeframe>Minute5</CalcTimeframe>
+          <SessionBehavior>Day</SessionBehavior>
+          <KeepPreviousSessionHL>true</KeepPreviousSessionHL>
+          <ShowSessionLabels>true</ShowSessionLabels>
+          <LabelOffsetBars>2</LabelOffsetBars>
+          <TimeZoneSetting>NewYork</TimeZoneSetting>
+          <OpenAnchorHour>18</OpenAnchorHour>
+          <OpenAnchorMinute>0</OpenAnchorMinute>
+          <NewExtremeLookback>20</NewExtremeLookback>
+          <CloseThroughDelayBars>1</CloseThroughDelayBars>
+          <CloseThroughToleranceTicks>8</CloseThroughToleranceTicks>
+          <BarsBeforeTest>2</BarsBeforeTest>
+          <TestWaitBars>1</TestWaitBars>
+          <TestToleranceTicks>8</TestToleranceTicks>
+          <PriceScaleLabelToleranceTicks>8</PriceScaleLabelToleranceTicks>
+          <AllowFollowOnTests>true</AllowFollowOnTests>
+          <MaxTestsPerAnchor>10</MaxTestsPerAnchor>
+          <IndependentCooldowns>true</IndependentCooldowns>
+          <MinimumGapTicks>40</MinimumGapTicks>
+          <DeleteGapOnCloseThrough>false</DeleteGapOnCloseThrough>
+          <ResetOnNewSession>true</ResetOnNewSession>
+          <UseStockSession>true</UseStockSession>
+          <StockSession>0930-1600</StockSession>
+          <FuturesSession>1800-1700</FuturesSession>
+          <MaxOpenTestAVWAPs>10</MaxOpenTestAVWAPs>
+          <BullishColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008080&lt;/SolidColorBrush&gt;</BullishColorSerialize>
+          <BearishColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BearishColorSerialize>
+          <ColorSuccessfulTestBars>true</ColorSuccessfulTestBars>
+          <ColorRegardlessOfCandleDirection>false</ColorRegardlessOfCandleDirection>
+          <IntrabarColoring>true</IntrabarColoring>
+          <BullishTestBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF008080&lt;/SolidColorBrush&gt;</BullishTestBarColorSerialize>
+          <BearishTestBarColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</BearishTestBarColorSerialize>
+          <AVWAPLineWidth>2</AVWAPLineWidth>
+          <SignalHoldBars>1</SignalHoldBars>
+          <EnableSignals>true</EnableSignals>
+          <EnableWickSignals>true</EnableWickSignals>
+          <EnableRetestSignals>true</EnableRetestSignals>
+          <SignalAnchors>SessionHighLowAndTests</SignalAnchors>
+          <SignalWickToleranceTicks>12</SignalWickToleranceTicks>
+          <SignalMinAnchorAgeBars>1</SignalMinAnchorAgeBars>
+          <SignalBiasFilter>false</SignalBiasFilter>
+          <StopBufferTicks>4</StopBufferTicks>
+          <MinRewardRisk>1</MinRewardRisk>
+          <ShowStopTarget>false</ShowStopTarget>
+          <SignalLineBars>20</SignalLineBars>
+          <MaxSignalDrawings>60</MaxSignalDrawings>
+          <SignalLongColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00BFFF&lt;/SolidColorBrush&gt;</SignalLongColorSerialize>
+          <SignalShortColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF4500&lt;/SolidColorBrush&gt;</SignalShortColorSerialize>
+          <SignalWeakColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF808080&lt;/SolidColorBrush&gt;</SignalWeakColorSerialize>
+          <SignalFontSize>13</SignalFontSize>
+          <SignalSoundAlert>true</SignalSoundAlert>
+          <SignalLongSound>Alert2.wav</SignalLongSound>
+          <SignalShortSound>Alert4.wav</SignalShortSound>
+          <WriteSignalLog>true</WriteSignalLog>
+          <SignalForwardBars>12</SignalForwardBars>
+          <ShowBreakMarkers>true</ShowBreakMarkers>
+          <UseDirectionState>true</UseDirectionState>
+          <CancelOnOpposingBreak>true</CancelOnOpposingBreak>
+          <MinBreakAgeBars>2</MinBreakAgeBars>
+          <CancelWindowBars>3</CancelWindowBars>
+          <MixedBarNeutral>true</MixedBarNeutral>
+          <ShowRewardRiskLabel>false</ShowRewardRiskLabel>
+          <SignalCloseMarginTicks>4</SignalCloseMarginTicks>
+        </AutoAVWAPMTFV0005>
+        <Input>
+          <PriceType>Close</PriceType>
+        </Input>
+      </Indicator>
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenBiasV0004" Panel="-1" DisplayName="AlightenBiasV0004(500,4,#FF2F4F4F,False,25,#FFFFA500,#FF1E90FF,#FF32CD32,#FF1E90FF,#FF006400,#FFDC143C,Solid,2,#FFFF0000,2,6,300,14,4,Dash,2,1000,RelevantPlusNearby,False,False,False,65,True,False,#FFFFFF00)">
+        <AlightenBiasV0004 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+          <IsVisible>true</IsVisible>
+          <calculate2>OnBarClose</calculate2>
+          <AreLinesConfigurable>true</AreLinesConfigurable>
+          <ArePlotsConfigurable>true</ArePlotsConfigurable>
+          <BarsPeriodSerializable>
+            <BarsPeriodTypeSerialize>3</BarsPeriodTypeSerialize>
+            <BaseBarsPeriodType>Minute</BaseBarsPeriodType>
+            <BaseBarsPeriodValue>1</BaseBarsPeriodValue>
+            <VolumetricDeltaType>BidAsk</VolumetricDeltaType>
+            <MarketDataType>Last</MarketDataType>
+            <PointAndFigurePriceType>Close</PointAndFigurePriceType>
+            <ReversalType>Tick</ReversalType>
+            <Value>30</Value>
+            <Value2>1</Value2>
+          </BarsPeriodSerializable>
+          <BarsToLoad>0</BarsToLoad>
+          <Calculate>OnBarClose</Calculate>
+          <Displacement>0</Displacement>
+          <DisplayInDataBox>true</DisplayInDataBox>
+          <From>2026-10-01T00:00:00</From>
+          <IsAutoScale>true</IsAutoScale>
+          <Lines />
+          <MaximumBarsLookBack>Infinite</MaximumBarsLookBack>
+          <Name />
+          <Panel>-1</Panel>
+          <Plots>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>Bias</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
+          </Plots>
+          <ScaleJustification>Right</ScaleJustification>
+          <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
+          <To>2026-10-04T00:00:00</To>
+          <IsDataSeriesRequired>true</IsDataSeriesRequired>
+          <IsOverlay>true</IsOverlay>
+          <SelectedValueSeries>0</SelectedValueSeries>
+          <InputPlot>0</InputPlot>
+          <IsTradingHoursBreakLineVisible>true</IsTradingHoursBreakLineVisible>
+          <PaintPriceMarkers>true</PaintPriceMarkers>
+          <DrawHorizontalGridLines>true</DrawHorizontalGridLines>
+          <DrawVerticalGridLines>true</DrawVerticalGridLines>
+          <DrawOnPricePanel>true</DrawOnPricePanel>
+          <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
+          <IndicatorId>13822</IndicatorId>
+          <MaxSerialized>0</MaxSerialized>
+          <MinSerialized>0</MinSerialized>
+          <ZOrder>30089</ZOrder>
+          <BarsToProcess>500</BarsToProcess>
+          <DrawZigZags>true</DrawZigZags>
+          <NumberOfLevels>6</NumberOfLevels>
+          <RelevanceFactor>300</RelevanceFactor>
+          <ZigZagColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFF00&lt;/SolidColorBrush&gt;</ZigZagColorSerialize>
+          <LevelLineColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</LevelLineColorSerialize>
+          <LevelLineColorGainedSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF006400&lt;/SolidColorBrush&gt;</LevelLineColorGainedSerialize>
+          <LevelLineColorLostSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFDC143C&lt;/SolidColorBrush&gt;</LevelLineColorLostSerialize>
+          <LevelLineWidth>2</LevelLineWidth>
+          <LevelLineDashStyle>Solid</LevelLineDashStyle>
+          <ShowContainmentBox>false</ShowContainmentBox>
+          <ContainmentBoxColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF2F4F4F&lt;/SolidColorBrush&gt;</ContainmentBoxColorSerialize>
+          <GainColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF32CD32&lt;/SolidColorBrush&gt;</GainColorSerialize>
+          <LossColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF0000&lt;/SolidColorBrush&gt;</LossColorSerialize>
+          <FailedGainColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFA500&lt;/SolidColorBrush&gt;</FailedGainColorSerialize>
+          <FailedLossColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</FailedLossColorSerialize>
+          <ShowGainLoss>false</ShowGainLoss>
+          <ShowFTGFTL>false</ShowFTGFTL>
+          <UseRecentLevels>true</UseRecentLevels>
+          <UseScoredLevels>false</UseScoredLevels>
+          <ScoreMode>RelevantPlusNearby</ScoreMode>
+          <ScoredLevelCount>4</ScoredLevelCount>
+          <ScoredLookbackBars>1000</ScoredLookbackBars>
+          <SizeWeightPct>65</SizeWeightPct>
+          <ScoreAtrLength>14</ScoreAtrLength>
+          <NearbyWindowAtr>2</NearbyWindowAtr>
+          <ExitExtraPct>25</ExitExtraPct>
+          <ClusterTicks>4</ClusterTicks>
+          <ScoredLineDashStyle>Dash</ScoredLineDashStyle>
+          <ScoredLineWidth>2</ScoredLineWidth>
+          <ScoredLongColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</ScoredLongColorSerialize>
+          <ScoredShortColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFFFF&lt;/SolidColorBrush&gt;</ScoredShortColorSerialize>
+          <DebugPrints>false</DebugPrints>
+        </AlightenBiasV0004>
         <Input>
           <PriceType>Close</PriceType>
         </Input>
@@ -2436,7 +2457,7 @@
           <Size>11</Size>
         </LabelFont>
         <DataSeriesWatermark>@INSTRUMENT_FULL_ALL</DataSeriesWatermark>
-        <BarDistance>9.100152</BarDistance>
+        <BarDistance>18.9195938</BarDistance>
         <BarMarginRightUser>8</BarMarginRightUser>
         <ChartTimeFormat>TwentyfourHour</ChartTimeFormat>
         <ChartTraderVisibility>Visible</ChartTraderVisibility>
@@ -2569,8 +2590,8 @@
             <AutoScaleMarginLower>6</AutoScaleMarginLower>
             <AutoScaleMarginUpper>6</AutoScaleMarginUpper>
             <YAxisScalingType>Linear</YAxisScalingType>
-            <FixedScaleMaxSerialize>29852.25</FixedScaleMaxSerialize>
-            <FixedScaleMinSerialize>29659.25</FixedScaleMinSerialize>
+            <FixedScaleMaxSerialize>30906</FixedScaleMaxSerialize>
+            <FixedScaleMinSerialize>30819.75</FixedScaleMinSerialize>
             <IsInverted>false</IsInverted>
           </ChartScaleProperties>
         </Right>
@@ -2669,7 +2690,7 @@
 &lt;/Pen&gt;</StopMarketSerialize>
       </ChartTraderProperties>
     </Properties>
-    <Account>SimChallenge2</Account>
+    <Account>Playback101</Account>
     <ATM>1C 200x100</ATM>
     <Instrument>NQ 12-26</Instrument>
     <Quantity>1</Quantity>

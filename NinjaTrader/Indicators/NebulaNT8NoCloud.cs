@@ -130,6 +130,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                 AddPlot(Brushes.Transparent, "Signal");       // +1 basic buy, -1 basic sell, +2/-2 strong
                 AddPlot(Brushes.Transparent, "AddSignal");    // +1/-1 small add, +2/-2 strong add
                 AddPlot(Brushes.Transparent, "ProfitSignal"); // +1/-1 partial, +2/-2 full
+                // APPENDED LAST so the three plot indexes above are unchanged. Exposes the
+                // Tidal Wave "bright" candle state (a candle that breaks the wave with no
+                // overlap, or gaps through it) so a hosting indicator can read it:
+                // +1 brightGreen, -1 brightRed, 0 otherwise. Written on every bar.
+                AddPlot(Brushes.Transparent, "BrightState");
             }
             else if (State == State.DataLoaded)
             {
@@ -171,6 +176,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             Values[0][0] = 0;
             Values[1][0] = 0;
             Values[2][0] = 0;
+            Values[3][0] = 0;
             if (CurrentBar < 210) return;
 
             SetTheme();
@@ -357,6 +363,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (Close[1] < Open[1] && Open[0] < Close[1]) { wave = DownTrend; brightRed = true; gapRed = true; DrawImbalance(false); }
             }
             brightGreenSeries[0] = brightGreen; brightRedSeries[0] = brightRed; waveSeries[0] = wave;
+            Values[3][0] = brightGreen ? 1 : (brightRed ? -1 : 0);   // BrightState, read by hosting indicators
 
             bool bigBuy = plotBuy || plotBuySeries[1] || plotBuySeries[2] || plotBuySeries[3];
             bool bigSell = plotSell || plotSellSeries[1] || plotSellSeries[2] || plotSellSeries[3];
@@ -882,6 +889,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Browsable(false)][XmlIgnore] public Series<double> Signal { get { return Values[0]; } }
         [Browsable(false)][XmlIgnore] public Series<double> AddSignal { get { return Values[1]; } }
         [Browsable(false)][XmlIgnore] public Series<double> ProfitSignal { get { return Values[2]; } }
+        // +1 on a brightGreen bar, -1 on a brightRed bar, 0 otherwise. Written every bar.
+        [Browsable(false)][XmlIgnore] public Series<double> BrightState { get { return Values[3]; } }
         #endregion
     }
 

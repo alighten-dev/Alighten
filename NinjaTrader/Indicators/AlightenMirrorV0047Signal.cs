@@ -1,8 +1,51 @@
-/* Version ID: 2026-08-29a AlightenMirrorV0045Signal — RESET. An exact copy of
+/* V0046 = V0045Signal + the ZONE-BREAK RETEST ENTRY SIGNAL (group "15. Retest Entry Signal").
+   Purely additive. With "Enable Retest Signal" OFF this file behaves exactly like V0045 except
+   for ONE deliberate visual change: the zone-cross marker is now a configurable SYMBOL (default
+   "★") drawn by Draw.Text in the get-ready colour instead of Draw.ArrowUp/ArrowDown. Same tag,
+   same FIFO cap, same Clean/redraw path - only the glyph changed.
+
+   The three stages, all gated on EnableRetestSignal (ShowCrossArrows stays the master toggle
+   for stage 0, exactly as in V0045):
+
+     STAGE 0  GET READY   - CheckZoneCross' existing break test fires. The ★ is drawn and a
+                            RETEST WATCH is registered holding the zone's tag, direction,
+                            ZoneMin/ZoneMax, the broken EDGE (ZoneMax for a long break, ZoneMin
+                            for a short), the zone's EndTime and the break bar/time.
+     STAGE 1  PROVISIONAL - a later bar's WICK reaches into the zone band projected forward
+                            ([min(ZoneMin,Edge) - tol, max(ZoneMax,Edge) + tol], tol = the wick
+                            tolerance in ticks, default 5) AND Nebula's new BrightState plot
+                            agrees with the direction (+1 long / -1 short) on that bar. A "▲"/"▼"
+                            is drawn in the provisional colour.
+     STAGE 2  CONFIRMED   - the CHART-SERIES pivot engine registers a confirmed pivot LOW (long)
+                            or HIGH (short) within N bars of the provisional bar (default 3).
+                            The same tag is redrawn in the confirmed colour (Draw.* updates in
+                            place, never restacks) and the signal plots are published.
+
+   CANCELLED by a bar that CLOSES back through the zone against the break (long watch: close <
+   ZoneMin, short watch: close > ZoneMax) - the unconfirmed mark is removed - or by the zone's
+   own lifetime running out (EndTime + the existing CrossGraceMins).
+
+   THE CHART-SERIES PIVOT ENGINE is a second, independent instance of the DAILY bias engine's
+   rules, run on BarsInProgress 0. Same six two-bar conditions, same same-side replacement, and
+   the same definition of CONFIRMED (a pivot is confirmed once a pivot of the opposite side has
+   been registered after it - which is the natural one-bar-or-more lag stage 2 relies on). The
+   daily engine (_dbPivot* / ProcessDailyBiasBar / DbProcessPivot) is UNTOUCHED; the chart engine
+   is a literal transcription of those rules onto a PivotEngine instance, so the two can never
+   share state. See PivotProcessBar/PivotRegister - keep them in step with the daily pair.
+
+   NEW PLOTS, appended LAST so every existing plot index is unchanged (42..45):
+     42 RetestSignal    +2 confirmed long, +1 provisional long, -1 provisional short, -2 confirmed short
+     43 RetestPrice     the band edge the wick touched, 0 when none
+     44 RetestZoneEdge  the broken edge of the active watch, 0 when none
+     45 GetReadyState   +1 long break this bar, -1 short break this bar, 0 none
+
+   Nebula is HOSTED calc-only (all drawing, alerts and candle colouring off) purely to read its
+   new transparent "BrightState" plot. Nothing else about Nebula is used. - By Alighten */
+/* Version ID: 2026-08-29a AlightenMirrorV0047Signal — RESET. An exact copy of
    AlightenMirrorV0041 as of 2026-08-29, carrying nothing but the rename: class/Name,
    version-specific toolbar button IDs and captions ("Signal Settings" / "Signal Export" /
-   "Clean Signal"), and its own diagnostic log names (MirrorV0045SignalLevels.log,
-   MirrorZonesV0045Signal_*.log) so it can sit on the same chart as V0041 without either
+   "Clean Signal"), and its own diagnostic log names (MirrorV0046SignalLevels.log,
+   MirrorZonesV0046Signal_*.log) so it can sit on the same chart as V0041 without either
    clobbering the other. Zone INPUT files are unchanged - the same production
    MirrorGroupsV0040.txt / MirrorInsideZonesV0040.txt.
 
@@ -88,7 +131,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0045Signal : Indicator
+    public class AlightenMirrorV0047Signal : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -115,7 +158,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (_lvlLogLines == LVL_LOG_MAX_LINES)
                     msg += "   <<< LINE CAP REACHED - logging stops here >>>";
                 System.IO.File.AppendAllText(_lvlLogPath,
-                    DateTime.Now.ToString("HH:mm:ss.fff") + " [" + State + "] " + msg + "\r\n");
+                    DateTime.Now.ToString("HH:mm:ss.fff") + " " + LogStamp() + " " + msg + "\r\n");
             }
             catch { }
         }
@@ -334,6 +377,109 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
         private Queue<CrossMark> _xMarks;
 
+        // ---- V0046 retest entry signal -------------------------------------------------
+        // A break registers a WATCH. The watch lives until price closes back through the zone
+        // against the break, or until the zone's own window (+ CrossGraceMins) expires.
+        private class RetestWatch
+        {
+            public string   ZoneTag;      // the ActiveGroup key that was broken
+            public bool     IsLong;       // direction of the BREAK (long = closed UP through a SHORT zone)
+            public double   ZoneMin, ZoneMax;
+            public double   Edge;         // the broken edge: ZoneMax for a long break, ZoneMin for a short
+            public DateTime ZoneEndTime;  // the zone's own lifetime; + CrossGraceMins = the watch window
+            public int      BreakBar;
+            public DateTime BreakTime;
+
+            // ARMED / DISARMED, never killed by price. A close back through the zone
+            // against the break disarms; a close through it again in the break direction
+            // re-arms. The watch itself lives until the zone's own end time + grace.
+            public bool     Armed;
+            public bool     Provisional;  // any candidate is live (kept for KillWatch/redraw)
+            public List<RetestCand> Cands = new List<RetestCand>(8);
+            public int      ProvBar;
+            public DateTime ProvTime;
+            public double   ProvPrice;    // the band edge the wick reached
+            public string   MarkTag;      // stable tag: provisional and confirmed share it
+        }
+        private List<RetestWatch> _rtWatches;
+        private int _rtLastBar = -1;
+
+        // Log stamping, so log lines can be matched to market-replay time and to fills in the NT database.
+        // _logLoadId = wall-clock date/time of this load: a refresh appends a NEW run, never overwrites, and
+        // the id tells the runs apart.
+        private string _logLoadId = "L?";
+
+        // "L<load> [State] mkt=<market time> bar=<chart bar>". mkt = the bar being processed while history
+        // loads, the replay/market clock (Globals.Now) in realtime; bar = the chart's current bar stamp.
+        // All Mirror logs live in one folder (default Documents\NinjaTrader 8\Mirror Logs), created on demand.
+        // Rules files (MirrorGroups*.txt, MirrorInsideZones*.txt) stay in Documents\NinjaTrader 8.
+        private string LogFile(string fileName)
+        {
+            string folder = string.IsNullOrWhiteSpace(LogFolder) ? "Mirror Logs" : LogFolder.Trim();
+            if (!System.IO.Path.IsPathRooted(folder))
+                folder = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir, folder);
+            System.IO.Directory.CreateDirectory(folder);
+            return System.IO.Path.Combine(folder, fileName);
+        }
+
+        private string LogStamp()
+        {
+            string mkt = "-", bar = "-";
+            try
+            {
+                if (CurrentBars != null && CurrentBars.Length > 0 && CurrentBars[0] >= 0)
+                    bar = Times[0][0].ToString("yyyy-MM-dd HH:mm:ss");
+                mkt = State == State.Realtime ? NinjaTrader.Core.Globals.Now.ToString("yyyy-MM-dd HH:mm:ss") : bar;
+            }
+            catch { }
+            return _logLoadId + " [" + State + "] mkt=" + mkt + " bar=" + bar;
+        }
+        private HashSet<string> _rtAlerted = new HashSet<string>();   // one alert per bar + side + stage
+        private const int MAX_RETEST_CANDS = 8;   // touching bars awaiting a pivot verdict
+        private const int MAX_RETEST_WATCHES = 64;
+
+        // Drawn retest marks, kept like _xMarks so a manual Clean (RemoveDrawObjects) can
+        // re-issue them. A fired signal is a historical fact and survives the Clean.
+        // One touching bar awaiting its pivot verdict. Several can be live at once: a
+        // retest is often two or three bars poking the same level, and only one of them
+        // carries the pivot.
+        private class RetestCand
+        {
+            public int      Bar;
+            public DateTime Time;
+            public double   Price;    // the wick's own extreme
+            public string   Tag;
+        }
+
+        private class RetestMark
+        {
+            public string   Tag;
+            public DateTime Time;
+            public double   Price;
+            public bool     IsLong;
+            public bool     Confirmed;
+        }
+        private List<RetestMark> _rtMarks;
+
+        // Hosted calc-only Nebula, read ONLY for its BrightState plot. Null unless the
+        // retest signal is enabled AND it is configured to require Nebula agreement.
+        private NebulaNT8NoCloud _neb;
+
+        // ---- Pivot engine state (one instance per series) ------------------------------
+        // The DAILY bias engine keeps its own _dbPivot* lists and its own methods, untouched.
+        // This type carries the identical state for a SECOND, independent run of the same
+        // rules on the chart series (BarsInProgress 0) for the retest confirmation.
+        private class PivotEngine
+        {
+            public List<int>      Bars   = new List<int>(512);     // series bar index of each pivot
+            public List<double>   Prices = new List<double>(512);  // pivot wick price (same-side comparisons)
+            public List<double>   Guides = new List<double>(512);  // BODY extreme of the pivot bar
+            public List<bool>     IsHigh = new List<bool>(512);
+            public List<DateTime> Times  = new List<DateTime>(512);
+            public int LastProcessedBar = -1;
+        }
+        private PivotEngine _cpEngine;   // chart-series (BIP 0) pivots
+
         private ZoneSet _zsPri, _zsIns;
         private ZoneSet[] _zoneSets = new ZoneSet[0];
 
@@ -495,482 +641,584 @@ namespace NinjaTrader.NinjaScript.Indicators
         [XmlIgnore]
         public Series<double> PtF5m => Values[34];
 
+        // ---- Pattern J plots (35..41) have no accessors (unchanged from V0045) ----
+
+        // ---- V0046 retest signal plots (42..45), APPENDED LAST ----
+        // Every index above is untouched; a consumer bound to PtA..PtJ keeps working.
+        private const int PLOT_RETEST_SIGNAL = NUM_PAT * NUM_TF;       // 42
+        private const int PLOT_RETEST_PRICE  = NUM_PAT * NUM_TF + 1;   // 43
+        private const int PLOT_RETEST_EDGE   = NUM_PAT * NUM_TF + 2;   // 44
+        private const int PLOT_GET_READY     = NUM_PAT * NUM_TF + 3;   // 45
+
+        [Browsable(false)]
+        [XmlIgnore]
+        public Series<double> RetestSignal => Values[PLOT_RETEST_SIGNAL];
+
+        [Browsable(false)]
+        [XmlIgnore]
+        public Series<double> RetestPrice => Values[PLOT_RETEST_PRICE];
+
+        [Browsable(false)]
+        [XmlIgnore]
+        public Series<double> RetestZoneEdge => Values[PLOT_RETEST_EDGE];
+
+        [Browsable(false)]
+        [XmlIgnore]
+        public Series<double> GetReadyState => Values[PLOT_GET_READY];
+
         [NinjaScriptProperty]
-        [Display(Name="Enable Pattern A", Order=1, GroupName="01. Patterns")]
+        [Display(Name="1.1 Enable Pattern A", Order=1, GroupName="01. Patterns")]
         public bool EnablePatternA { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Enable Pattern B", Order=2, GroupName="01. Patterns")]
+        [Display(Name="1.2 Enable Pattern B", Order=2, GroupName="01. Patterns")]
         public bool EnablePatternB { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Enable Pattern G", Order=3, GroupName="01. Patterns")]
+        [Display(Name="1.3 Enable Pattern G", Order=3, GroupName="01. Patterns")]
         public bool EnablePatternG { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Enable Pattern H", Order=4, GroupName="01. Patterns")]
+        [Display(Name="1.4 Enable Pattern H", Order=4, GroupName="01. Patterns")]
         public bool EnablePatternH { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern F", Order=5, GroupName="01. Patterns")]
+		[Display(Name="1.5 Enable Pattern F", Order=5, GroupName="01. Patterns")]
 		public bool EnablePatternF { get; set; }
 
 		[NinjaScriptProperty]
-		[Display(Name="Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0008): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=5, GroupName="01. Patterns")]
+		[Display(Name="1.6 Enable Pattern J", Description="Paired-pivot pattern (AlightenMirrorPtJV0008): levels are the nearest untested support/resistance — where the Pattern J test triangles fire.", Order=6, GroupName="01. Patterns")]
 		public bool EnablePatternJ { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, int.MaxValue)]
-        [Display(Name="Src Bars To Process", Order=6, GroupName="01. Patterns")]
+        [Display(Name="2.1 Src Bars To Process", Order=1, GroupName="02. Engine & Data")]
         public int SrcBarsToProcess { get; set; }
 
 		[NinjaScriptProperty]
 		[Range(1, 500)]
-		[Display(Name="Mirror Lookback Bars", Order=6, GroupName="01. Patterns")]
+		[Display(Name="2.2 Mirror Lookback Bars", Order=2, GroupName="02. Engine & Data")]
 		public int MirrorLookbackBars { get; set; }
 
 		[NinjaScriptProperty]
-        [Display(Name="Enable Invalidated Cleanup", Order=7, GroupName="01. Patterns")]
+        [Display(Name="2.3 Enable Invalidated Cleanup", Order=3, GroupName="02. Engine & Data")]
         public bool EnableInvalidatedCleanup { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.1 Show Daily", Order=1, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.2 Show 240m", Order=2, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.3 Show 60m", Order=3, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.4 Show 30m", Order=4, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.5 Show 15m", Order=5, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.6 Show 10m", Order=6, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="02. Pattern A Timeframes")]
+        [Display(Name="3.7 Show 5m", Order=7, GroupName="03. Pattern A Timeframes")]
         public bool ShowPatternATF7_5m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.1 Show Daily", Order=1, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.2 Show 240m", Order=2, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.3 Show 60m", Order=3, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.4 Show 30m", Order=4, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.5 Show 15m", Order=5, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.6 Show 10m", Order=6, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="03. Pattern B Timeframes")]
+        [Display(Name="4.7 Show 5m", Order=7, GroupName="04. Pattern B Timeframes")]
         public bool ShowPatternBTF7_5m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.1 Show Daily", Order=1, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.2 Show 240m", Order=2, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.3 Show 60m", Order=3, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.4 Show 30m", Order=4, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.5 Show 15m", Order=5, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.6 Show 10m", Order=6, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="04. Pattern G Timeframes")]
+        [Display(Name="5.7 Show 5m", Order=7, GroupName="05. Pattern G Timeframes")]
         public bool ShowPatternGTF7_5m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.1 Show Daily", Order=1, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.2 Show 240m", Order=2, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.3 Show 60m", Order=3, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.4 Show 30m", Order=4, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.5 Show 15m", Order=5, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.6 Show 10m", Order=6, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="05. Pattern H Timeframes")]
+        [Display(Name="6.7 Show 5m", Order=7, GroupName="06. Pattern H Timeframes")]
         public bool ShowPatternHTF7_5m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.1 Show Daily", Order=1, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.2 Show 240m", Order=2, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.3 Show 60m", Order=3, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.4 Show 30m", Order=4, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.5 Show 15m", Order=5, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.6 Show 10m", Order=6, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="06. Pattern F Timeframes")]
+        [Display(Name="7.7 Show 5m", Order=7, GroupName="07. Pattern F Timeframes")]
         public bool ShowPatternFTF7_5m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="1. Show Daily", Order=1, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.1 Show Daily", Order=1, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF1_Daily { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="2. Show 240m", Order=2, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.2 Show 240m", Order=2, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF2_240m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="3. Show 60m", Order=3, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.3 Show 60m", Order=3, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF3_60m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="4. Show 30m", Order=4, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.4 Show 30m", Order=4, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF4_30m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="5. Show 15m", Order=5, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.5 Show 15m", Order=5, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF5_15m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="6. Show 10m", Order=6, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.6 Show 10m", Order=6, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF6_10m { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="7. Show 5m", Order=7, GroupName="06.5 Pattern J Timeframes")]
+        [Display(Name="8.7 Show 5m", Order=7, GroupName="08. Pattern J Timeframes")]
         public bool ShowPatternJTF7_5m { get; set; }
 
 
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF1 Color", Order=1, GroupName="07. Mirror Colors")]
+        [Display(Name="9.1 Daily Color", Order=1, GroupName="09. Level Colors")]
         public Brush ColorTF1 { get; set; }
         [Browsable(false)]
         public string ColorTF1Serialize { get { return Serialize.BrushToString(ColorTF1); } set { ColorTF1 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF2 Color", Order=2, GroupName="07. Mirror Colors")]
+        [Display(Name="9.2 240m Color", Order=2, GroupName="09. Level Colors")]
         public Brush ColorTF2 { get; set; }
         [Browsable(false)]
         public string ColorTF2Serialize { get { return Serialize.BrushToString(ColorTF2); } set { ColorTF2 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF3 Color", Order=3, GroupName="07. Mirror Colors")]
+        [Display(Name="9.3 60m Color", Order=3, GroupName="09. Level Colors")]
         public Brush ColorTF3 { get; set; }
         [Browsable(false)]
         public string ColorTF3Serialize { get { return Serialize.BrushToString(ColorTF3); } set { ColorTF3 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF4 Color", Order=4, GroupName="07. Mirror Colors")]
+        [Display(Name="9.4 30m Color", Order=4, GroupName="09. Level Colors")]
         public Brush ColorTF4 { get; set; }
         [Browsable(false)]
         public string ColorTF4Serialize { get { return Serialize.BrushToString(ColorTF4); } set { ColorTF4 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF5 Color", Order=5, GroupName="07. Mirror Colors")]
+        [Display(Name="9.5 15m Color", Order=5, GroupName="09. Level Colors")]
         public Brush ColorTF5 { get; set; }
         [Browsable(false)]
         public string ColorTF5Serialize { get { return Serialize.BrushToString(ColorTF5); } set { ColorTF5 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF6 Color", Order=6, GroupName="07. Mirror Colors")]
+        [Display(Name="9.6 10m Color", Order=6, GroupName="09. Level Colors")]
         public Brush ColorTF6 { get; set; }
         [Browsable(false)]
         public string ColorTF6Serialize { get { return Serialize.BrushToString(ColorTF6); } set { ColorTF6 = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
         [NinjaScriptProperty]
-        [Display(Name="TF7 Color", Order=7, GroupName="07. Mirror Colors")]
+        [Display(Name="9.7 5m Color", Order=7, GroupName="09. Level Colors")]
         public Brush ColorTF7 { get; set; }
         [Browsable(false)]
         public string ColorTF7Serialize { get { return Serialize.BrushToString(ColorTF7); } set { ColorTF7 = Serialize.StringToBrush(value); } }
 
         [NinjaScriptProperty]
         [Range(1, 10)]
-        [Display(Name="Level Width", Order=1, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.1 Level Width", Order=1, GroupName="10. Level Visuals")]
         public int LevelWidth { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern A Style", Order=2, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.2 Pattern A Line Style", Order=2, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleA { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern B Style", Order=3, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.3 Pattern B Line Style", Order=3, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleB { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern G Style", Order=4, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.4 Pattern G Line Style", Order=4, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleG { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern H Style", Order=5, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.5 Pattern H Line Style", Order=5, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleH { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern F Style", Order=6, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.6 Pattern F Line Style", Order=6, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleF { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Pattern J Style", Order=7, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.7 Pattern J Line Style", Order=7, GroupName="10. Level Visuals")]
         public DashStyleHelper LevelDashStyleJ { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Show Level Labels", Order=10, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.8 Show Level Labels", Order=8, GroupName="10. Level Visuals")]
         public bool ShowLevelLabels { get; set; }
 
         [NinjaScriptProperty]
         [Range(0, 5000)]
-        [Display(Name="Realtime Sync Throttle (ms)", Description="0 = sync levels on every tick. Higher values reduce CPU by syncing at most once per interval (signal plots still update every tick).", Order=1, GroupName="09. Performance")]
+        [Display(Name="2.4 Realtime Sync Throttle (ms)", Description="0 = sync levels on every tick. Higher values reduce CPU by syncing at most once per interval (signal plots still update every tick).", Order=4, GroupName="02. Engine & Data")]
         public int SyncThrottleMs { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Enable Research Log", Description="Log every confirmed signal with confluence context and forward MFE/MAE outcomes. Written by the Export Levels button as MirrorResearch_*.csv.", Order=1, GroupName="10. Research")]
+        [Display(Name="17.6 Enable Research Log", Description="Log every confirmed signal with confluence context and forward MFE/MAE outcomes. Written by the Export Levels button as MirrorResearch_*.csv.", Order=6, GroupName="17. Logging & Diagnostics")]
         public bool EnableResearchLog { get; set; }
 
         [NinjaScriptProperty]
         [Range(10, 2000)]
-        [Display(Name="Research Target (ticks)", Description="Favorable move that counts as a win (time-to-target and MAE-before-target are recorded against this).", Order=2, GroupName="10. Research")]
+        [Display(Name="17.7 Research Target (ticks)", Description="Favorable move that counts as a win (time-to-target and MAE-before-target are recorded against this).", Order=7, GroupName="17. Logging & Diagnostics")]
         public int ResearchTargetTicks { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Export Mode (no drawing)", Description="Suppress every chart drawing (levels, daily bias lines, zone rectangles) while keeping all level and signal computation. Turn on for a deep-history export run: the draw objects are what make a long load unusable, not the level math.", Order=3, GroupName="10. Research")]
+        [Display(Name="17.8 Export Mode (no drawing)", Description="Suppress every chart drawing (levels, daily bias lines, zone rectangles) while keeping all level and signal computation. Turn on for a deep-history export run: the draw objects are what make a long load unusable, not the level math.", Order=8, GroupName="17. Logging & Diagnostics")]
         public bool ExportMode { get; set; }
 
         // ---- Daily bias levels (AlightenBiasV0003 pivot engine, display only) ----
-        [Display(Name="Enable Daily Bias Levels", Description="Draw the last N Daily levels from the AlightenBiasV0003 pivot engine (level = pivot bar's body extreme). Plain levels — no pattern/touch requirement.", Order=1, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.1 Enable Daily Bias Levels", Description="Draw the last N Daily levels from the AlightenBiasV0003 pivot engine (level = pivot bar's body extreme). Plain levels — no pattern/touch requirement.", Order=1, GroupName="11. Daily Bias Levels")]
         public bool EnableDailyBiasLevels { get; set; }
 
         [Range(1, 20)]
-        [Display(Name="Number Of Levels (N)", Description="How many of the most recent confirmed Daily levels to draw (matches AlightenBiasV0003 NumberOfLevels).", Order=2, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.2 Number Of Levels (N)", Description="How many of the most recent confirmed Daily levels to draw (matches AlightenBiasV0003 NumberOfLevels).", Order=2, GroupName="11. Daily Bias Levels")]
         public int DailyBiasLevelCount { get; set; }
 
         [Range(1, 10000)]
-        [Display(Name="Relevance (daily bars)", Description="Ignore pivots older than this many Daily bars (matches AlightenBiasV0003 RelevanceFactor).", Order=3, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.3 Relevance (daily bars)", Description="Ignore pivots older than this many Daily bars (matches AlightenBiasV0003 RelevanceFactor).", Order=3, GroupName="11. Daily Bias Levels")]
         public int DailyBiasRelevanceDays { get; set; }
 
         [XmlIgnore]
-        [Display(Name="Above-Price Color", Order=4, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.4 Above-Price Color", Order=4, GroupName="11. Daily Bias Levels")]
         public Brush DailyBiasAboveColor { get; set; }
         [Browsable(false)]
         public string DailyBiasAboveColorSerialize { get { return Serialize.BrushToString(DailyBiasAboveColor); } set { DailyBiasAboveColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name="Below-Price Color", Order=5, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.5 Below-Price Color", Order=5, GroupName="11. Daily Bias Levels")]
         public Brush DailyBiasBelowColor { get; set; }
         [Browsable(false)]
         public string DailyBiasBelowColorSerialize { get { return Serialize.BrushToString(DailyBiasBelowColor); } set { DailyBiasBelowColor = Serialize.StringToBrush(value); } }
 
         [Range(1, 10)]
-        [Display(Name="Line Width", Order=6, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.6 Line Width", Order=6, GroupName="11. Daily Bias Levels")]
         public int DailyBiasLevelWidth { get; set; }
 
-        [Display(Name="Line Dash", Order=7, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.7 Line Dash", Order=7, GroupName="11. Daily Bias Levels")]
         public DashStyleHelper DailyBiasLevelDash { get; set; }
 
-        [Display(Name="Show Labels", Description="Draw a 'DL <price>' label at the right end of each level line.", Order=8, GroupName="11. Daily Bias Levels")]
+        [Display(Name="11.8 Show Labels", Description="Draw a 'DL <price>' label at the right end of each level line.", Order=8, GroupName="11. Daily Bias Levels")]
         public bool ShowDailyBiasLabels { get; set; }
 
         [NinjaScriptProperty]
         [Range(1, 50)]
-        [Display(Name="Label Font Size", Order=11, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.9 Label Font Size", Order=9, GroupName="10. Level Visuals")]
         public int LabelFontSize { get; set; }
 
         [NinjaScriptProperty]
-        [Display(Name="Label Offset Ticks", Order=12, GroupName="08. Mirror Visuals")]
+        [Display(Name="10.10 Label Offset Ticks", Order=10, GroupName="10. Level Visuals")]
         public int LabelOffsetTicks { get; set; }
 
         // ---- Signal group zones (harvested from AlightenMirrorEntryV0006) ----
         // Not [NinjaScriptProperty] on purpose: these stay out of the generated
         // constructor signature, exactly like the Daily Bias Levels group above.
-        [Display(Name="Enable Signal Groups", Description="Detect file-defined confluence groups of active levels and mark their zone from identification until the latest member window ends.", Order=1, GroupName="12. Signal Groups")]
+        [Display(Name="12.1 Enable Signal Groups", Description="Detect file-defined confluence groups of active levels and mark their zone from identification until the latest member window ends.", Order=1, GroupName="12. Signal Groups")]
         public bool EnableSignalGroups { get; set; }
 
-        [Display(Name="Groups File", Description="Rules file (in Documents\\NinjaTrader 8 unless an absolute path). One rule per row: signals separated by commas, then '; <ticks>T' for the max zone spread. Signal = pattern letter + timeframe + direction, e.g. J15S, J30S, J60S; 100T. Optional extra ';ANCHORED' or ';ORDERED' flag. Created with examples if missing. Edit the file, then reload the indicator.", Order=2, GroupName="12. Signal Groups")]
+        [Display(Name="12.2 Groups File", Description="Rules file (in Documents\\NinjaTrader 8 unless an absolute path). One rule per row: signals separated by commas, then '; <ticks>T' for the max zone spread. Signal = pattern letter + timeframe + direction, e.g. J15S, J30S, J60S; 100T. Optional extra ';ANCHORED' or ';ORDERED' flag. Created with examples if missing. Edit the file, then reload the indicator.", Order=2, GroupName="12. Signal Groups")]
         public string GroupsFileName { get; set; }
 
         [XmlIgnore]
-        [Display(Name="Short Zone Color", Order=3, GroupName="12. Signal Groups")]
+        [Display(Name="12.3 Short Zone Color", Order=3, GroupName="12. Signal Groups")]
         public Brush GroupShortColor { get; set; }
         [Browsable(false)]
         public string GroupShortColorSerialize { get { return Serialize.BrushToString(GroupShortColor); } set { GroupShortColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name="Long Zone Color", Order=4, GroupName="12. Signal Groups")]
+        [Display(Name="12.4 Long Zone Color", Order=4, GroupName="12. Signal Groups")]
         public Brush GroupLongColor { get; set; }
         [Browsable(false)]
         public string GroupLongColorSerialize { get { return Serialize.BrushToString(GroupLongColor); } set { GroupLongColor = Serialize.StringToBrush(value); } }
 
         [Range(0, 100)]
-        [Display(Name="Zone Opacity (%)", Order=5, GroupName="12. Signal Groups")]
+        [Display(Name="12.5 Zone Opacity (%)", Order=5, GroupName="12. Signal Groups")]
         public int GroupZoneOpacity { get; set; }
 
         [Range(1, 10)]
-        [Display(Name="Zone Outline Width", Order=6, GroupName="12. Signal Groups")]
+        [Display(Name="12.6 Zone Outline Width", Order=6, GroupName="12. Signal Groups")]
         public int GroupOutlineWidth { get; set; }
 
         [Range(0, 100)]
-        [Display(Name="Zone Outline Opacity (%)", Order=7, GroupName="12. Signal Groups")]
+        [Display(Name="12.7 Zone Outline Opacity (%)", Order=7, GroupName="12. Signal Groups")]
         public int GroupOutlineOpacity { get; set; }
 
-        [Display(Name="Merge Overlapping Zones", Description="Collapse overlapping same-direction zones into one box (per-rule detections still run and log individually).", Order=8, GroupName="12. Signal Groups")]
+        [Display(Name="12.8 Merge Overlapping Zones", Description="Collapse overlapping same-direction zones into one box (per-rule detections still run and log individually).", Order=8, GroupName="12. Signal Groups")]
         public bool MergeGroupZones { get; set; }
 
         [Range(50, 20000)]
-        [Display(Name="Max Zone Drawings", Description="How many zone rectangles this set keeps on the chart. Older drawings are deleted once the count is exceeded, oldest first, even though the zone itself is still live. Raise it if old zones vanish; lower it if the chart feels heavy.", Order=10, GroupName="12. Signal Groups")]
+        [Display(Name="12.10 Max Zone Drawings", Description="How many zone rectangles this set keeps on the chart. Older drawings are deleted once the count is exceeded, oldest first, even though the zone itself is still live. Raise it if old zones vanish; lower it if the chart feels heavy.", Order=10, GroupName="12. Signal Groups")]
         public int MaxZoneDrawings { get; set; }
 
-        [Display(Name="Show Group Labels", Order=9, GroupName="12. Signal Groups")]
+        [Display(Name="12.9 Show Group Labels", Order=9, GroupName="12. Signal Groups")]
         public bool ShowGroupLabels { get; set; }
 
         // ---- Inside zones: a second, independent rule set ------------------------------
         // Same machinery as the primary zones, separate file and styling. Intended for the
         // narrower pairs that sit BETWEEN a primary zone and price -- the primary marks the
         // area, the inside zone marks where you would act inside it.
-        [Display(Name="Enable Inside Zones", Description="Run a second, independent set of group rules from their own file. Drawn separately from the primary zones and never merged with them.", Order=1, GroupName="13. Inside Zones")]
+        [Display(Name="13.1 Enable Inside Zones", Description="Run a second, independent set of group rules from their own file. Drawn separately from the primary zones and never merged with them.", Order=1, GroupName="13. Inside Zones")]
         public bool EnableInsideZones { get; set; }
 
-        [Display(Name="Inside Zones File", Description="Second rules file, same format as the primary Groups File. In Documents\\NinjaTrader 8 unless an absolute path. Edit the file, then reload the indicator.", Order=2, GroupName="13. Inside Zones")]
+        [Display(Name="13.2 Inside Zones File", Description="Second rules file, same format as the primary Groups File. In Documents\\NinjaTrader 8 unless an absolute path. Edit the file, then reload the indicator.", Order=2, GroupName="13. Inside Zones")]
         public string InsideZonesFileName { get; set; }
 
         [XmlIgnore]
-        [Display(Name="Inside Short Zone Color", Order=3, GroupName="13. Inside Zones")]
+        [Display(Name="13.3 Inside Short Zone Color", Order=3, GroupName="13. Inside Zones")]
         public System.Windows.Media.Brush InsideShortColor { get; set; }
         [Browsable(false)]
         public string InsideShortColorSerialize { get { return Serialize.BrushToString(InsideShortColor); } set { InsideShortColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
-        [Display(Name="Inside Long Zone Color", Order=4, GroupName="13. Inside Zones")]
+        [Display(Name="13.4 Inside Long Zone Color", Order=4, GroupName="13. Inside Zones")]
         public System.Windows.Media.Brush InsideLongColor { get; set; }
         [Browsable(false)]
         public string InsideLongColorSerialize { get { return Serialize.BrushToString(InsideLongColor); } set { InsideLongColor = Serialize.StringToBrush(value); } }
 
         [Range(0, 100)]
-        [Display(Name="Inside Zone Opacity (%)", Order=5, GroupName="13. Inside Zones")]
+        [Display(Name="13.5 Inside Zone Opacity (%)", Order=5, GroupName="13. Inside Zones")]
         public int InsideZoneOpacity { get; set; }
 
         [Range(1, 10)]
-        [Display(Name="Inside Zone Outline Width", Order=6, GroupName="13. Inside Zones")]
+        [Display(Name="13.6 Inside Zone Outline Width", Order=6, GroupName="13. Inside Zones")]
         public int InsideOutlineWidth { get; set; }
 
         [Range(0, 100)]
-        [Display(Name="Inside Zone Outline Opacity (%)", Order=7, GroupName="13. Inside Zones")]
+        [Display(Name="13.7 Inside Zone Outline Opacity (%)", Order=7, GroupName="13. Inside Zones")]
         public int InsideOutlineOpacity { get; set; }
 
-        [Display(Name="Merge Overlapping Inside Zones", Description="Collapse overlapping same-direction inside zones into one box. Inside zones never merge with primary zones.", Order=8, GroupName="13. Inside Zones")]
+        [Display(Name="13.8 Merge Overlapping Inside Zones", Description="Collapse overlapping same-direction inside zones into one box. Inside zones never merge with primary zones.", Order=8, GroupName="13. Inside Zones")]
         public bool MergeInsideZones { get; set; }
 
         [Range(50, 20000)]
-        [Display(Name="Max Inside Zone Drawings", Description="Same FIFO cap as the primary set, applied independently. The inside set typically produces several times more zones, so it hits the cap sooner.", Order=10, GroupName="13. Inside Zones")]
+        [Display(Name="13.10 Max Inside Zone Drawings", Description="Same FIFO cap as the primary set, applied independently. The inside set typically produces several times more zones, so it hits the cap sooner.", Order=10, GroupName="13. Inside Zones")]
         public int MaxInsideZoneDrawings { get; set; }
 
-        [Display(Name="Show Inside Zone Labels", Order=9, GroupName="13. Inside Zones")]
+        [Display(Name="13.9 Show Inside Zone Labels", Order=9, GroupName="13. Inside Zones")]
         public bool ShowInsideLabels { get; set; }
 
-        [Display(Name="Show Zone-Cross Arrows", Description="Green up-arrow when a bar closes up through a SHORT zone that has a LONG zone below it. Red down-arrow for the mirror: closes down through a LONG zone with a SHORT zone above it. Drawn on the crossing bar.", Order=1, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.1 Enable Zone Breaks (required for Retest)", Description="Detects a bar closing through a zone. This is also the master switch for the Retest Entry Signal: turn it off and no retest watch can ever arm. Whether the break shows a marker is the Get-Ready Symbol setting (15.2).", Order=1, GroupName="14. Zone Break Signal")]
         public bool ShowCrossArrows { get; set; }
 
-        [Display(Name="Require Opposing Zone", Description="On = only fire when a zone of the opposite direction sits on the far side of the one being crossed (a long zone below the short zone crossed upward, or a short zone above the long zone crossed downward) - the sandwiched case. Off = fire on any fresh close through a zone, regardless of what is on the other side. Off by default: a break of support with nothing overhead is still a short, and requiring the opposing zone suppressed those.", Order=2, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.2 Require Opposing Zone", Description="On = only fire when a zone of the opposite direction sits on the far side of the one being crossed (a long zone below the short zone crossed upward, or a short zone above the long zone crossed downward) - the sandwiched case. Off = fire on any fresh close through a zone, regardless of what is on the other side. Off by default: a break of support with nothing overhead is still a short, and requiring the opposing zone suppressed those.", Order=2, GroupName="14. Zone Break Signal")]
         public bool CrossRequireOpposingZone { get; set; }
 
-        [Display(Name="Inside Zones Only", Description="Restrict the crossed zone (and the opposing zone, when required) to the INSIDE set. Off = primary zones count too.", Order=3, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.3 Inside Zones Only", Description="Restrict the crossed zone (and the opposing zone, when required) to the INSIDE set. Off = primary zones count too.", Order=3, GroupName="14. Zone Break Signal")]
         public bool CrossInsideOnly { get; set; }
 
-        [Display(Name="Both Directions", Description="Off = long setups only (cross up through a short zone).", Order=4, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.4 Both Directions", Description="Off = long setups only (cross up through a short zone).", Order=4, GroupName="14. Zone Break Signal")]
         public bool CrossBothDirections { get; set; }
 
         [Range(0, 1440)]
-        [Display(Name="Zone Grace (mins)", Description="How long after a zone's window closes it still counts. Zones keep being respected after their level-overlap window ends.", Order=5, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.5 Zone Grace (mins)", Description="How long after a zone's window closes it still counts. Zones keep being respected after their level-overlap window ends.", Order=5, GroupName="14. Zone Break Signal")]
         public int CrossGraceMins { get; set; }
 
         [Range(0, 2000)]
-        [Display(Name="Max Zone Separation (ticks)", Description="How far below the crossed zone the opposing zone may sit and still count. 0 = no limit. Ignored unless Require Opposing Zone is on.", Order=6, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.6 Max Zone Separation (ticks)", Description="How far below the crossed zone the opposing zone may sit and still count. 0 = no limit. Ignored unless Require Opposing Zone is on.", Order=6, GroupName="14. Zone Break Signal")]
         public int CrossMaxSeparation { get; set; }
 
         [Range(10, 1000)]
-        [Display(Name="Max Arrows", Description="FIFO cap on arrow draw objects.", Order=7, GroupName="14. Zone Cross Signal")]
+        [Display(Name="14.7 Max Break Markers", Description="FIFO cap on arrow draw objects.", Order=7, GroupName="14. Zone Break Signal")]
         public int MaxCrossArrows { get; set; }
 
         [XmlIgnore]
+        [Browsable(false)]   // unused since V0046 (break marker = get-ready symbol)
         [Display(Name="Long Arrow", Order=8, GroupName="14. Zone Cross Signal")]
         public Brush CrossLongColor { get; set; }
         [Browsable(false)]
         public string CrossLongColorSerialize { get { return Serialize.BrushToString(CrossLongColor); } set { CrossLongColor = Serialize.StringToBrush(value); } }
 
         [XmlIgnore]
+        [Browsable(false)]   // unused since V0046 (break marker = get-ready symbol)
         [Display(Name="Short Arrow", Order=9, GroupName="14. Zone Cross Signal")]
         public Brush CrossShortColor { get; set; }
         [Browsable(false)]
         public string CrossShortColorSerialize { get { return Serialize.BrushToString(CrossShortColor); } set { CrossShortColor = Serialize.StringToBrush(value); } }
 
-        [Display(Name = "Write Level Log", Description = "Append every level created and removed to MirrorV0045SignalLevels.log in the NinjaTrader 8 folder, for diffing against MirrorPtJV0007Signals.log. Diagnostic — leave off in normal use. Capped at 60,000 lines.", Order = 1, GroupName = "13. Diagnostics")]
+        // ---- V0046: zone-break retest entry signal -------------------------------------
+        // Not [NinjaScriptProperty] on purpose, exactly like groups 11-14 above: these stay
+        // out of the generated constructor signature so the generated region is unchanged.
+        [Display(Name="15.1 Enable Retest Signal", Description="Arm the three-stage retest entry on every zone break: get-ready symbol + watch, then a provisional mark when a wick reaches back into the projected zone band with Nebula bright agreeing, then a confirmed mark when the chart-series pivot engine registers the matching pivot. Off = V0045 behaviour (the break marker is still a symbol rather than an arrow).", Order=1, GroupName="15. Retest Entry Signal")]
+        public bool EnableRetestSignal { get; set; }
+
+        [Display(Name="15.2 Show Get-Ready Symbol", Description="Draw the break marker. Off = the zone break still arms its watch and the retest still fires; only the symbol is hidden.", Order=2, GroupName="15. Retest Entry Signal")]
+        public bool ShowGetReadySymbol { get; set; }
+
+        [Display(Name="15.3 Get-Ready Symbol", Description="Drawn on the zone-break bar, replacing V0045's arrow. Any text works.", Order=3, GroupName="15. Retest Entry Signal")]
+        public string GetReadySymbol { get; set; }
+
+        [Display(Name="15.7 Long Entry Symbol", Description="Drawn below the bar for a LONG provisional/confirmed entry.", Order=7, GroupName="15. Retest Entry Signal")]
+        public string RetestLongSymbol { get; set; }
+
+        [Display(Name="15.8 Short Entry Symbol", Description="Drawn above the bar for a SHORT provisional/confirmed entry.", Order=8, GroupName="15. Retest Entry Signal")]
+        public string RetestShortSymbol { get; set; }
+
+        [Range(4, 72)]
+        [Display(Name="15.10 Symbol Font Size", Order=10, GroupName="15. Retest Entry Signal")]
+        public int RetestSymbolFontSize { get; set; }
+
+        [XmlIgnore]
+        [Display(Name="15.4 Get-Ready Color", Order=4, GroupName="15. Retest Entry Signal")]
+        public Brush GetReadyColor { get; set; }
+        [Browsable(false)]
+        public string GetReadyColorSerialize { get { return Serialize.BrushToString(GetReadyColor); } set { GetReadyColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name="15.6 Provisional Color", Description="Colour of the entry symbol while the pivot has not confirmed yet.", Order=6, GroupName="15. Retest Entry Signal")]
+        public Brush RetestProvisionalColor { get; set; }
+        [Browsable(false)]
+        public string RetestProvisionalColorSerialize { get { return Serialize.BrushToString(RetestProvisionalColor); } set { RetestProvisionalColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name="15.9 Confirmed Color", Description="The same symbol is redrawn in this colour, on the same tag, once the pivot confirms.", Order=9, GroupName="15. Retest Entry Signal")]
+        public Brush RetestConfirmedColor { get; set; }
+        [Browsable(false)]
+        public string RetestConfirmedColorSerialize { get { return Serialize.BrushToString(RetestConfirmedColor); } set { RetestConfirmedColor = Serialize.StringToBrush(value); } }
+
+        [Range(0, 200)]
+        [Display(Name="15.11 Wick Tolerance (ticks)", Description="How far OUTSIDE the projected zone band the wick may stop and still count as a touch.", Order=11, GroupName="15. Retest Entry Signal")]
+        public int RetestWickToleranceTicks { get; set; }
+
+        [Display(Name="15.5 Show Provisional Marks", Description="Draw the faint entry symbol while a candidate waits for its pivot. Off = only CONFIRMED triangles are drawn; the candidate machinery is unchanged.", Order=5, GroupName="15. Retest Entry Signal")]
+        public bool ShowProvisionalMarks { get; set; }
+
+        [Display(Name="17.4 Write Retest Debug Log", Description="One line per closed bar per retest watch (zone edges, band, arm state, H/L/C, touch, candidates) into MirrorRetestV0047.log in the Log Folder. Large - leave off unless diagnosing.", Order=4, GroupName="17. Logging & Diagnostics")]
+        public bool DebugRetestLog { get; set; }
+
+        [Display(Name="17.5 Show Chart Pivot Dots", Description="Draws a dot on every CONFIRMED chart-series pivot the retest engine can see: magenta = pivot high, lime = pivot low. Use it to tell 'the pivot was never registered' apart from 'the signal rules rejected it'.", Order=5, GroupName="17. Logging & Diagnostics")]
+        public bool ShowChartPivotDots { get; set; }
+
+        [Display(Name="15.12 Require Nebula Bright", Description="Stage 1 additionally requires NebulaNT8NoCloud's BrightState to be +1 (long) or -1 (short) on the wick bar. Nebula is hosted calc-only; nothing of it is drawn.", Order=12, GroupName="15. Retest Entry Signal")]
+        public bool RetestRequireNebulaBright { get; set; }
+
+        // Display-only (not NinjaScriptProperty) so the generated factory signature is unchanged.
+        [Display(Name="16.1 Sound Alert on Retest", Description="Play a sound and post to the Alerts window when a CONFIRMED retest triangle appears. Realtime only - never fires while history loads. The message names the instrument and bar period, so alerts from several charts can be told apart.", Order=1, GroupName="16. Retest Alerts")]
+        public bool RetestSoundAlert { get; set; }
+
+        [Display(Name="16.2 Long Sound File", Description="A file name from the NinjaTrader 8\\sounds folder (e.g. Alert2.wav), or a full path to any .wav.", Order=2, GroupName="16. Retest Alerts")]
+        public string RetestLongSound { get; set; }
+
+        [Display(Name="16.3 Short Sound File", Description="A file name from the NinjaTrader 8\\sounds folder (e.g. Alert4.wav), or a full path to any .wav.", Order=3, GroupName="16. Retest Alerts")]
+        public string RetestShortSound { get; set; }
+
+        [Display(Name="16.4 Also Alert on Provisional", Description="Also alert at stage 1, when a wick first touches the level - earlier, but many of these never confirm. Fires whether or not provisional marks are shown.", Order=4, GroupName="16. Retest Alerts")]
+        public bool RetestAlertProvisional { get; set; }
+
+        [Display(Name="17.3 Write Level Log", Description="Every Mirror level created and removed, into MirrorV0046SignalLevels.log in the Log Folder. Diagnostic. Capped at 60,000 lines.", Order=3, GroupName="17. Logging & Diagnostics")]
         public bool DebugLevelLog { get; set; }
+
+        [Display(Name="17.1 Log Folder", Description = "Where the zone, level and retest logs are written. A plain name is a folder inside Documents\\NinjaTrader 8 (default: Mirror Logs); a full path is used as-is. Created if missing. Logs are appended, never overwritten; each load is marked with its load id.", Order=1, GroupName="17. Logging & Diagnostics")]
+        public string LogFolder { get; set; }
+
+        [Display(Name="17.2 Write Zone Log", Description = "The zone logs (MirrorZonesV0046Signal_INS.log / _PRI.log): every zone created, updated and cleared, with members, price range and time window, stamped with load id and market time. The one to keep on for trade reviews.", Order=2, GroupName="17. Logging & Diagnostics")]
+        public bool WriteZoneLog { get; set; }
 
         #endregion
 
@@ -978,7 +1226,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0045Signal";
+                Name = "AlightenMirrorV0047Signal";
                 Description = "SIGNAL branch of the Multi-Timeframe Mirror (Patterns A, B, G, H, F, J) - clean copy of V0041, no signal work. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -997,7 +1245,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 				EnableInvalidatedCleanup = true;
 
                 // Visibility defaults per the user's saved production template (2026-09-15,
-                // AlightenMirrorV0045Signal_Default.xml): A/G/H/F show Daily/240m only;
+                // AlightenMirrorV0047Signal_Default.xml): A/G/H/F show Daily/240m only;
                 // B and J draw no levels at all (their zones still feed the group engine).
                 ShowPatternATF1_Daily = true;
                 ShowPatternATF2_240m = true;
@@ -1102,11 +1350,34 @@ namespace NinjaTrader.NinjaScript.Indicators
                 CrossRequireOpposingZone = false;  // a break with nothing on the far side still counts
                 CrossInsideOnly     = true;
                 CrossBothDirections = true;
-                CrossGraceMins      = 60;
+                CrossGraceMins      = 40;   // tuned on the chart 2026-09-23
                 CrossMaxSeparation  = 0;      // no limit
                 MaxCrossArrows      = 200;
                 CrossLongColor      = Brushes.Lime;
                 CrossShortColor     = Brushes.Red;
+
+                // V0046 retest entry signal - OFF by default. With this off the only
+                // difference from V0045 is the break marker's glyph.
+                EnableRetestSignal       = false;
+                GetReadySymbol           = "★";   // ★
+                RetestLongSymbol         = "▲";   // ▲
+                RetestShortSymbol        = "▼";   // ▼
+                RetestSymbolFontSize     = 14;
+                GetReadyColor            = Brushes.Gold;
+                RetestProvisionalColor   = Brushes.Khaki;
+                RetestConfirmedColor     = Brushes.Aqua;
+                RetestWickToleranceTicks = 5;
+                RetestRequireNebulaBright = false;
+                LogFolder                = "Mirror Logs";
+                WriteZoneLog             = true;
+                RetestSoundAlert         = false;
+                RetestLongSound          = "Alert2.wav";
+                RetestShortSound         = "Alert4.wav";
+                RetestAlertProvisional   = false;
+                ShowChartPivotDots       = false;
+                ShowProvisionalMarks     = false;
+                ShowGetReadySymbol       = true;
+                DebugRetestLog           = false;
 
                 DebugLevelLog       = false;  // diagnostic only; tick "Write Level Log" to enable
 
@@ -1153,6 +1424,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 AddPlot(Brushes.Transparent, "PtJ15m");
                 AddPlot(Brushes.Transparent, "PtJ10m");
                 AddPlot(Brushes.Transparent, "PtJ5m");
+
+                // V0046 - APPENDED LAST so plot indexes 0..41 are exactly V0045's.
+                AddPlot(Brushes.Transparent, "RetestSignal");     // 42
+                AddPlot(Brushes.Transparent, "RetestPrice");      // 43
+                AddPlot(Brushes.Transparent, "RetestZoneEdge");   // 44
+                AddPlot(Brushes.Transparent, "GetReadyState");    // 45
             }
             else if (State == State.Configure)
 			{
@@ -1254,15 +1531,15 @@ namespace NinjaTrader.NinjaScript.Indicators
                 for (int i = 0; i < _syncCache.Length; i++)
                     _syncCache[i] = new SyncSlot();
 
+                _logLoadId = "L" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
                 if (DebugLevelLog)
                 {
                     try
                     {
-                        _lvlLogPath = System.IO.Path.Combine(
-                            NinjaTrader.Core.Globals.UserDataDir, "MirrorV0045SignalLevels.log");
+                        _lvlLogPath = LogFile("MirrorV0046SignalLevels.log");
                         _lvlLogLines = 0;
                         System.IO.File.AppendAllText(_lvlLogPath,
-                            "\r\n======== LOAD " + DateTime.Now.ToString("HH:mm:ss") + "  "
+                            "\r\n======== LOAD " + _logLoadId + "  "
                             + (Instrument != null ? Instrument.FullName : "?") + " ========\r\n");
                     }
                     catch { _lvlLogPath = null; }
@@ -1270,6 +1547,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 _xLastBar = -1;
                 _xMarks = new Queue<CrossMark>();
+
+                _rtLastBar = -1;
+                _rtAlerted.Clear();
+                _rtWatches = new List<RetestWatch>(MAX_RETEST_WATCHES);
+                _rtMarks   = new List<RetestMark>(64);
+                _cpEngine  = new PivotEngine();
 
                 BuildZoneSets();
                 foreach (ZoneSet zs in _zoneSets) LoadGroupRules(zs);
@@ -1368,13 +1651,62 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
 
-
-
+                // V0046: host Nebula CALC-ONLY, on the chart series, solely to read its
+                // BrightState plot. Every switch that would draw, colour a candle or fire an
+                // alert is passed off - a hosted child has no ChartControl and must not try.
+                // Only instantiated when the feature that reads it is actually enabled, so
+                // with the retest signal off this file costs exactly what V0045 costs.
+                if (EnableRetestSignal && RetestRequireNebulaBright)
+                {
+                    try
+                    {
+                        _neb = NebulaNT8NoCloud(
+                            Closes[0],
+                            "Simple", "None", "Standard",          // cloudType, candleColoring (NONE = no BarBrushes writes), theme
+                            false, false, false, false,            // strong/basic buy/sell glyphs off
+                            false,                                 // showHEMA  (would Draw.Line)
+                            false, false,                          // showPlus, showBigPlus
+                            false,                                 // enhanceStrongSignals
+                            false, false,                          // showFullProfit, showPartialProfit
+                            false,                                 // show921
+                            false,                                 // ignoreDoji - MUST match the bright-wave definition the user sees
+                            5, 7, 1,                               // profit thresholds, doji ticks (unused with the above off)
+                            false, 50, 3,                          // showVolumeImbalanceLines (would Draw.Line), line bars/width
+                            false, false,                          // showReversalPattern (writes CandleOutlineBrushes), showRetests
+                            false, "Top Right", 13,                // showDashboard (OnRender only), position, icon size
+                            false, 80, 80, 50,                     // useQuadratic921, cloud opacities
+                            14, 14,                                // adxLength, diLength
+                            2, 10.0, 6,                            // fantail adx/weighting/ma
+                            150, 20, 40, 20, 2.0,                  // WAE
+                            0.0015, 25, 72,                        // trampoline
+                            2, 21,                                 // squeeze
+                            35,                                    // watch lookback
+                            20, 20,                                // HEMA alpha/gamma
+                            21, 8, 15,                             // kernel
+                            false                                  // enableAlerts - never alert from a hosted child
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        _neb = null;
+                        Print("[AlightenMirrorV0047Signal] Nebula host failed: " + ex.Message
+                            + " - the retest signal will find no bright bars while 'Require Nebula Bright' is on.");
+                    }
+                }
 
 				if (ChartControl != null)
                 {
                     ChartControl.Dispatcher.InvokeAsync(() => { CreateToolbarButton(); });
                 }
+            }
+			else if (State == State.Realtime)
+            {
+                // Everything above this line in a log was rebuilt from history at load; everything below
+                // happened live (or in replay) and is what was actually on screen at that moment.
+                foreach (ZoneSet zs in _zoneSets)
+                    if (!string.IsNullOrEmpty(zs.LogPath))
+                        GrpLog(zs, "======== REALTIME " + _logLoadId + " - lines below were seen live ========");
+                if (DebugLevelLog) LvlLog("======== REALTIME - lines below were seen live ========");
             }
 			else if (State == State.Terminated)
             {
@@ -1501,6 +1833,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                             Values[i][0] = 0;
                     }
 
+                    // V0046 retest plots are transient per bar, like every other Mirror plot:
+                    // 0 unless something applies on THIS bar. Written unconditionally so they
+                    // are never NaN for a consumer.
+                    Values[PLOT_RETEST_SIGNAL][0] = 0;
+                    Values[PLOT_RETEST_PRICE][0]  = 0;
+                    Values[PLOT_RETEST_EDGE][0]   = 0;
+                    Values[PLOT_GET_READY][0]     = 0;
+
 			        _lastPrimaryBarTime = Times[0][0];
 			        _lastPrimaryClose   = Closes[0][0];
 			        _lastPrimaryHigh    = Highs[0][0];
@@ -1568,7 +1908,11 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
 
                     if (IsFirstTickOfBar)
+                    {
                         CheckZoneCross();   // after UpdateSignalGroups: reads the live zone map
+                        if (EnableRetestSignal)
+                            UpdateRetestWatches();   // after CheckZoneCross: a break registers its watch there
+                    }
 
                     DateTime now = Times[0][0];
                     for (int p = 0; p < NUM_PAT; p++)
@@ -2064,11 +2408,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void GrpLog(ZoneSet zs, string msg)
         {
-            if (string.IsNullOrEmpty(zs.LogPath)) return;
+            if (!WriteZoneLog || string.IsNullOrEmpty(zs.LogPath)) return;
             try
             {
                 System.IO.File.AppendAllText(zs.LogPath,
-                    DateTime.Now.ToString("HH:mm:ss.fff") + " [" + State + "] " + msg + "\r\n");
+                    DateTime.Now.ToString("HH:mm:ss.fff") + " " + LogStamp() + " " + msg + "\r\n");
             }
             catch { }
         }
@@ -2107,7 +2451,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // from a broken one -- that ambiguity cost a debugging session, so both sets report
             // their state to the Output window whether they run or not.
             NinjaTrader.Code.Output.Process(string.Format(
-                "[AlightenMirrorV0045Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
+                "[AlightenMirrorV0047Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
                 _zsPri.Enabled ? "ON" : "OFF", _zsPri.FileName,
                 _zsIns.Enabled ? "ON" : "OFF", _zsIns.FileName), PrintTo.OutputTab1);
         }
@@ -2134,7 +2478,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (!System.IO.File.Exists(path))
                 {
                     System.IO.File.WriteAllText(path,
-                        "# AlightenMirrorV0045Signal signal groups\r\n" +
+                        "# AlightenMirrorV0047Signal signal groups\r\n" +
                         "# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T\r\n" +
                         "# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)\r\n" +
                         "# Optional extra flag: ; ANCHORED   (others on the highest-TF member's protected side)\r\n" +
@@ -2142,7 +2486,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         "# Example: the triple J short stack within 100 ticks:\r\n" +
                         "J15S, J30S, J60S; 100T\r\n" +
                         "J15L, J30L, J60L; 100T\r\n");
-                    Print("[AlightenMirrorV0045Signal] created groups file with examples: " + path);
+                    Print("[AlightenMirrorV0047Signal] created groups file with examples: " + path);
                 }
 
                 foreach (string raw in System.IO.File.ReadAllLines(path))
@@ -2154,7 +2498,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     string[] segs = line.Split(';');
                     if (segs.Length < 2)
                     {
-                        Print("[AlightenMirrorV0045Signal] groups file: missing '; <ticks>T' in row: " + line);
+                        Print("[AlightenMirrorV0047Signal] groups file: missing '; <ticks>T' in row: " + line);
                         continue;
                     }
 
@@ -2162,7 +2506,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     int maxTicks;
                     if (!int.TryParse(tickPart, out maxTicks) || maxTicks <= 0)
                     {
-                        Print("[AlightenMirrorV0045Signal] groups file: bad tick spread in row: " + line);
+                        Print("[AlightenMirrorV0047Signal] groups file: bad tick spread in row: " + line);
                         continue;
                     }
 
@@ -2176,7 +2520,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         else if (flag == "ORDERED")
                             rule.Ordered = true;
                         else if (flag.Length > 0)
-                            Print("[AlightenMirrorV0045Signal] groups file: unknown flag '" + flag + "' in row: " + line);
+                            Print("[AlightenMirrorV0047Signal] groups file: unknown flag '" + flag + "' in row: " + line);
                     }
 
                     bool ok = true;
@@ -2195,7 +2539,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         if (p < 0 || t < 0 || (dirKey != "L" && dirKey != "S"))
                         {
-                            Print("[AlightenMirrorV0045Signal] groups file: bad signal token '" + tok + "' in row: " + line);
+                            Print("[AlightenMirrorV0047Signal] groups file: bad signal token '" + tok + "' in row: " + line);
                             ok = false;
                             break;
                         }
@@ -2218,16 +2562,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
 
-                Print("[AlightenMirrorV0045Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
+                Print("[AlightenMirrorV0047Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
 
-                zs.LogPath = System.IO.Path.Combine(NinjaTrader.Core.Globals.UserDataDir,
-                    "MirrorZonesV0045Signal_" + zs.Name + ".log");
-                GrpLog(zs, "======== LOAD " + (Instrument != null ? Instrument.FullName : "?")
+                zs.LogPath = LogFile("MirrorZonesV0046Signal_" + zs.Name + ".log");
+                GrpLog(zs, "======== LOAD " + _logLoadId + " " + (Instrument != null ? Instrument.FullName : "?")
+                    + " chart=" + (BarsPeriod != null ? BarsPeriod.ToString() : "?")
                     + " rules=" + zs.Rules.Count + " ========");
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0045Signal] groups file error: " + ex.Message);
+                Print("[AlightenMirrorV0047Signal] groups file error: " + ex.Message);
             }
         }
 
@@ -2779,20 +3123,30 @@ namespace NinjaTrader.NinjaScript.Indicators
                     ActiveGroup g = kv.Value;
                     if (g.IdentifiedTime > t || t > g.EndTime + grace) continue;
 
+                    // EVERY zone broken on this bar gets its own watch. V0045 returned after
+                    // the first match, which was fine when this only drew one arrow per bar -
+                    // but zones stack, and with a single watch the lower of two zones at the
+                    // same price could never produce a retest. Measured 2026-09-23: only the
+                    // 30958.50 zone had a watch, so the wicks at 09:35/09:36, which were
+                    // testing the zone beneath it, had nothing to fire against.
+                    //
+                    // The get-ready symbol still shares one tag per bar and direction, so the
+                    // chart gains no extra clutter - only the watch list does.
+
                     // LONG: closed up through this SHORT zone, with a LONG zone below it
                     if (!g.IsLong && c > g.ZoneMax && pc <= g.ZoneMax
                         && (!CrossRequireOpposingZone || HasOpposingZone(false, g.ZoneMin, sep, t, grace)))
                     {
-                        DrawCrossArrow(b, t, true, l);
-                        return;
+                        OnZoneBreak(b, ago, t, true, l, g, kv.Key);
+                        continue;
                     }
 
                     // SHORT: closed down through this LONG zone, with a SHORT zone above it
                     if (g.IsLong && CrossBothDirections && c < g.ZoneMin && pc >= g.ZoneMin
                         && (!CrossRequireOpposingZone || HasOpposingZone(true, g.ZoneMax, sep, t, grace)))
                     {
-                        DrawCrossArrow(b, t, false, h);
-                        return;
+                        OnZoneBreak(b, ago, t, false, h, g, kv.Key);
+                        continue;
                     }
                 }
             }
@@ -2840,12 +3194,30 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RemoveDrawObject(_xMarks.Dequeue().Tag);
         }
 
+        // V0046: the break marker is the configurable GET-READY SYMBOL, not V0045's arrow.
+        // Same tag, same FIFO queue, same Clean/redraw path - only the glyph and colour changed.
+        // This is the ONE behaviour difference from V0045 when the retest feature is off.
         private void DrawOneCross(CrossMark m)
         {
             if (ExportMode) return;
+            // Drawing only. The break still registers its watch, so turning the symbol off
+            // hides the "get ready" marker without disabling the retest signal itself.
+            if (!ShowGetReadySymbol)
+            {
+                try { RemoveDrawObject(m.Tag); } catch { }
+                return;
+            }
             double off = 6 * TickSize;
-            if (m.IsLong) Draw.ArrowUp  (this, m.Tag, false, m.Time, m.Price - off, CrossLongColor);
-            else          Draw.ArrowDown(this, m.Tag, false, m.Time, m.Price + off, CrossShortColor);
+            Draw.Text(this, m.Tag, false, SafeSymbol(GetReadySymbol, "★"),
+                m.Time, m.IsLong ? m.Price - off : m.Price + off, 0,
+                GetReadyColor ?? Brushes.Gold,
+                new SimpleFont("Arial", Math.Max(4, RetestSymbolFontSize)),
+                TextAlignment.Center, Brushes.Transparent, Brushes.Transparent, 0);
+        }
+
+        private static string SafeSymbol(string s, string fallback)
+        {
+            return string.IsNullOrEmpty(s) ? fallback : s;
         }
 
         // Re-issue every signal still held. Called from ForceUISync after RemoveDrawObjects(),
@@ -2854,6 +3226,558 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (!ShowCrossArrows || ExportMode || _xMarks == null) return;
             foreach (CrossMark m in _xMarks) DrawOneCross(m);
+        }
+
+        #endregion
+
+        #region V0046 Retest Entry Signal
+
+        // ---- STAGE 0: GET READY -------------------------------------------------------
+        // Called by CheckZoneCross in place of V0045's DrawCrossArrow. The glyph is drawn
+        // unconditionally (that is the one visual difference from V0045); the WATCH is only
+        // registered when the retest feature is enabled.
+        private void OnZoneBreak(int barIdx, int ago, DateTime t, bool isLong, double px, ActiveGroup g, string zoneKey)
+        {
+            DrawCrossArrow(barIdx, t, isLong, px);   // unchanged plumbing: tag, FIFO cap, Clean redraw
+
+            if (!EnableRetestSignal || _rtWatches == null || g == null) return;
+
+            if (ago >= 0 && ago <= CurrentBars[0] && ago < 250)
+                Values[PLOT_GET_READY][ago] = isLong ? 1 : -1;
+
+            // A re-break of the same zone in the same direction RE-ARMS the existing watch
+            // rather than replacing it: the zone is one level with one history, and a
+            // replacement would throw away the marks already earned against it.
+            for (int i = _rtWatches.Count - 1; i >= 0; i--)
+            {
+                RetestWatch ex = _rtWatches[i];
+                if (ex.ZoneTag != zoneKey || ex.IsLong != isLong) continue;
+                ex.Armed       = true;
+                ex.ZoneMin     = g.ZoneMin;      // the zone can tighten while it lives
+                ex.ZoneMax     = g.ZoneMax;
+                ex.Edge        = isLong ? g.ZoneMax : g.ZoneMin;
+                ex.ZoneEndTime = g.EndTime;
+                return;
+            }
+
+            RetestWatch w = new RetestWatch
+            {
+                ZoneTag     = zoneKey,
+                IsLong      = isLong,
+                ZoneMin     = g.ZoneMin,
+                ZoneMax     = g.ZoneMax,
+                Edge        = isLong ? g.ZoneMax : g.ZoneMin,
+                ZoneEndTime = g.EndTime,
+                BreakBar    = barIdx,
+                BreakTime   = t,
+                Armed       = true
+            };
+            _rtWatches.Add(w);
+
+            while (_rtWatches.Count > MAX_RETEST_WATCHES)
+                KillWatch(_rtWatches[0], 0);
+        }
+
+        // ---- STAGES 1 and 2, plus cancellation ----------------------------------------
+        // One CLOSED primary bar, same bar selection as CheckZoneCross.
+        private void UpdateRetestWatches()
+        {
+            if (_rtWatches == null || _cpEngine == null) return;
+
+            int b = State == State.Historical ? CurrentBars[0] : CurrentBars[0] - 1;
+            if (b <= _rtLastBar || b < 2) return;
+            _rtLastBar = b;
+
+            int ago = CurrentBars[0] - b;
+            if (ago < 0 || ago + 1 > CurrentBars[0]) return;
+
+            // The chart-series pivot engine advances exactly one bar per closed bar, so its
+            // newest CONFIRMED pivot is always at least one bar old - which is the lag
+            // stage 2 exists to wait for.
+            PivotCatchUp(_cpEngine, 0, b);
+
+            // Diagnostic first: it must not depend on a watch being alive, or it would go
+            // blank exactly when you are trying to find out why nothing fired.
+            if (ShowChartPivotDots) DrawChartPivotDots();
+
+            if (_rtWatches.Count == 0) return;
+
+            double hi = Highs[0][ago], lo = Lows[0][ago], cl = Closes[0][ago];
+            DateTime t = Times[0][ago];
+            double tol   = TickSize > 0 ? RetestWickToleranceTicks * TickSize : 0;
+            TimeSpan grace = TimeSpan.FromMinutes(CrossGraceMins);
+
+            double activeEdge = 0;
+
+            for (int i = _rtWatches.Count - 1; i >= 0; i--)
+            {
+                RetestWatch w = _rtWatches[i];
+
+                // EXPIRE: the zone's own lifetime is the only thing that ends a watch.
+                if (t > w.ZoneEndTime + grace) { KillWatch(w, i); continue; }
+
+                activeEdge = w.Edge;
+
+                // ---- ARM STATE, evaluated for THIS bar ---------------------------------
+                // Order matters, and getting it wrong cost two clear signals on 2026-09-23
+                // at 13:37 and 13:41. The retest-and-reject bar - a wick through the level
+                // that closes back on the break side - both RE-ARMS the watch and IS the
+                // signal. Disarming first, then `continue`, meant that bar could never fire.
+                //
+                // So: a bar counts as armed if the watch was already armed OR this bar's
+                // close re-crosses in the break direction. The signal is evaluated against
+                // the bar's WICK, and the armed state is updated from the close AFTERWARDS.
+                // Quality is guarded by the pivot requirement, not by the close: a confirmed
+                // pivot low means price turned up there whatever that one bar did.
+                bool reCross   = w.IsLong ? cl > w.ZoneMax : cl < w.ZoneMin;
+                bool armedNow  = w.Armed || reCross;
+                bool closedOut = w.IsLong ? cl < w.ZoneMin : cl > w.ZoneMax;
+
+                if (DebugRetestLog)
+                {
+                    double dbgLo = Math.Min(w.ZoneMin, w.Edge) - tol;
+                    double dbgHi = Math.Max(w.ZoneMax, w.Edge) + tol;
+                    RetestLog(string.Format(
+                        "{0:yyyy-MM-dd HH:mm} {1} zone={2} [{3:F2}..{4:F2}] edge={5:F2} band=[{6:F2}..{7:F2}] "
+                        + "H={8:F2} L={9:F2} C={10:F2} armed={11} reCross={12} closedOut={13} "
+                        + "touch={14} neb={15} cands={16} breakBar={17} bar={18}",
+                        t, w.IsLong ? "LONG " : "SHORT", w.ZoneTag, w.ZoneMin, w.ZoneMax, w.Edge,
+                        dbgLo, dbgHi, hi, lo, cl, armedNow, reCross, closedOut,
+                        (hi >= dbgLo && lo <= dbgHi), NebulaBright(ago),
+                        w.Cands.Count, w.BreakBar, b));
+                }
+
+                if (!armedNow || b <= w.BreakBar)
+                {
+                    // Still update the state even when this bar cannot signal.
+                    if (closedOut && w.Armed) { w.Armed = false; DropProvisional(w); }
+                    else if (reCross) w.Armed = true;
+                    continue;
+                }
+
+                // The zone band projected forward, widened by the wick tolerance.
+                double bandLo = Math.Min(w.ZoneMin, w.Edge) - tol;
+                double bandHi = Math.Max(w.ZoneMax, w.Edge) + tol;
+
+                // ---- STAGE 1: a CANDIDATE per touching bar -----------------------------
+                // Every bar whose wick reaches the projected band becomes its own candidate.
+                // One slot was the bug: the first bar to poke the level claimed it and the
+                // pivot, which landed a bar or two later, could never match.
+                // A TOUCH is the bar's range intersecting the band - both sides. The old
+                // one-sided test (long: lo <= bandHi) was true for ANY bar sitting below the
+                // band, so a collapsed market kept "touching" a level it had left far behind.
+                // The disarm rule masked most of it; it was still wrong.
+                bool touched = hi >= bandLo && lo <= bandHi;
+                if (touched && (!RetestRequireNebulaBright || NebulaBright(ago) == (w.IsLong ? 1 : -1)))
+                {
+                    bool already = false;
+                    for (int c = 0; c < w.Cands.Count; c++)
+                        if (w.Cands[c].Bar == b) { already = true; break; }
+
+                    if (!already)
+                    {
+                        RetestCand cd = new RetestCand
+                        {
+                            Bar   = b,
+                            Time  = t,
+                            Price = w.IsLong ? lo : hi,      // the wick's own extreme
+                            Tag   = "MirRT_" + b + (w.IsLong ? "L" : "S")
+                        };
+                        w.Cands.Add(cd);
+                        w.Provisional = true;
+                        w.ProvBar = b; w.ProvTime = t; w.ProvPrice = cd.Price; w.MarkTag = cd.Tag;
+                        DrawRetestCand(w, cd, false);
+                        PublishRetest(ago, w.IsLong ? 1 : -1, cd.Price, w.Edge);
+                        if (RetestAlertProvisional) RetestAlert(cd, w.IsLong, false);
+
+                        while (w.Cands.Count > MAX_RETEST_CANDS)
+                        {
+                            DropCandMark(w.Cands[0]);
+                            w.Cands.RemoveAt(0);
+                        }
+                    }
+                }
+
+                // ---- STAGE 2: each candidate resolves on its OWN bar -------------------
+                for (int c = w.Cands.Count - 1; c >= 0; c--)
+                {
+                    RetestCand cd = w.Cands[c];
+
+                    // CONFIRM: this candidate's bar is a confirmed pivot of the needed side.
+                    if (DebugRetestLog)
+                        RetestLog(string.Format(
+                            "        cand bar={0} price={1:F2} pivotAtBar={2} pivotExists={3} sideAfter={4}",
+                            cd.Bar, cd.Price, IsConfirmedPivotAt(cd.Bar, !w.IsLong),
+                            PivotExistsAt(cd.Bar), HasConfirmedSidePivotAfter(cd.Bar, !w.IsLong)));
+
+                    if (IsConfirmedPivotAt(cd.Bar, !w.IsLong))
+                    {
+                        w.ProvBar = cd.Bar; w.ProvTime = cd.Time; w.ProvPrice = cd.Price;
+                        w.MarkTag = cd.Tag;
+                        DrawRetestCand(w, cd, true);   // same tag -> updates in place
+                        int cAgo = CurrentBars[0] - cd.Bar;
+                        PublishRetest(cAgo, w.IsLong ? 2 : -2, cd.Price, w.Edge);
+                        RetestAlert(cd, w.IsLong, true);
+                        w.Cands.RemoveAt(c);           // resolved; the mark stays on the chart
+                        continue;
+                    }
+
+                    // DROP: that bar holds no pivot at all AND the swing has since formed
+                    // elsewhere. A pivot is unconfirmed for at least one bar by definition,
+                    // so anything less patient than this throws away real signals.
+                    if (!PivotExistsAt(cd.Bar) && HasConfirmedSidePivotAfter(cd.Bar, !w.IsLong))
+                    {
+                        DropCandMark(cd);
+                        w.Cands.RemoveAt(c);
+                    }
+                }
+                w.Provisional = w.Cands.Count > 0;
+
+                // ---- arm state from THIS bar's close, after the signal was evaluated ----
+                if (closedOut) { w.Armed = false; }
+                else if (reCross || armedNow) { w.Armed = true; }
+            }
+
+            // Only if a stage-1/stage-2 publish has not already stamped this bar's edge.
+            if (activeEdge != 0 && ago >= 0 && ago < 250 && ago <= CurrentBars[0]
+                && Values[PLOT_RETEST_EDGE][ago] == 0)
+                Values[PLOT_RETEST_EDGE][ago] = activeEdge;
+        }
+
+        // DIAGNOSTIC. Why a retest did or did not fire, in numbers rather than pixels.
+        private void RetestLog(string line)
+        {
+            try
+            {
+                string p = LogFile("MirrorRetestV0047.log");
+                System.IO.File.AppendAllText(p, LogStamp() + " " + line + Environment.NewLine);
+            }
+            catch { }
+        }
+
+        // DIAGNOSTIC. One dot per CONFIRMED chart-series pivot (entries 0..n-2; the newest
+        // is still developing). This answers the only question that matters when a signal is
+        // missing: did the pivot engine see a pivot on that bar at all?
+        private void DrawChartPivotDots()
+        {
+            if (_cpEngine == null) return;
+            int n = _cpEngine.Bars.Count;
+            if (n < 2) return;
+            int first = Math.Max(0, n - 60);          // recent history only
+            for (int i = first; i <= n - 2; i++)
+            {
+                int bar = _cpEngine.Bars[i];
+                int ago = CurrentBars[0] - bar;
+                if (ago < 0 || ago > 250 || ago > CurrentBars[0]) continue;
+                try
+                {
+                    Draw.Dot(this, "MirCP_" + bar + (_cpEngine.IsHigh[i] ? "H" : "L"),
+                             false, ago, _cpEngine.Prices[i],
+                             _cpEngine.IsHigh[i] ? Brushes.Magenta : Brushes.Cyan);
+                }
+                catch { }
+            }
+        }
+
+        private void PublishRetest(int agoIdx, double signal, double price, double edge)
+        {
+            if (agoIdx < 0 || agoIdx >= 250 || agoIdx > CurrentBars[0]) return;
+            Values[PLOT_RETEST_SIGNAL][agoIdx] = signal;
+            Values[PLOT_RETEST_PRICE][agoIdx]  = price;
+            Values[PLOT_RETEST_EDGE][agoIdx]   = edge;
+        }
+
+        // A pivot LOW confirms a long, a pivot HIGH confirms a short. The NEWEST pivot is
+        // still developing (a more extreme same-side bar can still replace it), exactly as
+        // RedrawDailyBiasLevels treats the daily set - so only entries 0..n-2 count as
+        // CONFIRMED.
+        private bool IsConfirmedPivotAt(int bar, bool wantHigh)
+        {
+            if (_cpEngine == null) return false;
+            int n = _cpEngine.Bars.Count;
+            if (n < 2) return false;
+
+            // The NEWEST pivot is still developing - a more extreme same-side bar can still
+            // replace it - so only entries 0..n-2 are CONFIRMED. Same rule the daily bias
+            // uses (RedrawDailyBiasLevels: confirmed = Count - 1).
+            for (int i = n - 2; i >= 0; i--)
+            {
+                if (_cpEngine.Bars[i] < bar) break;             // sorted; older from here on
+                if (_cpEngine.Bars[i] != bar) continue;
+                return _cpEngine.IsHigh[i] == wantHigh;
+            }
+            return false;
+        }
+
+        // Does the engine hold ANY pivot on this bar, confirmed or still developing? A
+        // developing pivot on a candidate's bar is the normal case for a bar or two, and
+        // must not be read as "this bar was never a pivot".
+        private bool PivotExistsAt(int bar)
+        {
+            if (_cpEngine == null) return false;
+            for (int i = _cpEngine.Bars.Count - 1; i >= 0; i--)
+            {
+                if (_cpEngine.Bars[i] < bar) return false;   // sorted
+                if (_cpEngine.Bars[i] == bar) return true;
+            }
+            return false;
+        }
+
+        // A CONFIRMED pivot of the side this trade needs, strictly after `bar`: the swing
+        // formed somewhere else, so this candidate will never be upgraded.
+        private bool HasConfirmedSidePivotAfter(int bar, bool wantHigh)
+        {
+            if (_cpEngine == null) return false;
+            for (int i = _cpEngine.Bars.Count - 2; i >= 0; i--)
+            {
+                if (_cpEngine.Bars[i] <= bar) return false;
+                if (_cpEngine.IsHigh[i] == wantHigh) return true;
+            }
+            return false;
+        }
+
+        // Draw (or update) one candidate's mark. Same tag for faint and solid, so the
+        // upgrade updates in place and never restacks.
+        // Sound + Alerts-window entry for a retest mark. Realtime only, once per bar/side/stage:
+        // stacked zones can confirm the same bar from several watches, which is one signal.
+        private void RetestAlert(RetestCand cd, bool isLong, bool confirmed)
+        {
+            if (!RetestSoundAlert || State != State.Realtime || ExportMode) return;
+
+            string key = cd.Bar + (isLong ? "L" : "S") + (confirmed ? "C" : "P");
+            if (!_rtAlerted.Add(key)) return;
+            if (_rtAlerted.Count > 500) _rtAlerted.Clear();
+
+            string file = isLong ? RetestLongSound : RetestShortSound;
+            string path = string.IsNullOrWhiteSpace(file) ? ""
+                        : System.IO.Path.IsPathRooted(file) ? file
+                        : System.IO.Path.Combine(NinjaTrader.Core.Globals.InstallDir, "sounds", file);
+            if (path.Length > 0 && !System.IO.File.Exists(path))
+            {
+                Print(Name + ": retest alert sound not found: " + path);
+                path = "";
+            }
+
+            string msg = string.Format("{0} {1}: retest {2} {3} @ {4}",
+                Instrument.FullName, BarsPeriod, isLong ? "LONG" : "SHORT",
+                confirmed ? "confirmed" : "provisional", Instrument.MasterInstrument.FormatPrice(cd.Price));
+            try
+            {
+                Alert("MirRTAlert_" + key, confirmed ? Priority.High : Priority.Medium, msg, path, 0,
+                      isLong ? Brushes.DarkCyan : Brushes.DarkRed, Brushes.White);
+            }
+            catch (Exception ex) { Print(Name + ": retest alert failed: " + ex.Message); }
+        }
+
+        private void DrawRetestCand(RetestWatch w, RetestCand cd, bool confirmed)
+        {
+            if (_rtMarks == null || cd == null) return;
+
+            RetestMark m = null;
+            for (int i = 0; i < _rtMarks.Count; i++)
+                if (_rtMarks[i].Tag == cd.Tag) { m = _rtMarks[i]; break; }
+
+            if (m == null)
+            {
+                m = new RetestMark { Tag = cd.Tag, Time = cd.Time, Price = cd.Price, IsLong = w.IsLong };
+                _rtMarks.Add(m);
+                int cap = Math.Max(10, MaxCrossArrows);
+                while (_rtMarks.Count > cap)
+                {
+                    try { RemoveDrawObject(_rtMarks[0].Tag); } catch { }
+                    _rtMarks.RemoveAt(0);
+                }
+            }
+
+            m.Confirmed = confirmed;
+            DrawOneRetest(m);
+        }
+
+        // Remove an UNCONFIRMED candidate's mark. A confirmed mark is history and stays.
+        private void DropCandMark(RetestCand cd)
+        {
+            if (cd == null || _rtMarks == null) return;
+            for (int i = 0; i < _rtMarks.Count; i++)
+            {
+                if (_rtMarks[i].Tag != cd.Tag) continue;
+                if (!_rtMarks[i].Confirmed)
+                {
+                    try { RemoveDrawObject(_rtMarks[i].Tag); } catch { }
+                    _rtMarks.RemoveAt(i);
+                }
+                break;
+            }
+        }
+
+        // Remove an unconfirmed provisional mark, leaving confirmed ones alone.
+        // Disarm path: every unconfirmed candidate goes. Confirmed marks are history.
+        private void DropProvisional(RetestWatch w)
+        {
+            if (w == null) return;
+            for (int c = 0; c < w.Cands.Count; c++)
+                DropCandMark(w.Cands[c]);
+            w.Cands.Clear();
+            w.Provisional = false;
+        }
+
+        // Nebula's BrightState plot: +1 on a bright-green bar, -1 on a bright-red bar, 0
+        // otherwise. 0 whenever Nebula is not hosted or has no value for the bar.
+        private int NebulaBright(int ago)
+        {
+            if (_neb == null || ago < 0) return 0;
+            try
+            {
+                Series<double> s = _neb.BrightState;
+                if (s == null || !s.IsValidDataPoint(ago)) return 0;
+                double v = s[ago];
+                return v > 0.5 ? 1 : (v < -0.5 ? -1 : 0);
+            }
+            catch { return 0; }
+        }
+
+        private void DrawRetestMark(RetestWatch w, bool confirmed)
+        {
+            if (_rtMarks == null) return;
+
+            RetestMark m = null;
+            for (int i = 0; i < _rtMarks.Count; i++)
+                if (_rtMarks[i].Tag == w.MarkTag) { m = _rtMarks[i]; break; }
+
+            if (m == null)
+            {
+                m = new RetestMark { Tag = w.MarkTag, Time = w.ProvTime, Price = w.ProvPrice, IsLong = w.IsLong };
+                _rtMarks.Add(m);
+                int cap = Math.Max(10, MaxCrossArrows);
+                while (_rtMarks.Count > cap)
+                {
+                    try { RemoveDrawObject(_rtMarks[0].Tag); } catch { }
+                    _rtMarks.RemoveAt(0);
+                }
+            }
+
+            m.Confirmed = confirmed;
+            DrawOneRetest(m);
+        }
+
+        private void DrawOneRetest(RetestMark m)
+        {
+            if (ExportMode || m == null) return;
+            // Provisional marks are OFF by default: every touching bar makes a candidate, so
+            // on a multi-bar retest they crowd the level. The candidates still run - only
+            // their drawing is suppressed - so confirmation is unaffected.
+            if (!m.Confirmed && !ShowProvisionalMarks)
+            {
+                try { RemoveDrawObject(m.Tag); } catch { }
+                return;
+            }
+            double off = 3 * TickSize;
+            string sym = m.IsLong ? SafeSymbol(RetestLongSymbol, "▲") : SafeSymbol(RetestShortSymbol, "▼");
+            Brush col = m.Confirmed ? (RetestConfirmedColor ?? Brushes.Aqua) : (RetestProvisionalColor ?? Brushes.Khaki);
+            Draw.Text(this, m.Tag, false, sym, m.Time, m.IsLong ? m.Price - off : m.Price + off, 0,
+                col, new SimpleFont("Arial", Math.Max(4, RetestSymbolFontSize)), TextAlignment.Center,
+                Brushes.Transparent, Brushes.Transparent, 0);
+        }
+
+        // Drop a watch and, if its mark never confirmed, take the mark off the chart too.
+        private void KillWatch(RetestWatch w, int index)
+        {
+            if (w == null) return;
+
+            if (w.Provisional && _rtMarks != null)
+            {
+                for (int i = 0; i < _rtMarks.Count; i++)
+                {
+                    if (_rtMarks[i].Tag != w.MarkTag) continue;
+                    if (!_rtMarks[i].Confirmed)
+                    {
+                        try { RemoveDrawObject(_rtMarks[i].Tag); } catch { }
+                        _rtMarks.RemoveAt(i);
+                    }
+                    break;
+                }
+            }
+
+            if (index >= 0 && index < _rtWatches.Count && _rtWatches[index] == w)
+                _rtWatches.RemoveAt(index);
+            else
+                _rtWatches.Remove(w);
+        }
+
+        // Re-issue the retest marks after a manual Clean, alongside RedrawCrossArrows.
+        private void RedrawRetestMarks()
+        {
+            if (ExportMode || _rtMarks == null) return;
+            foreach (RetestMark m in _rtMarks) DrawOneRetest(m);
+        }
+
+        // ---- The chart-series pivot engine --------------------------------------------
+        // A SECOND, INDEPENDENT instance of the Daily Bias pivot rules, run on BarsInProgress
+        // 0. The rules below are a literal transcription of ProcessDailyBiasBar and
+        // DbProcessPivot (see the "Daily Bias Levels" region) parameterised by series index
+        // and engine instance; the daily engine's own code and lists are untouched, so the
+        // two can never share state. If the daily rules ever change, change these to match.
+
+        private void PivotCatchUp(PivotEngine pe, int bip, int through)
+        {
+            if (pe == null) return;
+            for (int b = pe.LastProcessedBar + 1; b <= through; b++)
+                PivotProcessBar(pe, bip, b);
+        }
+
+        // One CLOSED bar of series `bip`. Same six two-bar colour/extreme conditions as
+        // ProcessDailyBiasBar, in the same order (the order decides how the same-side
+        // replacement resolves on an outside bar).
+        private void PivotProcessBar(PivotEngine pe, int bip, int barIdx)
+        {
+            if (pe == null || barIdx <= pe.LastProcessedBar) return;
+            pe.LastProcessedBar = barIdx;
+
+            if (bip < 0 || bip >= BarsArray.Length) return;
+
+            int ago = CurrentBars[bip] - barIdx;
+            if (barIdx < 2 || ago < 0 || ago + 1 > CurrentBars[bip]) return;
+            if (ago + 1 >= 250) return;   // beyond MaximumBarsLookBack: unreachable, skip it
+
+            double o0 = Opens[bip][ago],     c0 = Closes[bip][ago],     h0 = Highs[bip][ago],     l0 = Lows[bip][ago];
+            double o1 = Opens[bip][ago + 1], c1 = Closes[bip][ago + 1], h1 = Highs[bip][ago + 1], l1 = Lows[bip][ago + 1];
+
+            bool isHigh    = h0 > h1;
+            bool isLow     = l0 < l1;
+            bool prevGreen = c1 >= o1;
+            bool currGreen = c0 >= o0;
+            DateTime t0    = Times[bip][ago];
+
+            if (prevGreen && currGreen && isHigh)   PivotRegister(pe, barIdx, h0, true,  Math.Max(o0, c0), t0);
+            if (!prevGreen && !currGreen && isLow)  PivotRegister(pe, barIdx, l0, false, Math.Min(o0, c0), t0);
+            if (prevGreen && !currGreen && isHigh)  PivotRegister(pe, barIdx, h0, true,  Math.Max(o0, c0), t0);
+            if (!prevGreen && currGreen && isLow)   PivotRegister(pe, barIdx, l0, false, Math.Min(o0, c0), t0);
+
+            // The OUTSIDE-bar pair: higher high AND lower low registers BOTH sides.
+            if (!prevGreen && currGreen && isHigh)  PivotRegister(pe, barIdx, h0, true,  Math.Max(o0, c0), t0);
+            if (prevGreen && !currGreen && isLow)   PivotRegister(pe, barIdx, l0, false, Math.Min(o0, c0), t0);
+        }
+
+        // Identical body to DbProcessPivot: a same-side pivot is REPLACED by a more extreme
+        // one; the side must alternate before a new entry is appended.
+        private static void PivotRegister(PivotEngine pe, int barIdx, double price, bool isHigh, double guide, DateTime time)
+        {
+            int n = pe.Bars.Count;
+            if (n > 0 && pe.IsHigh[n - 1] == isHigh)
+            {
+                if (isHigh ? price > pe.Prices[n - 1] : price < pe.Prices[n - 1])
+                {
+                    pe.Bars[n - 1]   = barIdx;
+                    pe.Prices[n - 1] = price;
+                    pe.Guides[n - 1] = guide;
+                    pe.Times[n - 1]  = time;
+                }
+                return;
+            }
+            pe.Bars.Add(barIdx);
+            pe.Prices.Add(price);
+            pe.IsHigh.Add(isHigh);
+            pe.Guides.Add(guide);
+            pe.Times.Add(time);
         }
 
         #endregion
@@ -2934,9 +3858,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         // the whole object graph (tracked levels, zone sets, hosted sources) leaks with it.
         private RoutedEventHandler _hSettings, _hExport, _hClean;
 
-        private const string TB_SETTINGS_ID = "AlightenMirrorV0045SignalSettingsBtn";
-        private const string TB_EXPORT_ID   = "AlightenMirrorV0045SignalExportBtn";
-        private const string TB_CLEAN_ID    = "AlightenMirrorV0045SignalCleanBtn";
+        private const string TB_SETTINGS_ID = "AlightenMirrorV0047SignalSettingsBtn";
+        private const string TB_EXPORT_ID   = "AlightenMirrorV0047SignalExportBtn";
+        private const string TB_CLEAN_ID    = "AlightenMirrorV0047SignalCleanBtn";
 
         // A recompile discards this instance before the Terminated teardown - which is queued
         // on the chart Dispatcher - ever runs, so the PREVIOUS build's buttons stay parented to
@@ -2959,10 +3883,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 foreach (System.Windows.UIElement el in doomed) chartWindow.MainMenu.Remove(el);
                 if (doomed.Count > 0)
-                    Print("[AlightenMirrorV0045Signal] cleared " + doomed.Count
+                    Print("[AlightenMirrorV0047Signal] cleared " + doomed.Count
                         + " orphaned toolbar button(s) left by a previous build");
             }
-            catch (Exception ex) { Print("[AlightenMirrorV0045Signal] orphan sweep: " + ex.Message); }
+            catch (Exception ex) { Print("[AlightenMirrorV0047Signal] orphan sweep: " + ex.Message); }
         }
 
 		private void CreateToolbarButton()
@@ -2984,13 +3908,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _hSettings = (s, e) => OpenSettingsWindow();
                 settingsButton = IndicatorVisualStyleHelper.CreateSettingsButton("Mirror Settings", TB_SETTINGS_ID, _hSettings);
                 settingsButton.Width = 110;
-                settingsButton.ToolTip = "Configure Mirror V0045Signal visibility settings";
+                settingsButton.ToolTip = "Configure Mirror V0046Signal visibility settings";
                 chartWindow.MainMenu.Add(settingsButton);
 
                 _hExport = (s, e) => ExportLevelsToCsv();
                 exportButton = IndicatorVisualStyleHelper.CreateSettingsButton("Export Levels", TB_EXPORT_ID, _hExport);
                 exportButton.Width = 110;
-                exportButton.ToolTip = "Export tracked levels to CSV (V0045Signal)";
+                exportButton.ToolTip = "Export tracked levels to CSV (V0046Signal)";
                 chartWindow.MainMenu.Add(exportButton);
 
                 // V0036: one-click Clean Invalid (same as the modal button). Danger
@@ -3003,7 +3927,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 cleanButton.Margin = new Thickness(6, 3, 6, 3);
                 cleanButton.ToolTip = "Remove currently-active levels price has crossed, purge failed zones, and rebuild active zones (same as the modal's Clean Invalid)";
                 chartWindow.MainMenu.Add(cleanButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0045Signal] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0047Signal] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -3089,7 +4013,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0045Signal] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0047Signal] Export error: " + ex.Message);
             }
         }
 
@@ -3164,7 +4088,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0011\", \"AlightenMirrorPtBV0005\", \"AlightenMirrorPtGV0003\", \"AlightenMirrorPtHV0003\", \"AlightenMirrorPtFV0004\", \"AlightenMirrorPtJV0008\"],");
             sb.AppendLine("  \"bar_timestamp\": \"close\",");
-            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0045Signal\"");
+            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0047Signal\"");
             sb.AppendLine("}");
 
             System.IO.File.WriteAllText(metaPath, sb.ToString());
@@ -3214,7 +4138,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0045Signal] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0047Signal] Failed to open settings: {ex.Message}");
 		    }
 		}
 
@@ -3346,6 +4270,8 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                 RedrawDailyBiasLevels(); // RemoveDrawObjects() above cleared the level lines too
                 RedrawCrossArrows();     // signals survive a Clean - it cleans levels and zones, not signals
+                RedrawRetestMarks();     // ditto for the V0046 provisional/confirmed entry marks
+                if (ShowChartPivotDots) DrawChartPivotDots();   // the diagnostic must survive a Clean too
 
                 if (ChartControl != null) ChartControl.InvalidateVisual();
 		    }
@@ -3410,60 +4336,3 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
     }
 }
-
-#region NinjaScript generated code. Neither change nor remove.
-
-namespace NinjaTrader.NinjaScript.Indicators
-{
-	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
-	{
-		private AlightenMirrorV0045Signal[] cacheAlightenMirrorV0045Signal;
-		public AlightenMirrorV0045Signal AlightenMirrorV0045Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			return AlightenMirrorV0045Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
-		}
-
-		public AlightenMirrorV0045Signal AlightenMirrorV0045Signal(ISeries<double> input, bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			if (cacheAlightenMirrorV0045Signal != null)
-				for (int idx = 0; idx < cacheAlightenMirrorV0045Signal.Length; idx++)
-					if (cacheAlightenMirrorV0045Signal[idx] != null && cacheAlightenMirrorV0045Signal[idx].EnablePatternA == enablePatternA && cacheAlightenMirrorV0045Signal[idx].EnablePatternB == enablePatternB && cacheAlightenMirrorV0045Signal[idx].EnablePatternG == enablePatternG && cacheAlightenMirrorV0045Signal[idx].EnablePatternH == enablePatternH && cacheAlightenMirrorV0045Signal[idx].EnablePatternF == enablePatternF && cacheAlightenMirrorV0045Signal[idx].EnablePatternJ == enablePatternJ && cacheAlightenMirrorV0045Signal[idx].SrcBarsToProcess == srcBarsToProcess && cacheAlightenMirrorV0045Signal[idx].MirrorLookbackBars == mirrorLookbackBars && cacheAlightenMirrorV0045Signal[idx].EnableInvalidatedCleanup == enableInvalidatedCleanup && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF1_Daily == showPatternATF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF2_240m == showPatternATF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF3_60m == showPatternATF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF4_30m == showPatternATF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF5_15m == showPatternATF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF6_10m == showPatternATF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternATF7_5m == showPatternATF7_5m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF1_Daily == showPatternBTF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF2_240m == showPatternBTF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF3_60m == showPatternBTF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF4_30m == showPatternBTF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF5_15m == showPatternBTF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF6_10m == showPatternBTF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternBTF7_5m == showPatternBTF7_5m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF1_Daily == showPatternGTF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF2_240m == showPatternGTF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF3_60m == showPatternGTF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF4_30m == showPatternGTF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF5_15m == showPatternGTF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF6_10m == showPatternGTF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternGTF7_5m == showPatternGTF7_5m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF1_Daily == showPatternHTF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF2_240m == showPatternHTF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF3_60m == showPatternHTF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF4_30m == showPatternHTF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF5_15m == showPatternHTF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF6_10m == showPatternHTF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternHTF7_5m == showPatternHTF7_5m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF1_Daily == showPatternFTF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF2_240m == showPatternFTF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF3_60m == showPatternFTF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF4_30m == showPatternFTF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF5_15m == showPatternFTF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF6_10m == showPatternFTF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternFTF7_5m == showPatternFTF7_5m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF1_Daily == showPatternJTF1_Daily && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF2_240m == showPatternJTF2_240m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF3_60m == showPatternJTF3_60m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF4_30m == showPatternJTF4_30m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF5_15m == showPatternJTF5_15m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF6_10m == showPatternJTF6_10m && cacheAlightenMirrorV0045Signal[idx].ShowPatternJTF7_5m == showPatternJTF7_5m && cacheAlightenMirrorV0045Signal[idx].ColorTF1 == colorTF1 && cacheAlightenMirrorV0045Signal[idx].ColorTF2 == colorTF2 && cacheAlightenMirrorV0045Signal[idx].ColorTF3 == colorTF3 && cacheAlightenMirrorV0045Signal[idx].ColorTF4 == colorTF4 && cacheAlightenMirrorV0045Signal[idx].ColorTF5 == colorTF5 && cacheAlightenMirrorV0045Signal[idx].ColorTF6 == colorTF6 && cacheAlightenMirrorV0045Signal[idx].ColorTF7 == colorTF7 && cacheAlightenMirrorV0045Signal[idx].LevelWidth == levelWidth && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleA == levelDashStyleA && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleB == levelDashStyleB && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleG == levelDashStyleG && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleH == levelDashStyleH && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleF == levelDashStyleF && cacheAlightenMirrorV0045Signal[idx].LevelDashStyleJ == levelDashStyleJ && cacheAlightenMirrorV0045Signal[idx].ShowLevelLabels == showLevelLabels && cacheAlightenMirrorV0045Signal[idx].SyncThrottleMs == syncThrottleMs && cacheAlightenMirrorV0045Signal[idx].EnableResearchLog == enableResearchLog && cacheAlightenMirrorV0045Signal[idx].ResearchTargetTicks == researchTargetTicks && cacheAlightenMirrorV0045Signal[idx].ExportMode == exportMode && cacheAlightenMirrorV0045Signal[idx].LabelFontSize == labelFontSize && cacheAlightenMirrorV0045Signal[idx].LabelOffsetTicks == labelOffsetTicks && cacheAlightenMirrorV0045Signal[idx].EqualsInput(input))
-						return cacheAlightenMirrorV0045Signal[idx];
-			return CacheIndicator<AlightenMirrorV0045Signal>(new AlightenMirrorV0045Signal(){ EnablePatternA = enablePatternA, EnablePatternB = enablePatternB, EnablePatternG = enablePatternG, EnablePatternH = enablePatternH, EnablePatternF = enablePatternF, EnablePatternJ = enablePatternJ, SrcBarsToProcess = srcBarsToProcess, MirrorLookbackBars = mirrorLookbackBars, EnableInvalidatedCleanup = enableInvalidatedCleanup, ShowPatternATF1_Daily = showPatternATF1_Daily, ShowPatternATF2_240m = showPatternATF2_240m, ShowPatternATF3_60m = showPatternATF3_60m, ShowPatternATF4_30m = showPatternATF4_30m, ShowPatternATF5_15m = showPatternATF5_15m, ShowPatternATF6_10m = showPatternATF6_10m, ShowPatternATF7_5m = showPatternATF7_5m, ShowPatternBTF1_Daily = showPatternBTF1_Daily, ShowPatternBTF2_240m = showPatternBTF2_240m, ShowPatternBTF3_60m = showPatternBTF3_60m, ShowPatternBTF4_30m = showPatternBTF4_30m, ShowPatternBTF5_15m = showPatternBTF5_15m, ShowPatternBTF6_10m = showPatternBTF6_10m, ShowPatternBTF7_5m = showPatternBTF7_5m, ShowPatternGTF1_Daily = showPatternGTF1_Daily, ShowPatternGTF2_240m = showPatternGTF2_240m, ShowPatternGTF3_60m = showPatternGTF3_60m, ShowPatternGTF4_30m = showPatternGTF4_30m, ShowPatternGTF5_15m = showPatternGTF5_15m, ShowPatternGTF6_10m = showPatternGTF6_10m, ShowPatternGTF7_5m = showPatternGTF7_5m, ShowPatternHTF1_Daily = showPatternHTF1_Daily, ShowPatternHTF2_240m = showPatternHTF2_240m, ShowPatternHTF3_60m = showPatternHTF3_60m, ShowPatternHTF4_30m = showPatternHTF4_30m, ShowPatternHTF5_15m = showPatternHTF5_15m, ShowPatternHTF6_10m = showPatternHTF6_10m, ShowPatternHTF7_5m = showPatternHTF7_5m, ShowPatternFTF1_Daily = showPatternFTF1_Daily, ShowPatternFTF2_240m = showPatternFTF2_240m, ShowPatternFTF3_60m = showPatternFTF3_60m, ShowPatternFTF4_30m = showPatternFTF4_30m, ShowPatternFTF5_15m = showPatternFTF5_15m, ShowPatternFTF6_10m = showPatternFTF6_10m, ShowPatternFTF7_5m = showPatternFTF7_5m, ShowPatternJTF1_Daily = showPatternJTF1_Daily, ShowPatternJTF2_240m = showPatternJTF2_240m, ShowPatternJTF3_60m = showPatternJTF3_60m, ShowPatternJTF4_30m = showPatternJTF4_30m, ShowPatternJTF5_15m = showPatternJTF5_15m, ShowPatternJTF6_10m = showPatternJTF6_10m, ShowPatternJTF7_5m = showPatternJTF7_5m, ColorTF1 = colorTF1, ColorTF2 = colorTF2, ColorTF3 = colorTF3, ColorTF4 = colorTF4, ColorTF5 = colorTF5, ColorTF6 = colorTF6, ColorTF7 = colorTF7, LevelWidth = levelWidth, LevelDashStyleA = levelDashStyleA, LevelDashStyleB = levelDashStyleB, LevelDashStyleG = levelDashStyleG, LevelDashStyleH = levelDashStyleH, LevelDashStyleF = levelDashStyleF, LevelDashStyleJ = levelDashStyleJ, ShowLevelLabels = showLevelLabels, SyncThrottleMs = syncThrottleMs, EnableResearchLog = enableResearchLog, ResearchTargetTicks = researchTargetTicks, ExportMode = exportMode, LabelFontSize = labelFontSize, LabelOffsetTicks = labelOffsetTicks }, input, ref cacheAlightenMirrorV0045Signal);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
-{
-	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
-	{
-		public Indicators.AlightenMirrorV0045Signal AlightenMirrorV0045Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			return indicator.AlightenMirrorV0045Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
-		}
-
-		public Indicators.AlightenMirrorV0045Signal AlightenMirrorV0045Signal(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			return indicator.AlightenMirrorV0045Signal(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
-		}
-	}
-}
-
-namespace NinjaTrader.NinjaScript.Strategies
-{
-	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
-	{
-		public Indicators.AlightenMirrorV0045Signal AlightenMirrorV0045Signal(bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			return indicator.AlightenMirrorV0045Signal(Input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
-		}
-
-		public Indicators.AlightenMirrorV0045Signal AlightenMirrorV0045Signal(ISeries<double> input , bool enablePatternA, bool enablePatternB, bool enablePatternG, bool enablePatternH, bool enablePatternF, bool enablePatternJ, int srcBarsToProcess, int mirrorLookbackBars, bool enableInvalidatedCleanup, bool showPatternATF1_Daily, bool showPatternATF2_240m, bool showPatternATF3_60m, bool showPatternATF4_30m, bool showPatternATF5_15m, bool showPatternATF6_10m, bool showPatternATF7_5m, bool showPatternBTF1_Daily, bool showPatternBTF2_240m, bool showPatternBTF3_60m, bool showPatternBTF4_30m, bool showPatternBTF5_15m, bool showPatternBTF6_10m, bool showPatternBTF7_5m, bool showPatternGTF1_Daily, bool showPatternGTF2_240m, bool showPatternGTF3_60m, bool showPatternGTF4_30m, bool showPatternGTF5_15m, bool showPatternGTF6_10m, bool showPatternGTF7_5m, bool showPatternHTF1_Daily, bool showPatternHTF2_240m, bool showPatternHTF3_60m, bool showPatternHTF4_30m, bool showPatternHTF5_15m, bool showPatternHTF6_10m, bool showPatternHTF7_5m, bool showPatternFTF1_Daily, bool showPatternFTF2_240m, bool showPatternFTF3_60m, bool showPatternFTF4_30m, bool showPatternFTF5_15m, bool showPatternFTF6_10m, bool showPatternFTF7_5m, bool showPatternJTF1_Daily, bool showPatternJTF2_240m, bool showPatternJTF3_60m, bool showPatternJTF4_30m, bool showPatternJTF5_15m, bool showPatternJTF6_10m, bool showPatternJTF7_5m, Brush colorTF1, Brush colorTF2, Brush colorTF3, Brush colorTF4, Brush colorTF5, Brush colorTF6, Brush colorTF7, int levelWidth, DashStyleHelper levelDashStyleA, DashStyleHelper levelDashStyleB, DashStyleHelper levelDashStyleG, DashStyleHelper levelDashStyleH, DashStyleHelper levelDashStyleF, DashStyleHelper levelDashStyleJ, bool showLevelLabels, int syncThrottleMs, bool enableResearchLog, int researchTargetTicks, bool exportMode, int labelFontSize, int labelOffsetTicks)
-		{
-			return indicator.AlightenMirrorV0045Signal(input, enablePatternA, enablePatternB, enablePatternG, enablePatternH, enablePatternF, enablePatternJ, srcBarsToProcess, mirrorLookbackBars, enableInvalidatedCleanup, showPatternATF1_Daily, showPatternATF2_240m, showPatternATF3_60m, showPatternATF4_30m, showPatternATF5_15m, showPatternATF6_10m, showPatternATF7_5m, showPatternBTF1_Daily, showPatternBTF2_240m, showPatternBTF3_60m, showPatternBTF4_30m, showPatternBTF5_15m, showPatternBTF6_10m, showPatternBTF7_5m, showPatternGTF1_Daily, showPatternGTF2_240m, showPatternGTF3_60m, showPatternGTF4_30m, showPatternGTF5_15m, showPatternGTF6_10m, showPatternGTF7_5m, showPatternHTF1_Daily, showPatternHTF2_240m, showPatternHTF3_60m, showPatternHTF4_30m, showPatternHTF5_15m, showPatternHTF6_10m, showPatternHTF7_5m, showPatternFTF1_Daily, showPatternFTF2_240m, showPatternFTF3_60m, showPatternFTF4_30m, showPatternFTF5_15m, showPatternFTF6_10m, showPatternFTF7_5m, showPatternJTF1_Daily, showPatternJTF2_240m, showPatternJTF3_60m, showPatternJTF4_30m, showPatternJTF5_15m, showPatternJTF6_10m, showPatternJTF7_5m, colorTF1, colorTF2, colorTF3, colorTF4, colorTF5, colorTF6, colorTF7, levelWidth, levelDashStyleA, levelDashStyleB, levelDashStyleG, levelDashStyleH, levelDashStyleF, levelDashStyleJ, showLevelLabels, syncThrottleMs, enableResearchLog, researchTargetTicks, exportMode, labelFontSize, labelOffsetTicks);
-		}
-	}
-}
-
-#endregion
