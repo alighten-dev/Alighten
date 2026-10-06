@@ -13,7 +13,7 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261004.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261004.xml)
+**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml)
 **Built on:** NQ 12-26, 30 Second, 3 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
@@ -78,7 +78,7 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 | [`AlightenMirrorV0047Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0047Signal.cs) | The Mirror dashboard — levels, zones, zone-break retest signals with sound alerts, the three toolbar buttons |
 | [`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | Session VWAP + SD bands and prior-day H/L — its own volume profile is off on this chart |
 | [`AlightenBiasV0004.cs`](NinjaTrader/Indicators/AlightenBiasV0004.cs) | FTG/FTL structural bias, with recent and/or scored levels |
-| [`AutoAVWAPMTFV0005.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0005.cs) | Auto anchored VWAPs calculated on 5-min bars, with wick / retest / break signals — see [Auto AVWAP](#auto-avwap) |
+| [`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs) | Auto anchored VWAPs calculated on 5-min bars, with wick / retest / break signals — see [Auto AVWAP](#auto-avwap) |
 | [`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | Speed of tape, net speed of tape, trapped traders, stacked imbalance traps |
 | [`AlightenButtonPanelV0005.cs`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | On-chart order flow / execution controls |
 | [`AlightenVerticalLineAtIntervalV0001.cs`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | Vertical session/interval dividers |
@@ -128,7 +128,7 @@ For the rule-file syntax and the silent-stub gotcha, see
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply [`AlightenMirror_20261004.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261004.xml) via
+4. Apply [`AlightenMirror_20261006.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml) via
    Chart → Templates → Load.
 
 ---
@@ -176,7 +176,7 @@ promoted or retired.
 | Volume Profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | not on chart |
 | Order Flow Tools | [`AlightenOrderFlowToolsV0006`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | same |
 | Bias | [`AlightenBiasV0004`](NinjaTrader/Indicators/AlightenBiasV0004.cs) | same |
-| Auto AVWAP | [`AutoAVWAPMTFV0005`](NinjaTrader/Indicators/AutoAVWAPMTFV0005.cs) | same |
+| Auto AVWAP | [`AutoAVWAPMTFV0006`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs) | same |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
 | Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | not on chart |
 | Vertical Line at Interval | [`AlightenVerticalLineAtIntervalV0001`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | same |
@@ -438,7 +438,7 @@ information about where volume traded inside each bar, so on larger bars the gap
 
 ## Auto AVWAP
 
-**[`AutoAVWAPMTFV0005.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0005.cs)** — automatic anchored VWAPs
+**[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — automatic anchored VWAPs
 (AVWAPs), built on Kris's AutoAVWAP (see [Attribution](#attribution)). It anchors VWAPs at the places
 the market makes decisions and turns price's interaction with them into signals.
 
@@ -464,6 +464,13 @@ A 30-second chart therefore shows the 5-minute AVWAPs, with each line drawn betw
 Bar-count settings count bars of that series. **Data series bars to load** loads that series
 independently of the chart — when the series and the chart share a period (5-min on a 5-min chart)
 NinjaTrader reuses the chart's bars and ignores it, so load enough history on the chart itself.
+
+**Developing AVWAP (V0006).** Between 5-minute closes, each AVWAP also draws a **dashed segment** from
+its last 5-minute close to the current chart bar, at the level that includes the 5-minute bar still
+forming, so on the 30-second chart you can see where every AVWAP will print before the bar closes.
+When the 5-minute bar closes, the solid segment replaces it and a new dashed one starts. The HOD/LOD
+labels follow the developing level. It runs only in realtime and Playback (never on historical bars)
+and redraws in place at most every 250 ms. Settings: **Developing** group (D.1 – D.3).
 
 Sessions: **Day** resets at the start of the active session — **Use stock session** (default on,
 `0930-1600` New York) or the futures session (`1800-1700`) — and session high/low AVWAPs only form
@@ -506,7 +513,7 @@ A signal on an AVWAP born one bar earlier can be a 5-minute wick that was really
 ### Outputs
 
 * **Signal log** — every signal, break, cancel and its forward outcome (target or stop first, MFE,
-  MAE), appended to `Documents\NinjaTrader 8\Mirror Logs\AutoAVWAPSignalsV0005_<instrument>.log`.
+  MAE), appended to `Documents\NinjaTrader 8\Mirror Logs\AutoAVWAPSignalsV0006_<instrument>.log`.
 * **Market Analyzer plots** — `AVWAPSignal` (±1 wick, ±2 retest), `CrossSignal`, `TestSignal`,
   `BarsSince…`, `LiveTest`, `DistanceTicks` and `Bias`, listed in the Data Box.
 * The original test-bar colouring is still available, colouring every chart bar inside a test bar.
@@ -522,7 +529,7 @@ change the indicator's generated factory signature.
   structures to determine current market bias. Levels come from the newest pivots, from Kris's
   MidPoint Mania priority score (swing size against proximity), or both. The V0003 pivot rules also
   power the Mirror's Daily Bias Levels, ported inline.
-* **[`AutoAVWAPMTFV0005.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0005.cs)** — automatic anchored VWAPs and their signals. See
+* **[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — automatic anchored VWAPs and their signals. See
   [Auto AVWAP](#auto-avwap).
 * **[`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs)** — tape and imbalance analytics: speed of tape, net speed of
   tape and their running maxima, trapped traders, and stacked imbalance traps.
@@ -574,7 +581,7 @@ indicators construct — the callers stop compiling, and NinjaTrader only rewrit
 
 ## Attribution
 
-* **[`AutoAVWAPMTFV0005.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0005.cs)** — built on **Kris**'s AutoAVWAP (his TradingView
+* **[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — built on **Kris**'s AutoAVWAP (his TradingView
   "Auto AVWAP" and its NinjaTrader v4 port): the anchoring rules, the test / gap / open AVWAPs, the
   session and 4-hour behaviours and the test-bar colouring are his. The multi-timeframe calculation,
   session fixes, signals and logging are by Alighten. Included with permission.
