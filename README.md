@@ -52,7 +52,7 @@ Values below are read directly out of the template.
 | Inside Zones | **disabled** — `EnableInsideZones = false` (the file names are still set, see [Zone rule files](#zone-rule-files)) |
 | Pattern engines computing | all six — A, B, G, H, F, J |
 | Levels drawn | **every timeframe** for A, B, G, H and F; **Daily only** for J |
-| Structure signal (group 18) | **on** — any-side levels, 8-tick wick tolerance, grace 0, daily-bias lines count, provisional marks shown, sound off |
+| Structure signal (group 18) | **on** — any-side levels, 8-tick wick tolerance, grace 0, daily-bias lines count, provisional marks shown, sound off, evaluated over the last 5 hours of history on a load (18.17) |
 | Daily Bias Levels | enabled, 7 levels — goldenrod above, deep sky blue below |
 | Zone breaks / retest signal | zone breaks on; **retest signal off** |
 | Logs | Mirror logs written to `Documents\NinjaTrader 8\Mirror Logs\`; the level and structure debug logs are **off** |
@@ -199,12 +199,12 @@ order: **V0049** hosts the live-both-direction pattern sources
 `PtAV0011`, `PtBV0005`, `PtFV0004`, `PtGV0003` and `PtHV0003` (also removed). **V0050** rotates the
 level log (a new part every 50,000 lines or trading date). **V0051–V0053** add the **structure
 signal** (group 18): a chart-series pivot that is a **lower high** (short) or **higher low** (long)
-and whose own wick comes within the tolerance of a level drawn on the chart — pattern levels whose
+and whose wick reaches a level drawn on the chart while its body stays on the signal side (the Mirror's wick-hold test, so a wick that pokes through the level and closes back counts) — pattern levels whose
 pattern and timeframe are switched on, plus the daily-bias lines. Provisional at the pivot bar's close,
 confirmed when the opposite pivot registers; on a chart reload, levels that a higher-timeframe source
 publishes only at its bar close back-fill the marks they would have produced live. Plots
 `StructSignal` (±1 provisional, ±2 confirmed) and `StructPrice`; optional sound alerts; a debug log
-(18.16) that explains every miss. Every other setting and plot index is unchanged from V0047.
+(18.16) that explains every miss; and **18.17 Signal Lookback (hours)** limits the work on a chart load (realtime is always evaluated). Every other setting and plot index is unchanged from V0047.
 
 **Retired 2026-10-16.** `AutoAVWAPMTFV0006` was removed, superseded by
 [`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs): the same anchors, tests, signals

@@ -67,7 +67,7 @@
             <CandleStyle>
               <CandleStyle xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                 <IsVisible>true</IsVisible>
-                <BarWidth>3.4567846252745862</BarWidth>
+                <BarWidth>3.764438456924025</BarWidth>
                 <ChartStyleTypeSerialize>1</ChartStyleTypeSerialize>
                 <DownBrushSerialize>DEFAULT</DownBrushSerialize>
                 <UpBrushSerialize>DEFAULT</UpBrushSerialize>
@@ -130,8 +130,8 @@
           <MaxSerialized>-1.7976931348623157E+308</MaxSerialized>
           <MinSerialized>1.7976931348623157E+308</MinSerialized>
           <ZOrder>10012</ZOrder>
-          <Top>0</Top>
-          <Left>2</Left>
+          <Top>25</Top>
+          <Left>5</Left>
           <IsVisibleOnlyFocused>false</IsVisibleOnlyFocused>
           <SelectedTypes>
             <SelectedTypes>
@@ -2251,6 +2251,7 @@
           <StructShortSound>Alert4.wav</StructShortSound>
           <StructIncludeDailyBias>true</StructIncludeDailyBias>
           <DebugStructLog>false</DebugStructLog>
+          <StructLookbackHours>5</StructLookbackHours>
           <RetestAlertProvisional>false</RetestAlertProvisional>
           <DebugLevelLog>false</DebugLevelLog>
           <LogFolder>Mirror Logs</LogFolder>
@@ -2283,7 +2284,7 @@
           <Size>11</Size>
         </LabelFont>
         <DataSeriesWatermark>@INSTRUMENT_FULL_ALL</DataSeriesWatermark>
-        <BarDistance>11.4118814</BarDistance>
+        <BarDistance>12.4275389</BarDistance>
         <BarMarginRightUser>8</BarMarginRightUser>
         <ChartTimeFormat>TwentyfourHour</ChartTimeFormat>
         <ChartTraderVisibility>Visible</ChartTraderVisibility>
@@ -2416,8 +2417,8 @@
             <AutoScaleMarginLower>6</AutoScaleMarginLower>
             <AutoScaleMarginUpper>6</AutoScaleMarginUpper>
             <YAxisScalingType>Linear</YAxisScalingType>
-            <FixedScaleMaxSerialize>30130.5</FixedScaleMaxSerialize>
-            <FixedScaleMinSerialize>30043.25</FixedScaleMinSerialize>
+            <FixedScaleMaxSerialize>30225</FixedScaleMaxSerialize>
+            <FixedScaleMinSerialize>30127.75</FixedScaleMinSerialize>
             <IsInverted>false</IsInverted>
           </ChartScaleProperties>
         </Right>

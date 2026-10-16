@@ -1,5 +1,11 @@
-// BUILD V0053-2026-10-16i  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0053.log)
-/* V0053Signal build 2026-10-16i: defaults = the user's saved template AlightenMirrorV0053Signal_20261015.xml (structure
+// BUILD V0053-2026-10-16l  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0053.log)
+/* V0053Signal build 2026-10-16l: defaults = the user's re-saved template (02:34): 18.17 Signal Lookback = 5 hours.
+   build 2026-10-16k: 18.17 Signal Lookback (hours, default 24): on a load only the last N hours of history
+   are evaluated for structure signals (the pivot engine still runs; realtime is always evaluated).
+   build 2026-10-16j: "wicks the level" = the Mirror's wick-hold test - the pivot's wick REACHES the level
+   (within 18.2) and its body stays on the signal side (within 18.2). Build e's |wick - level| <= tol threw out wicks that
+   poked THROUGH a level and closed back (the user's 02:04 lower high through the G 30m S, 2026-10-16).
+   build 2026-10-16i: defaults = the user's saved template AlightenMirrorV0053Signal_20261015.xml (structure
    signal on, any-side, 8 ticks, grace 0; Pattern J daily only; aqua / white confirmed marks; provisional retest marks on;
    level log off).
    build 2026-10-15h: the log's build line now carries the live settings (tol / grace / any-side ...);
@@ -1393,6 +1399,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="18.16 Write Structure Debug Log", Description="One line per closed bar per side into Mirror Logs\\MirrorStructV0053.log: the pivot under test, the structure verdict, the bar range, the level matched or the nearest visible level and why it did not match.", Order=16, GroupName="18. Lower-High / Higher-Low Signal")]
         public bool DebugStructLog { get; set; }
 
+        [Range(0, 720)]
+        [Display(Name="18.17 Signal Lookback (hours)", Description="On a chart load, structure signals are evaluated only for the last N hours of the loaded history (realtime is always evaluated). Fewer hours = faster loads. 0 = the whole chart.", Order=17, GroupName="18. Lower-High / Higher-Low Signal")]
+        public int StructLookbackHours { get; set; }
+
         [Display(Name="16.4 Also Alert on Provisional", Description="Also alert at stage 1, when a wick first touches the level - earlier, but many of these never confirm. Fires whether or not provisional marks are shown.", Order=4, GroupName="16. Retest Alerts")]
         public bool RetestAlertProvisional { get; set; }
 
@@ -1569,6 +1579,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 StructShortSound         = "Alert4.wav";
                 StructIncludeDailyBias   = true;      // V0052
                 DebugStructLog           = false;
+                StructLookbackHours      = 5;      // build k
                 RetestRequireNebulaBright = false;
                 LogFolder                = "Mirror Logs";
                 WriteZoneLog             = false;
@@ -1756,6 +1767,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _rtMarks   = new List<RetestMark>(64);
                 _cpEngine  = new PivotEngine();
                 _ssLastBar = -1;                       // V0051
+                _ssCutoffSet = false;                  // build k
                 _ssAlerted.Clear();
                 _ssMarks   = new List<StructMark>(64);
                 Print(Name + " build " + BUILD_ID);
@@ -4009,9 +4021,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             public bool     IsLong;
             public bool     Confirmed;
         }
-        private const string BUILD_ID = "V0053-2026-10-16i";
+        private const string BUILD_ID = "V0053-2026-10-16l";
         private List<StructMark> _ssMarks;
         private int _ssLastBar = -1;
+        private DateTime _ssCutoff = DateTime.MinValue;   // build k: historical bars before this are skipped
+        private bool _ssCutoffSet;
         private HashSet<string> _ssAlerted = new HashSet<string>();
 
         // One candidate level, from the tracked/archived store or from the daily-bias lines.
@@ -4046,6 +4060,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             PivotCatchUp(_cpEngine, 0, b);      // idempotent; the retest signal may have done it already
 
+            // build k: on a load, only the last StructLookbackHours of history are evaluated (realtime always is)
+            if (State == State.Historical && StructLookbackHours > 0 && StructBeforeCutoff(Times[0][CurrentBars[0] - b])) return;
+
             int n = _cpEngine.Bars.Count;
             if (n < 2) return;
 
@@ -4074,9 +4091,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
 
                 double hi = Highs[0][ago], lo = Lows[0][ago];
+                double bodyEdge = isLong ? Math.Min(Opens[0][ago], Closes[0][ago]) : Math.Max(Opens[0][ago], Closes[0][ago]);
                 DateTime t = Times[0][ago];
                 string why;
-                StructLevel lv = FindStructLevel(isLong, hi, lo, t, out why);
+                StructLevel lv = FindStructLevel(isLong, hi, lo, bodyEdge, t, out why);
                 bool found = lv.Label != null;
 
                 if (DebugStructLog)
@@ -4122,7 +4140,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         // Every level drawn on the chart: the tracked/archived pattern levels whose pattern +
         // timeframe is shown (the gating DrawTrackedLevel uses) and, optionally, the daily-bias
         // lines (no side). `why` explains a miss: the nearest candidate by price and the test it failed.
-        private StructLevel FindStructLevel(bool isLong, double hi, double lo, DateTime t, out string why)
+        private StructLevel FindStructLevel(bool isLong, double hi, double lo, double bodyEdge, DateTime t, out string why)
         {
             double tol = TickSize > 0 ? StructWickToleranceTicks * TickSize : 0;
             double wick = isLong ? lo : hi;
@@ -4144,7 +4162,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         if (tl == null || tl.Removed || !IsPatternTfShown(tl.PatternType, tl.TfIndex)) continue;
                         seen++; seenTf[tl.TfIndex]++;
                         StructConsider(new StructLevel { Price = tl.Price, Label = tl.Label, IsLong = tl.IsLong, AnySide = false, Start = tl.HtfStartTime, End = tl.HtfEndTime, TfMinutes = _tfMinutes[tl.TfIndex] },
-                                       isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                                       isLong, hi, lo, bodyEdge, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
                     }
                 }
             }
@@ -4154,7 +4172,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     if (tl == null || tl.Removed || !IsPatternTfShown(tl.PatternType, tl.TfIndex)) continue;
                     seen++; seenTf[tl.TfIndex]++;
                     StructConsider(new StructLevel { Price = tl.Price, Label = tl.Label, IsLong = tl.IsLong, AnySide = false, Start = tl.HtfStartTime, End = tl.HtfEndTime, TfMinutes = _tfMinutes[tl.TfIndex] },
-                                   isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                                   isLong, hi, lo, bodyEdge, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
                 }
             if (StructIncludeDailyBias && EnableDailyBiasLevels && _dbPivotBars != null && _dbPivotBars.Count > 1 && CurrentBars.Length > 1)
             {
@@ -4167,7 +4185,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     used++; seen++;
                     double lvl = _dbPivotGuides[i];
                     StructConsider(new StructLevel { Price = lvl, Label = "DL " + lvl.ToString("0.00"), IsLong = isLong, AnySide = true, Start = _dbPivotTimes[i], End = DateTime.MaxValue, TfMinutes = 0 },
-                                   isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                                   isLong, hi, lo, bodyEdge, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
                 }
             }
             string vis = "";
@@ -4183,7 +4201,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             return best;
         }
 
-        private void StructConsider(StructLevel L, bool isLong, double hi, double lo, DateTime t, double tol, TimeSpan grace, double wick,
+        private void StructConsider(StructLevel L, bool isLong, double hi, double lo, double bodyEdge, DateTime t, double tol, TimeSpan grace, double wick,
                                     ref StructLevel best, ref double bestD, ref StructLevel near, ref double nearD, ref string nearWhy)
         {
             if (!L.AnySide && !StructAnySideLevel && L.IsLong != isLong) return;
@@ -4191,12 +4209,22 @@ namespace NinjaTrader.NinjaScript.Indicators
             string fail = null;
             if (t < L.Start) fail = "line starts after the bar";
             else if (L.End != DateTime.MaxValue && t > L.End + grace + TimeSpan.FromMinutes(Math.Min(L.TfMinutes, 15))) fail = "line ended " + (t - L.End).TotalMinutes.ToString("0.0") + " min before the bar (> " + Math.Min(L.TfMinutes, 15) + " min + 18.3)";
-            else if (Math.Abs(wick - L.Price) > tol) fail = "pivot wick " + Math.Abs(wick - L.Price).ToString("F2") + " pts off (> tol)";
+            else if (!StructWickHolds(isLong, wick, bodyEdge, L.Price, tol))
+                fail = isLong ? (wick > L.Price + tol ? "low stayed " + (wick - L.Price).ToString("F2") + " pts above it" : "body closed " + (L.Price - bodyEdge).ToString("F2") + " pts below it")
+                              : (wick < L.Price - tol ? "high stayed " + (L.Price - wick).ToString("F2") + " pts below it" : "body closed " + (bodyEdge - L.Price).ToString("F2") + " pts above it");
             if (fail == null)
             {
                 if (dd < bestD) { bestD = dd; best = L; }
             }
             else if (dd < nearD) { nearD = dd; near = L; nearWhy = fail; }
+        }
+
+        // build j: "wicks the level" = the Mirror's wick-hold test. SHORT: the pivot HIGH reaches the level (within tol)
+        // and the body stays at or below it (within tol) - a wick THROUGH the level that closes back counts. LONG mirrored.
+        private static bool StructWickHolds(bool isLong, double wick, double bodyEdge, double level, double tol)
+        {
+            return isLong ? (wick <= level + tol && bodyEdge >= level - tol)
+                          : (wick >= level - tol && bodyEdge <= level + tol);
         }
 
         private StructMark FindStructMark(int bar, bool isLong)
@@ -4220,9 +4248,26 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         // V0053g: a level that just came into existence on this chart (typically a higher-timeframe level published at
         // its bar close on a reload) - find the chart pivots inside its window that wicked it with the right structure.
+        // build k: the time before which historical bars are not evaluated = the last loaded bar's time - StructLookbackHours
+        private bool StructBeforeCutoff(DateTime t)
+        {
+            if (!_ssCutoffSet)
+            {
+                _ssCutoffSet = true;
+                try
+                {
+                    int cnt = BarsArray[0].Count;
+                    _ssCutoff = cnt > 0 ? BarsArray[0].GetTime(cnt - 1).AddHours(-StructLookbackHours) : DateTime.MinValue;
+                }
+                catch { _ssCutoff = DateTime.MinValue; }
+            }
+            return t < _ssCutoff;
+        }
+
         private void StructCatchUp(TrackedLevel lv)
         {
             if (_cpEngine == null || _ssMarks == null || lv == null || lv.Removed) return;
+            if (State == State.Historical && StructLookbackHours > 0 && StructBeforeCutoff(lv.HtfEndTime)) return;   // build k
             if (!IsPatternTfShown(lv.PatternType, lv.TfIndex)) return;
             int n = _cpEngine.Bars.Count;
             if (n < 3) return;
@@ -4235,7 +4280,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 bool isHigh = _cpEngine.IsHigh[i];
                 bool isLong = !isHigh;
                 if (!StructAnySideLevel && lv.IsLong != isLong) continue;
-                if (Math.Abs(_cpEngine.Prices[i] - lv.Price) > tol) continue;
+                int cago = CurrentBars[0] - _cpEngine.Bars[i];
+                if (cago < 0 || cago >= 250 || cago > CurrentBars[0]) continue;
+                double cbody = isLong ? Math.Min(Opens[0][cago], Closes[0][cago]) : Math.Max(Opens[0][cago], Closes[0][cago]);
+                if (!StructWickHolds(isLong, _cpEngine.Prices[i], cbody, lv.Price, tol)) continue;
                 bool structOk = isHigh ? _cpEngine.Prices[i] < _cpEngine.Prices[i - 2] : _cpEngine.Prices[i] > _cpEngine.Prices[i - 2];
                 if (!structOk) continue;
                 int bar = _cpEngine.Bars[i];
