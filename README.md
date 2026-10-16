@@ -19,6 +19,12 @@ instrument comes from whatever chart you apply it to).
 
 ![The reference chart: NQ 12-26, 30-second, with the Mirror levels, structure signals, Auto AVWAPs and their signals.](docs/reference-chart.jpg)
 
+**The companion 5-minute chart** carries the Bias zigzag and its recent pivot levels, plus the pattern
+triangles. The 5-minute (or hourly) chart is where a *gain* or *loss* of a recent level is read; the
+30-second Mirror chart above is where the entry is taken. Its template will be added here.
+
+![The 5-minute companion chart: NQ 12-26 with the Bias zigzag, recent pivot levels and pattern triangles.](docs/minute-chart.jpg)
+
 The chart is a single price panel carrying ten indicators. Reading it:
 
 * **Auto AVWAPs** calculated on 5-minute bars — HOD/LOD, the previous session's HOPD/LOPD and
