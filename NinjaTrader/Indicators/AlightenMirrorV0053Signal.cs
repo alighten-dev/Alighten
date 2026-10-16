@@ -1,3 +1,60 @@
+// BUILD V0053-2026-10-16i  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0053.log)
+/* V0053Signal build 2026-10-16i: defaults = the user's saved template AlightenMirrorV0053Signal_20261015.xml (structure
+   signal on, any-side, 8 ticks, grace 0; Pattern J daily only; aqua / white confirmed marks; provisional retest marks on;
+   level log off).
+   build 2026-10-15h: the log's build line now carries the live settings (tol / grace / any-side ...);
+   default 18.2 = 10 ticks.
+   build 2026-10-15g: RELOAD CATCH-UP. On a reload without Tick Replay a hosted 240m / daily source
+   publishes a live level only at its own bar close (the levels log: A 240m L 29846.25 CREATED at 02:00 for the
+   22:00-02:00 bar; J D L 29855.25 at the first realtime tick), long after the 23:46 / 23:54 / 23:43 pivots that
+   wicked it. When a level is created, the chart pivots inside its window are scanned for lower-highs / higher-lows
+   whose wick touched it and those marks are drawn (StructCatchUp). Realtime is unchanged: the live birth IS the touch.
+   build 2026-10-15f: defaults 18.2 = 8 ticks (the user's eye accepts ~2 pts) and 18.3 = 60 min (a line
+   still on a 30-s screen counts; the 15-min cap of build c answered a problem that was really the range bug).
+   build 2026-10-15e: "wicks the level" = the PIVOT'S OWN WICK (the pivot low for a long, the pivot high
+   for a short) within 18.2 ticks of the level. Builds a-d used the retest code's range test (the bar's high-low range
+   crossing the level), so any bar that traded through a level counted - the "signals with no levels" the user saw.
+   build 2026-10-15c: the re-extend grace after a level's recorded line end is min(its own bar, 15 min)
+   + 18.3 - a 60m/240m/D line that ended an hour ago is not on a zoomed 30-s screen and must not count.
+   build 2026-10-15b: a level counts while its line covers the pivot bar, with a grace of ONE BAR OF
+   ITS OWN TIMEFRAME after the recorded end (the source can still re-extend it inside that bar) plus 18.3 - the
+   unlimited rule of build a matched old lines far off-screen ("signals with no levels").
+   V0053Signal = V0052Signal + the fix the 2026-10-15 structure debug log pointed at: every miss read "line ended
+   N min before the bar". A level's recorded line end (HtfEndTime) is only the last HTF bar close at which its source
+   re-published it - on a chart reload the higher-timeframe sources extend it only at their own bar closes, and the
+   user trades a drawn line after it ended anyway. So a drawn level now counts from its line START onward with no end
+   limit by default (18.3 Level Grace = 0 means unlimited; > 0 limits to that many minutes after the recorded end).
+   The debug log also lists the visible-level counts per pattern/timeframe the instance saw. - By Alighten */
+/* V0052Signal = V0051Signal + (a) the DAILY BIAS LEVEL lines count as "levels visible on the chart" for the
+   structure signal (18.15, default on; they have no side, so they qualify either direction), and (b) a structure
+   debug log (18.16): one line per closed bar per side into Mirror Logs\MirrorStructV0053.log - the pivot under
+   test, the lower-high / higher-low verdict, the bar's range, the level matched or the nearest visible level and
+   why it did not match. Found from the 2026-10-15 screenshot where the 23:42 lower high at the A 10m S and two
+   lower highs at daily-bias lines printed nothing. Nothing else differs from V0051Signal. - By Alighten */
+/* V0051Signal = V0050Signal + the STRUCTURE-AT-LEVEL ENTRY SIGNAL (group "18. Lower-High / Higher-Low Signal").
+   Purely additive; with "18.1 Enable Structure Signal" OFF this file behaves exactly like V0050Signal.
+
+   The user's definition (2026-10-15, journal 10/15 #9):
+     SHORT = a LOWER HIGH whose bar WICKS a level visible on the chart.
+     LONG  = a HIGHER LOW whose bar WICKS a level visible on the chart.
+
+   Pivots come from the CHART-SERIES pivot engine already used by the retest signal (the daily
+   bias rules run on BarsInProgress 0; a pivot is CONFIRMED once a pivot of the opposite side has
+   been registered after it). "Lower high" = the newest pivot high's wick price is below the
+   previous pivot high's; "higher low" the mirror. "Wicks a level" = the pivot bar's range
+   intersects [level - tol, level + tol] (18.2 Wick Tolerance, ticks) for a level whose drawn line
+   (pattern + timeframe shown on the chart, the same gating DrawTrackedLevel uses) covers the pivot
+   bar's time (optionally up to 18.3 Level Grace minutes after the line ended). Short levels for
+   shorts, long levels for longs, unless 18.4 Any-Side Level is on. Pattern J counts when it is
+   drawn on the chart - "only the levels visible on the chart".
+
+   Two stages, same tag redrawn in place: PROVISIONAL while the pivot is still the newest (a more
+   extreme same-side bar can still replace it; a replaced provisional mark is removed), CONFIRMED
+   once the opposite pivot registers. New plots appended LAST (46, 47) so every existing index is
+   unchanged:
+     46 StructSignal  +2 confirmed long, +1 provisional long, -1 provisional short, -2 confirmed short
+     47 StructPrice   the level that was wicked, 0 when none
+   The retest signal (group 15), its watches and plots are untouched. - By Alighten */
 /* V0046 = V0045Signal + the ZONE-BREAK RETEST ENTRY SIGNAL (group "15. Retest Entry Signal").
    Purely additive. With "Enable Retest Signal" OFF this file behaves exactly like V0045 except
    for ONE deliberate visual change: the zone-cross marker is now a configurable SYMBOL (default
@@ -127,11 +184,15 @@ using System.Windows.Controls;
 using System.Windows.Automation;
 #endregion
 
+// V0050Signal = V0049Signal with a ROTATING level log (MirrorV0046SignalLevels_<load>_<NNN>.log: new part every
+//   50,000 lines or trading date, 5,000,000-line safety stop per load). Nothing else differs from V0049Signal.
+// V0049Signal = V0047Signal hosting the live-both-direction sources: PtA V0012, PtB V0006, PtF V0005,
+//   PtG V0004, PtH V0004 (PtJ V0008 unchanged). Nothing else differs from V0047Signal.
 namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0047Signal : Indicator
+    public class AlightenMirrorV0053Signal : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -144,23 +205,72 @@ namespace NinjaTrader.NinjaScript.Indicators
         // (one line per triangle the source draws); this one records what the Mirror
         // actually created and removed. Diffing the two shows levels the Mirror invented
         // (present here, absent there) or dropped (the reverse).
-        private string _lvlLogPath;
-        private int _lvlLogLines;
-        private const int LVL_LOG_MAX_LINES = 60000;   // hard stop; logging must never run away
+        // V0050: the log ROTATES - MirrorV0046SignalLevels_<loadId>_<NNN>.log, a new part every
+        // LVL_LOG_PART_LINES lines or when the bar's trading date changes, whichever comes first.
+        // Parts open lazily on the first line, so each header carries its real trading date.
+        // Line format unchanged; LVL_LOG_MAX_LINES is a per-load safety stop only.
+        private string _lvlLogPath;              // current part (null = no part open yet)
+        private bool _lvlLogOn;                  // set at DataLoaded; false after an I/O failure or the cap
+        private int _lvlLogLines;                // lines in the current part
+        private long _lvlLogTotal;               // lines this load, all parts
+        private int _lvlLogPart;
+        private DateTime _lvlLogDate = DateTime.MinValue;   // trading date of the current part
+        private const int LVL_LOG_PART_LINES = 50000;
+        private const long LVL_LOG_MAX_LINES = 5000000;     // safety stop per load; logging must never run away
+
+        // Trading date of the chart's current bar: the 18:00 session open belongs to the next day.
+        private DateTime LvlTradingDate()
+        {
+            try
+            {
+                if (CurrentBars != null && CurrentBars.Length > 0 && CurrentBars[0] >= 0)
+                    return Times[0][0].AddHours(6).Date;
+            }
+            catch { }
+            return DateTime.MinValue;
+        }
+
+        private void LvlLogOpenPart(DateTime tradingDate)
+        {
+            _lvlLogPart++;
+            _lvlLogLines = 0;
+            _lvlLogDate = tradingDate;
+            string part = _lvlLogPart.ToString("000");
+            _lvlLogPath = LogFile("MirrorV0046SignalLevels_" + _logLoadId + "_" + part + ".log");
+            System.IO.File.AppendAllText(_lvlLogPath,
+                "\r\n======== LOAD " + _logLoadId + "  "
+                + (Instrument != null ? Instrument.FullName : "?") + " ========\r\n"
+                + "======== part " + part + "  trading date "
+                + (tradingDate == DateTime.MinValue ? "?" : tradingDate.ToString("yyyy-MM-dd"))
+                + "  lines so far this load " + _lvlLogTotal + " ========\r\n");
+        }
 
         private void LvlLog(string msg)
         {
-            if (!DebugLevelLog || _lvlLogPath == null) return;
-            if (_lvlLogLines >= LVL_LOG_MAX_LINES) return;
+            if (!DebugLevelLog || !_lvlLogOn) return;
             try
             {
+                DateTime td = LvlTradingDate();
+                if (_lvlLogPath == null
+                    || _lvlLogLines >= LVL_LOG_PART_LINES
+                    || (td != DateTime.MinValue && _lvlLogDate != DateTime.MinValue && td != _lvlLogDate))
+                    LvlLogOpenPart(td);
+                else if (_lvlLogDate == DateTime.MinValue && td != DateTime.MinValue)
+                    _lvlLogDate = td;
+
                 _lvlLogLines++;
-                if (_lvlLogLines == LVL_LOG_MAX_LINES)
-                    msg += "   <<< LINE CAP REACHED - logging stops here >>>";
-                System.IO.File.AppendAllText(_lvlLogPath,
-                    DateTime.Now.ToString("HH:mm:ss.fff") + " " + LogStamp() + " " + msg + "\r\n");
+                _lvlLogTotal++;
+                string stamp = DateTime.Now.ToString("HH:mm:ss.fff") + " " + LogStamp() + " ";
+                string line = stamp + msg + "\r\n";
+                if (_lvlLogTotal >= LVL_LOG_MAX_LINES)
+                {
+                    line += stamp + "======== CAP: " + LVL_LOG_MAX_LINES + " lines logged for load " + _logLoadId
+                        + " - level logging STOPS here ========\r\n";
+                    _lvlLogOn = false;
+                }
+                System.IO.File.AppendAllText(_lvlLogPath, line);
             }
-            catch { }
+            catch { _lvlLogOn = false; }
         }
 
         private void LvlLogLevel(string verb, TrackedLevel tl, int barsAgoOnHtf)
@@ -489,11 +599,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         #endregion
 
-        private AlightenMirrorPtAV0011[] _srcA = new AlightenMirrorPtAV0011[NUM_TF];
-        private AlightenMirrorPtBV0005[] _srcB = new AlightenMirrorPtBV0005[NUM_TF];
-        private AlightenMirrorPtGV0003[] _srcG = new AlightenMirrorPtGV0003[NUM_TF];
-        private AlightenMirrorPtHV0003[] _srcH = new AlightenMirrorPtHV0003[NUM_TF];
-		private AlightenMirrorPtFV0004[] _srcF = new AlightenMirrorPtFV0004[NUM_TF];
+        private AlightenMirrorPtAV0012[] _srcA = new AlightenMirrorPtAV0012[NUM_TF];
+        private AlightenMirrorPtBV0006[] _srcB = new AlightenMirrorPtBV0006[NUM_TF];
+        private AlightenMirrorPtGV0004[] _srcG = new AlightenMirrorPtGV0004[NUM_TF];
+        private AlightenMirrorPtHV0004[] _srcH = new AlightenMirrorPtHV0004[NUM_TF];
+		private AlightenMirrorPtFV0005[] _srcF = new AlightenMirrorPtFV0005[NUM_TF];
 		private AlightenMirrorPtJV0008[] _srcJ = new AlightenMirrorPtJV0008[NUM_TF];
 
         // Unified tracked-level store: tracked[pattern][tf]
@@ -649,6 +759,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         private const int PLOT_RETEST_PRICE  = NUM_PAT * NUM_TF + 1;   // 43
         private const int PLOT_RETEST_EDGE   = NUM_PAT * NUM_TF + 2;   // 44
         private const int PLOT_GET_READY     = NUM_PAT * NUM_TF + 3;   // 45
+        private const int PLOT_SS_SIGNAL     = NUM_PAT * NUM_TF + 4;   // 46 (V0051)
+        private const int PLOT_SS_PRICE      = NUM_PAT * NUM_TF + 5;   // 47 (V0051)
 
         [Browsable(false)]
         [XmlIgnore]
@@ -665,6 +777,16 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Browsable(false)]
         [XmlIgnore]
         public Series<double> GetReadyState => Values[PLOT_GET_READY];
+
+        /// <summary>V0051: +2 confirmed long, +1 provisional long, -1 provisional short, -2 confirmed short, 0 none.</summary>
+        [Browsable(false)]
+        [XmlIgnore()]
+        public Series<double> StructSignal => Values[PLOT_SS_SIGNAL];
+
+        /// <summary>V0051: the level price the pivot bar wicked, 0 when none.</summary>
+        [Browsable(false)]
+        [XmlIgnore()]
+        public Series<double> StructPrice => Values[PLOT_SS_PRICE];
 
         [NinjaScriptProperty]
         [Display(Name="1.1 Enable Pattern A", Order=1, GroupName="01. Patterns")]
@@ -1208,10 +1330,73 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="16.3 Short Sound File", Description="A file name from the NinjaTrader 8\\sounds folder (e.g. Alert4.wav), or a full path to any .wav.", Order=3, GroupName="16. Retest Alerts")]
         public string RetestShortSound { get; set; }
 
+        // ---- V0051: structure-at-level entry signal (group 18) -------------------------
+        // Display-only (not NinjaScriptProperty), like groups 11-17: the generated factory
+        // signature is unchanged.
+        [Display(Name="18.1 Enable Structure Signal", Description="A LOWER HIGH (short) or HIGHER LOW (long) chart pivot whose bar wicks a level visible on the chart. Provisional while the pivot is the newest, confirmed once the opposite pivot registers.", Order=1, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool EnableStructSignal { get; set; }
+
+        [Range(0, 200)]
+        [Display(Name="18.2 Wick Tolerance (ticks)", Description="The pivot bar's range must intersect [level - tol, level + tol].", Order=2, GroupName="18. Lower-High / Higher-Low Signal")]
+        public int StructWickToleranceTicks { get; set; }
+
+        [Range(0, 600)]
+        [Display(Name="18.3 Level Grace (min)", Description="A level counts while its drawn line covers the pivot bar, plus this many minutes after the line's recorded end (default 60: about one 30-second screen, so a line still on screen counts; raise it if you keep lines longer), plus one bar of the level's own timeframe.", Order=3, GroupName="18. Lower-High / Higher-Low Signal")]
+        public int StructLevelGraceMins { get; set; }
+
+        [Display(Name="18.4 Any-Side Level", Description="Off = short levels for shorts, long levels for longs. On = a level of either side counts.", Order=4, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool StructAnySideLevel { get; set; }
+
+        [Display(Name="18.5 Show Provisional Marks", Description="Draw the faint symbol while the pivot is still the newest. Off = only CONFIRMED marks are drawn (the plots still publish both stages).", Order=5, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool StructShowProvisional { get; set; }
+
+        [Display(Name="18.6 Long Symbol", Description="Drawn below the higher-low bar.", Order=6, GroupName="18. Lower-High / Higher-Low Signal")]
+        public string StructLongSymbol { get; set; }
+
+        [Display(Name="18.7 Short Symbol", Description="Drawn above the lower-high bar.", Order=7, GroupName="18. Lower-High / Higher-Low Signal")]
+        public string StructShortSymbol { get; set; }
+
+        [XmlIgnore]
+        [Display(Name="18.8 Provisional Color", Order=8, GroupName="18. Lower-High / Higher-Low Signal")]
+        public Brush StructProvisionalColor { get; set; }
+        [Browsable(false)]
+        public string StructProvisionalColorSerialize { get { return Serialize.BrushToString(StructProvisionalColor); } set { StructProvisionalColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name="18.9 Confirmed Long Color", Order=9, GroupName="18. Lower-High / Higher-Low Signal")]
+        public Brush StructLongColor { get; set; }
+        [Browsable(false)]
+        public string StructLongColorSerialize { get { return Serialize.BrushToString(StructLongColor); } set { StructLongColor = Serialize.StringToBrush(value); } }
+
+        [XmlIgnore]
+        [Display(Name="18.10 Confirmed Short Color", Order=10, GroupName="18. Lower-High / Higher-Low Signal")]
+        public Brush StructShortColor { get; set; }
+        [Browsable(false)]
+        public string StructShortColorSerialize { get { return Serialize.BrushToString(StructShortColor); } set { StructShortColor = Serialize.StringToBrush(value); } }
+
+        [Range(4, 72)]
+        [Display(Name="18.11 Symbol Font Size", Order=11, GroupName="18. Lower-High / Higher-Low Signal")]
+        public int StructSymbolFontSize { get; set; }
+
+        [Display(Name="18.12 Sound Alert", Description="Play a sound and post to the Alerts window on a provisional (medium) and a confirmed (high) structure signal. Realtime only.", Order=12, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool StructSoundAlert { get; set; }
+
+        [Display(Name="18.13 Long Sound File", Description="A file name from the NinjaTrader 8\\sounds folder, or a full path to any .wav.", Order=13, GroupName="18. Lower-High / Higher-Low Signal")]
+        public string StructLongSound { get; set; }
+
+        [Display(Name="18.14 Short Sound File", Description="A file name from the NinjaTrader 8\\sounds folder, or a full path to any .wav.", Order=14, GroupName="18. Lower-High / Higher-Low Signal")]
+        public string StructShortSound { get; set; }
+
+        [Display(Name="18.15 Include Daily Bias Levels", Description="The Daily Bias Level lines (group 10) count as levels visible on the chart. They carry no side, so they qualify a short and a long alike.", Order=15, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool StructIncludeDailyBias { get; set; }
+
+        [Display(Name="18.16 Write Structure Debug Log", Description="One line per closed bar per side into Mirror Logs\\MirrorStructV0053.log: the pivot under test, the structure verdict, the bar range, the level matched or the nearest visible level and why it did not match.", Order=16, GroupName="18. Lower-High / Higher-Low Signal")]
+        public bool DebugStructLog { get; set; }
+
         [Display(Name="16.4 Also Alert on Provisional", Description="Also alert at stage 1, when a wick first touches the level - earlier, but many of these never confirm. Fires whether or not provisional marks are shown.", Order=4, GroupName="16. Retest Alerts")]
         public bool RetestAlertProvisional { get; set; }
 
-        [Display(Name="17.3 Write Level Log", Description="Every Mirror level created and removed, into MirrorV0046SignalLevels.log in the Log Folder. Diagnostic. Capped at 60,000 lines.", Order=3, GroupName="17. Logging & Diagnostics")]
+        [Display(Name="17.3 Write Level Log", Description="Every Mirror level created and removed, into MirrorV0046SignalLevels_<load>_<NNN>.log in the Log Folder (new part every 50,000 lines or trading day). Diagnostic. Safety stop at 5,000,000 lines per load.", Order=3, GroupName="17. Logging & Diagnostics")]
         public bool DebugLevelLog { get; set; }
 
         [Display(Name="17.1 Log Folder", Description = "Where the zone, level and retest logs are written. A plain name is a folder inside Documents\\NinjaTrader 8 (default: Mirror Logs); a full path is used as-is. Created if missing. Logs are appended, never overwritten; each load is marked with its load id.", Order=1, GroupName="17. Logging & Diagnostics")]
@@ -1226,7 +1411,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0047Signal";
+                Name = "AlightenMirrorV0053Signal";
                 Description = "SIGNAL branch of the Multi-Timeframe Mirror (Patterns A, B, G, H, F, J) - clean copy of V0041, no signal work. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -1242,47 +1427,47 @@ namespace NinjaTrader.NinjaScript.Indicators
 				EnablePatternJ = true;
                 SrcBarsToProcess = 500;
 				MirrorLookbackBars = 3;
-				EnableInvalidatedCleanup = true;
+				EnableInvalidatedCleanup = false;
 
                 // Visibility defaults per the user's saved production template (2026-09-15,
                 // AlightenMirrorV0047Signal_Default.xml): A/G/H/F show Daily/240m only;
                 // B and J draw no levels at all (their zones still feed the group engine).
                 ShowPatternATF1_Daily = true;
                 ShowPatternATF2_240m = true;
-                ShowPatternATF3_60m = false;
-                ShowPatternATF4_30m = false;
-                ShowPatternATF5_15m = false;
-                ShowPatternATF6_10m = false;
-                ShowPatternATF7_5m = false;
-                ShowPatternBTF1_Daily = false;
-                ShowPatternBTF2_240m = false;
-                ShowPatternBTF3_60m = false;
-                ShowPatternBTF4_30m = false;
-                ShowPatternBTF5_15m = false;
-                ShowPatternBTF6_10m = false;
-                ShowPatternBTF7_5m = false;
+                ShowPatternATF3_60m = true;
+                ShowPatternATF4_30m = true;
+                ShowPatternATF5_15m = true;
+                ShowPatternATF6_10m = true;
+                ShowPatternATF7_5m = true;
+                ShowPatternBTF1_Daily = true;
+                ShowPatternBTF2_240m = true;
+                ShowPatternBTF3_60m = true;
+                ShowPatternBTF4_30m = true;
+                ShowPatternBTF5_15m = true;
+                ShowPatternBTF6_10m = true;
+                ShowPatternBTF7_5m = true;
                 ShowPatternGTF1_Daily = true;
                 ShowPatternGTF2_240m = true;
-                ShowPatternGTF3_60m = false;
-                ShowPatternGTF4_30m = false;
-                ShowPatternGTF5_15m = false;
-                ShowPatternGTF6_10m = false;
-                ShowPatternGTF7_5m = false;
+                ShowPatternGTF3_60m = true;
+                ShowPatternGTF4_30m = true;
+                ShowPatternGTF5_15m = true;
+                ShowPatternGTF6_10m = true;
+                ShowPatternGTF7_5m = true;
                 ShowPatternHTF1_Daily = true;
                 ShowPatternHTF2_240m = true;
-                ShowPatternHTF3_60m = false;
-                ShowPatternHTF4_30m = false;
-                ShowPatternHTF5_15m = false;
-                ShowPatternHTF6_10m = false;
-                ShowPatternHTF7_5m = false;
+                ShowPatternHTF3_60m = true;
+                ShowPatternHTF4_30m = true;
+                ShowPatternHTF5_15m = true;
+                ShowPatternHTF6_10m = true;
+                ShowPatternHTF7_5m = true;
                 ShowPatternFTF1_Daily = true;
                 ShowPatternFTF2_240m = true;
-                ShowPatternFTF3_60m = false;
-                ShowPatternFTF4_30m = false;
-                ShowPatternFTF5_15m = false;
-                ShowPatternFTF6_10m = false;
-                ShowPatternFTF7_5m = false;
-                ShowPatternJTF1_Daily = false;
+                ShowPatternFTF3_60m = true;
+                ShowPatternFTF4_30m = true;
+                ShowPatternFTF5_15m = true;
+                ShowPatternFTF6_10m = true;
+                ShowPatternFTF7_5m = true;
+                ShowPatternJTF1_Daily = true;
                 ShowPatternJTF2_240m = false;
                 ShowPatternJTF3_60m = false;
                 ShowPatternJTF4_30m = false;
@@ -1334,7 +1519,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 MergeGroupZones     = false;
                 ShowGroupLabels     = false;
                 MaxZoneDrawings = 500;
-                EnableInsideZones = true;
+                EnableInsideZones = false;
                 InsideZonesFileName = "MirrorInsideZonesV0040.txt";
                 InsideShortColor = Brushes.Magenta;
                 InsideLongColor = new SolidColorBrush(Color.FromRgb(0x25, 0xD7, 0x25));
@@ -1367,15 +1552,32 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RetestProvisionalColor   = Brushes.Khaki;
                 RetestConfirmedColor     = Brushes.Aqua;
                 RetestWickToleranceTicks = 5;
+                // V0051 structure-at-level signal
+                EnableStructSignal       = true;
+                StructWickToleranceTicks = 8;
+                StructLevelGraceMins     = 0;
+                StructAnySideLevel       = true;
+                StructShowProvisional    = true;
+                StructLongSymbol         = "\u25B2";
+                StructShortSymbol        = "\u25BC";
+                StructProvisionalColor   = Brushes.Khaki;
+                StructLongColor          = Brushes.Aqua;
+                StructShortColor         = Brushes.White;
+                StructSymbolFontSize     = 14;
+                StructSoundAlert         = false;
+                StructLongSound          = "Alert2.wav";
+                StructShortSound         = "Alert4.wav";
+                StructIncludeDailyBias   = true;      // V0052
+                DebugStructLog           = false;
                 RetestRequireNebulaBright = false;
                 LogFolder                = "Mirror Logs";
-                WriteZoneLog             = true;
+                WriteZoneLog             = false;
                 RetestSoundAlert         = false;
                 RetestLongSound          = "Alert2.wav";
                 RetestShortSound         = "Alert4.wav";
                 RetestAlertProvisional   = false;
                 ShowChartPivotDots       = false;
-                ShowProvisionalMarks     = false;
+                ShowProvisionalMarks     = true;
                 ShowGetReadySymbol       = true;
                 DebugRetestLog           = false;
 
@@ -1430,6 +1632,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 AddPlot(Brushes.Transparent, "RetestPrice");      // 43
                 AddPlot(Brushes.Transparent, "RetestZoneEdge");   // 44
                 AddPlot(Brushes.Transparent, "GetReadyState");    // 45
+                AddPlot(Brushes.Transparent, "StructSignal");     // 46 (V0051)
+                AddPlot(Brushes.Transparent, "StructPrice");      // 47 (V0051)
             }
             else if (State == State.Configure)
 			{
@@ -1534,15 +1738,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _logLoadId = "L" + DateTime.Now.ToString("yyyyMMdd-HHmmss");
                 if (DebugLevelLog)
                 {
-                    try
-                    {
-                        _lvlLogPath = LogFile("MirrorV0046SignalLevels.log");
-                        _lvlLogLines = 0;
-                        System.IO.File.AppendAllText(_lvlLogPath,
-                            "\r\n======== LOAD " + _logLoadId + "  "
-                            + (Instrument != null ? Instrument.FullName : "?") + " ========\r\n");
-                    }
-                    catch { _lvlLogPath = null; }
+                    // V0050: rotating parts, opened lazily by LvlLog
+                    _lvlLogOn = true;
+                    _lvlLogPath = null;
+                    _lvlLogPart = 0;
+                    _lvlLogLines = 0;
+                    _lvlLogTotal = 0;
+                    _lvlLogDate = DateTime.MinValue;
                 }
 
                 _xLastBar = -1;
@@ -1553,6 +1755,12 @@ namespace NinjaTrader.NinjaScript.Indicators
                 _rtWatches = new List<RetestWatch>(MAX_RETEST_WATCHES);
                 _rtMarks   = new List<RetestMark>(64);
                 _cpEngine  = new PivotEngine();
+                _ssLastBar = -1;                       // V0051
+                _ssAlerted.Clear();
+                _ssMarks   = new List<StructMark>(64);
+                Print(Name + " build " + BUILD_ID);
+                StructLog("==== build " + BUILD_ID + " load " + _logLoadId + " settings: tol=" + StructWickToleranceTicks + " ticks, grace=" + StructLevelGraceMins
+                          + " min, anySide=" + StructAnySideLevel + ", dailyBias=" + StructIncludeDailyBias + ", provisional=" + StructShowProvisional + " ====");
 
                 BuildZoneSets();
                 foreach (ZoneSet zs in _zoneSets) LoadGroupRules(zs);
@@ -1580,35 +1788,35 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                     if (EnablePatternA)
                     {
-                        _srcA[t] = AlightenMirrorPtAV0011(
+                        _srcA[t] = AlightenMirrorPtAV0012(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternB)
                     {
-                        _srcB[t] = AlightenMirrorPtBV0005(
+                        _srcB[t] = AlightenMirrorPtBV0006(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, true, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternG)
                     {
-                        _srcG[t] = AlightenMirrorPtGV0003(
+                        _srcG[t] = AlightenMirrorPtGV0004(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternH)
                     {
-                        _srcH[t] = AlightenMirrorPtHV0003(
+                        _srcH[t] = AlightenMirrorPtHV0004(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
                     }
                     if (EnablePatternF)
                     {
-                        _srcF[t] = AlightenMirrorPtFV0004(
+                        _srcF[t] = AlightenMirrorPtFV0005(
 						    Closes[bipIdx],
 						    SrcBarsToProcess, true, true, false, 18, 5, Brushes.Lime, Brushes.Red, 2, DashStyleHelper.Solid, false, false, Brushes.DimGray, 1, DashStyleHelper.Solid
 						);
@@ -1689,7 +1897,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     catch (Exception ex)
                     {
                         _neb = null;
-                        Print("[AlightenMirrorV0047Signal] Nebula host failed: " + ex.Message
+                        Print("[AlightenMirrorV0053Signal] Nebula host failed: " + ex.Message
                             + " - the retest signal will find no bright bars while 'Require Nebula Bright' is on.");
                     }
                 }
@@ -1840,6 +2048,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                     Values[PLOT_RETEST_PRICE][0]  = 0;
                     Values[PLOT_RETEST_EDGE][0]   = 0;
                     Values[PLOT_GET_READY][0]     = 0;
+                    Values[PLOT_SS_SIGNAL][0]     = 0;   // V0051
+                    Values[PLOT_SS_PRICE][0]      = 0;
 
 			        _lastPrimaryBarTime = Times[0][0];
 			        _lastPrimaryClose   = Closes[0][0];
@@ -1912,6 +2122,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                         CheckZoneCross();   // after UpdateSignalGroups: reads the live zone map
                         if (EnableRetestSignal)
                             UpdateRetestWatches();   // after CheckZoneCross: a break registers its watch there
+                        if (EnableStructSignal)
+                            UpdateStructSignal();    // V0051: after the level sync, on the closed bar
                     }
 
                     DateTime now = Times[0][0];
@@ -2095,6 +2307,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 tDict[tag] = newLevel;
                 DrawTrackedLevel(newLevel, tDict);
                 LvlLogLevel("CREATE", newLevel, barsAgoOnHtf);
+                if (EnableStructSignal) StructCatchUp(newLevel);     // V0053g: pivots that wicked it before it existed here
 
                 slot.StartTicks = signalStartTime.Ticks;
                 slot.Price = priceLevel;
@@ -2451,7 +2664,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // from a broken one -- that ambiguity cost a debugging session, so both sets report
             // their state to the Output window whether they run or not.
             NinjaTrader.Code.Output.Process(string.Format(
-                "[AlightenMirrorV0047Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
+                "[AlightenMirrorV0053Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
                 _zsPri.Enabled ? "ON" : "OFF", _zsPri.FileName,
                 _zsIns.Enabled ? "ON" : "OFF", _zsIns.FileName), PrintTo.OutputTab1);
         }
@@ -2478,7 +2691,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (!System.IO.File.Exists(path))
                 {
                     System.IO.File.WriteAllText(path,
-                        "# AlightenMirrorV0047Signal signal groups\r\n" +
+                        "# AlightenMirrorV0053Signal signal groups\r\n" +
                         "# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T\r\n" +
                         "# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)\r\n" +
                         "# Optional extra flag: ; ANCHORED   (others on the highest-TF member's protected side)\r\n" +
@@ -2486,7 +2699,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         "# Example: the triple J short stack within 100 ticks:\r\n" +
                         "J15S, J30S, J60S; 100T\r\n" +
                         "J15L, J30L, J60L; 100T\r\n");
-                    Print("[AlightenMirrorV0047Signal] created groups file with examples: " + path);
+                    Print("[AlightenMirrorV0053Signal] created groups file with examples: " + path);
                 }
 
                 foreach (string raw in System.IO.File.ReadAllLines(path))
@@ -2498,7 +2711,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     string[] segs = line.Split(';');
                     if (segs.Length < 2)
                     {
-                        Print("[AlightenMirrorV0047Signal] groups file: missing '; <ticks>T' in row: " + line);
+                        Print("[AlightenMirrorV0053Signal] groups file: missing '; <ticks>T' in row: " + line);
                         continue;
                     }
 
@@ -2506,7 +2719,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     int maxTicks;
                     if (!int.TryParse(tickPart, out maxTicks) || maxTicks <= 0)
                     {
-                        Print("[AlightenMirrorV0047Signal] groups file: bad tick spread in row: " + line);
+                        Print("[AlightenMirrorV0053Signal] groups file: bad tick spread in row: " + line);
                         continue;
                     }
 
@@ -2520,7 +2733,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         else if (flag == "ORDERED")
                             rule.Ordered = true;
                         else if (flag.Length > 0)
-                            Print("[AlightenMirrorV0047Signal] groups file: unknown flag '" + flag + "' in row: " + line);
+                            Print("[AlightenMirrorV0053Signal] groups file: unknown flag '" + flag + "' in row: " + line);
                     }
 
                     bool ok = true;
@@ -2539,7 +2752,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         if (p < 0 || t < 0 || (dirKey != "L" && dirKey != "S"))
                         {
-                            Print("[AlightenMirrorV0047Signal] groups file: bad signal token '" + tok + "' in row: " + line);
+                            Print("[AlightenMirrorV0053Signal] groups file: bad signal token '" + tok + "' in row: " + line);
                             ok = false;
                             break;
                         }
@@ -2562,7 +2775,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
 
-                Print("[AlightenMirrorV0047Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
+                Print("[AlightenMirrorV0053Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
 
                 zs.LogPath = LogFile("MirrorZonesV0046Signal_" + zs.Name + ".log");
                 GrpLog(zs, "======== LOAD " + _logLoadId + " " + (Instrument != null ? Instrument.FullName : "?")
@@ -2571,7 +2784,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0047Signal] groups file error: " + ex.Message);
+                Print("[AlightenMirrorV0053Signal] groups file error: " + ex.Message);
             }
         }
 
@@ -3782,7 +3995,333 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         #endregion
 
-		#region Cleanup Helpers
+		
+        #region V0053 structure-at-level signal
+
+        private class StructMark
+        {
+            public string   Tag;
+            public int      Bar;
+            public DateTime Time;
+            public double   Price;      // the pivot bar's wick extreme
+            public double   Level;      // the level that was wicked
+            public string   LevelLabel;
+            public bool     IsLong;
+            public bool     Confirmed;
+        }
+        private const string BUILD_ID = "V0053-2026-10-16i";
+        private List<StructMark> _ssMarks;
+        private int _ssLastBar = -1;
+        private HashSet<string> _ssAlerted = new HashSet<string>();
+
+        // One candidate level, from the tracked/archived store or from the daily-bias lines.
+        private struct StructLevel
+        {
+            public double Price; public string Label; public bool IsLong; public bool AnySide;
+            public DateTime Start, End;
+            public int TfMinutes;      // the level's own bar length: the re-extend window after End
+        }
+
+        private void StructLog(string line)
+        {
+            if (!DebugStructLog) return;
+            try
+            {
+                string p = LogFile("MirrorStructV0053.log");
+                System.IO.File.AppendAllText(p, LogStamp() + " " + line + Environment.NewLine);
+            }
+            catch { }
+        }
+
+        // Runs once per CLOSED chart bar (after SyncLevels, so the level set is current).
+        // Reads the chart-series pivot engine: entry n-1 is the DEVELOPING pivot (provisional),
+        // entry n-2 is CONFIRMED. Sides alternate, so the previous same-side pivot is two back.
+        private void UpdateStructSignal()
+        {
+            if (_cpEngine == null || _ssMarks == null) return;
+
+            int b = State == State.Historical ? CurrentBars[0] : CurrentBars[0] - 1;
+            if (b <= _ssLastBar || b < 2) return;
+            _ssLastBar = b;
+
+            PivotCatchUp(_cpEngine, 0, b);      // idempotent; the retest signal may have done it already
+
+            int n = _cpEngine.Bars.Count;
+            if (n < 2) return;
+
+            for (int side = 0; side < 2; side++)
+            {
+                bool wantHigh = (side == 0);                 // a pivot HIGH is a short, a pivot LOW a long
+                bool isLong   = !wantHigh;
+                int idx = (_cpEngine.IsHigh[n - 1] == wantHigh) ? n - 1 : n - 2;
+                bool developing = (idx == n - 1);
+                if (idx - 2 < 0) continue;
+
+                int bar = _cpEngine.Bars[idx];
+
+                // The newest same-side pivot moved to a more extreme bar: its old provisional
+                // mark is no longer a pivot at all - take it off the chart.
+                DropStructProvisional(isLong, bar);
+
+                bool structOk = wantHigh ? _cpEngine.Prices[idx] < _cpEngine.Prices[idx - 2]
+                                         : _cpEngine.Prices[idx] > _cpEngine.Prices[idx - 2];
+
+                int ago = CurrentBars[0] - bar;
+                if (ago < 0 || ago >= 250 || ago > CurrentBars[0])
+                {
+                    StructLog(string.Format("{0} n={1} idx={2} bar={3} ago={4} OUT OF RANGE", wantHigh ? "SHORT" : "LONG ", n, idx, bar, ago));
+                    continue;
+                }
+
+                double hi = Highs[0][ago], lo = Lows[0][ago];
+                DateTime t = Times[0][ago];
+                string why;
+                StructLevel lv = FindStructLevel(isLong, hi, lo, t, out why);
+                bool found = lv.Label != null;
+
+                if (DebugStructLog)
+                    StructLog(string.Format(
+                        "{0} bar={1:yyyy-MM-dd HH:mm:ss} {2} piv={3:F2} prev={4:F2} struct={5} H={6:F2} L={7:F2} level={8} {9}",
+                        wantHigh ? "SHORT" : "LONG ", t, developing ? "DEV " : "CONF", _cpEngine.Prices[idx], _cpEngine.Prices[idx - 2],
+                        structOk ? "OK " : "no ", hi, lo, found ? lv.Label + "@" + lv.Price.ToString("F2") : "none", why));
+
+                if (!structOk || !found) continue;
+
+                StructMark m = FindStructMark(bar, isLong);
+                int pubAgo = CurrentBars[0] - b;
+                if (m == null)
+                {
+                    m = new StructMark { Tag = "MirSS_" + bar + (isLong ? "L" : "S"), Bar = bar, Time = t,
+                                         Price = isLong ? lo : hi, Level = lv.Price, LevelLabel = lv.Label,
+                                         IsLong = isLong, Confirmed = !developing };
+                    _ssMarks.Add(m);
+                    int cap = Math.Max(10, MaxCrossArrows);
+                    while (_ssMarks.Count > cap)
+                    {
+                        try { RemoveDrawObject(_ssMarks[0].Tag); } catch { }
+                        _ssMarks.RemoveAt(0);
+                    }
+                    DrawOneStruct(m);
+                    PublishStruct(pubAgo, m);
+                    StructAlert(m);
+                    StructLog("  -> " + (m.Confirmed ? "CONFIRMED " : "PROVISIONAL ") + m.Tag + " at " + m.LevelLabel);
+                }
+                else if (!m.Confirmed && !developing)
+                {
+                    m.Confirmed  = true;
+                    m.Level      = lv.Price;
+                    m.LevelLabel = lv.Label;
+                    DrawOneStruct(m);
+                    PublishStruct(pubAgo, m);
+                    StructAlert(m);
+                    StructLog("  -> CONFIRMED " + m.Tag + " at " + m.LevelLabel);
+                }
+            }
+        }
+
+        // Every level drawn on the chart: the tracked/archived pattern levels whose pattern +
+        // timeframe is shown (the gating DrawTrackedLevel uses) and, optionally, the daily-bias
+        // lines (no side). `why` explains a miss: the nearest candidate by price and the test it failed.
+        private StructLevel FindStructLevel(bool isLong, double hi, double lo, DateTime t, out string why)
+        {
+            double tol = TickSize > 0 ? StructWickToleranceTicks * TickSize : 0;
+            double wick = isLong ? lo : hi;
+            TimeSpan grace = TimeSpan.FromMinutes(Math.Max(0, StructLevelGraceMins));
+            StructLevel best = new StructLevel(); double bestD = double.MaxValue;
+            StructLevel near = new StructLevel(); double nearD = double.MaxValue; string nearWhy = "";
+            int seen = 0;
+            int[] seenTf = new int[NUM_TF];
+
+            for (int p = 0; p < NUM_PAT; p++)
+            {
+                if (!IsPatternEnabled(p) || tracked[p] == null) continue;
+                for (int tf = 0; tf < NUM_TF; tf++)
+                {
+                    var d = tracked[p][tf];
+                    if (d == null) continue;
+                    foreach (var tl in d.Values)
+                    {
+                        if (tl == null || tl.Removed || !IsPatternTfShown(tl.PatternType, tl.TfIndex)) continue;
+                        seen++; seenTf[tl.TfIndex]++;
+                        StructConsider(new StructLevel { Price = tl.Price, Label = tl.Label, IsLong = tl.IsLong, AnySide = false, Start = tl.HtfStartTime, End = tl.HtfEndTime, TfMinutes = _tfMinutes[tl.TfIndex] },
+                                       isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                    }
+                }
+            }
+            if (_archivedLevels != null)
+                foreach (var tl in _archivedLevels)
+                {
+                    if (tl == null || tl.Removed || !IsPatternTfShown(tl.PatternType, tl.TfIndex)) continue;
+                    seen++; seenTf[tl.TfIndex]++;
+                    StructConsider(new StructLevel { Price = tl.Price, Label = tl.Label, IsLong = tl.IsLong, AnySide = false, Start = tl.HtfStartTime, End = tl.HtfEndTime, TfMinutes = _tfMinutes[tl.TfIndex] },
+                                   isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                }
+            if (StructIncludeDailyBias && EnableDailyBiasLevels && _dbPivotBars != null && _dbPivotBars.Count > 1 && CurrentBars.Length > 1)
+            {
+                // the same selection RedrawDailyBiasLevels draws: the newest DailyBiasLevelCount confirmed
+                // pivots within DailyBiasRelevanceDays; their lines run from the pivot to the current bar
+                int confirmed = _dbPivotBars.Count - 1, used = 0;
+                for (int i = confirmed - 1; i >= 0 && used < DailyBiasLevelCount; i--)
+                {
+                    if (CurrentBars[1] - _dbPivotBars[i] > DailyBiasRelevanceDays) break;
+                    used++; seen++;
+                    double lvl = _dbPivotGuides[i];
+                    StructConsider(new StructLevel { Price = lvl, Label = "DL " + lvl.ToString("0.00"), IsLong = isLong, AnySide = true, Start = _dbPivotTimes[i], End = DateTime.MaxValue, TfMinutes = 0 },
+                                   isLong, hi, lo, t, tol, grace, wick, ref best, ref bestD, ref near, ref nearD, ref nearWhy);
+                }
+            }
+            string vis = "";
+            if (DebugStructLog)
+            {
+                var sb = new System.Text.StringBuilder(" vis=");
+                for (int k = 0; k < NUM_TF; k++) sb.Append(_tfLabels[k]).Append(':').Append(seenTf[k]).Append(k + 1 < NUM_TF ? "," : "");
+                vis = sb.ToString();
+            }
+            why = (best.Label != null ? "" : (seen == 0 ? "(no visible level at all)"
+                  : near.Label == null ? "(no visible level of this side)"
+                  : "(nearest " + near.Label + "@" + near.Price.ToString("F2") + " " + nearD.ToString("F2") + " pts off: " + nearWhy + ")")) + vis;
+            return best;
+        }
+
+        private void StructConsider(StructLevel L, bool isLong, double hi, double lo, DateTime t, double tol, TimeSpan grace, double wick,
+                                    ref StructLevel best, ref double bestD, ref StructLevel near, ref double nearD, ref string nearWhy)
+        {
+            if (!L.AnySide && !StructAnySideLevel && L.IsLong != isLong) return;
+            double dd = Math.Abs(L.Price - wick);
+            string fail = null;
+            if (t < L.Start) fail = "line starts after the bar";
+            else if (L.End != DateTime.MaxValue && t > L.End + grace + TimeSpan.FromMinutes(Math.Min(L.TfMinutes, 15))) fail = "line ended " + (t - L.End).TotalMinutes.ToString("0.0") + " min before the bar (> " + Math.Min(L.TfMinutes, 15) + " min + 18.3)";
+            else if (Math.Abs(wick - L.Price) > tol) fail = "pivot wick " + Math.Abs(wick - L.Price).ToString("F2") + " pts off (> tol)";
+            if (fail == null)
+            {
+                if (dd < bestD) { bestD = dd; best = L; }
+            }
+            else if (dd < nearD) { nearD = dd; near = L; nearWhy = fail; }
+        }
+
+        private StructMark FindStructMark(int bar, bool isLong)
+        {
+            for (int i = 0; i < _ssMarks.Count; i++)
+                if (_ssMarks[i].Bar == bar && _ssMarks[i].IsLong == isLong) return _ssMarks[i];
+            return null;
+        }
+
+        private void DropStructProvisional(bool isLong, int keepBar)
+        {
+            for (int i = _ssMarks.Count - 1; i >= 0; i--)
+            {
+                StructMark m = _ssMarks[i];
+                if (m.IsLong != isLong || m.Confirmed || m.Bar == keepBar) continue;
+                try { RemoveDrawObject(m.Tag); } catch { }
+                _ssMarks.RemoveAt(i);
+                StructLog("  -> dropped provisional " + m.Tag + " (pivot moved to bar " + keepBar + ")");
+            }
+        }
+
+        // V0053g: a level that just came into existence on this chart (typically a higher-timeframe level published at
+        // its bar close on a reload) - find the chart pivots inside its window that wicked it with the right structure.
+        private void StructCatchUp(TrackedLevel lv)
+        {
+            if (_cpEngine == null || _ssMarks == null || lv == null || lv.Removed) return;
+            if (!IsPatternTfShown(lv.PatternType, lv.TfIndex)) return;
+            int n = _cpEngine.Bars.Count;
+            if (n < 3) return;
+            double tol = TickSize > 0 ? StructWickToleranceTicks * TickSize : 0;
+            int added = 0;
+            for (int i = n - 1; i >= 2; i--)
+            {
+                if (_cpEngine.Times[i] < lv.HtfStartTime) break;          // older than the level's window
+                if (_cpEngine.Times[i] > lv.HtfEndTime) continue;
+                bool isHigh = _cpEngine.IsHigh[i];
+                bool isLong = !isHigh;
+                if (!StructAnySideLevel && lv.IsLong != isLong) continue;
+                if (Math.Abs(_cpEngine.Prices[i] - lv.Price) > tol) continue;
+                bool structOk = isHigh ? _cpEngine.Prices[i] < _cpEngine.Prices[i - 2] : _cpEngine.Prices[i] > _cpEngine.Prices[i - 2];
+                if (!structOk) continue;
+                int bar = _cpEngine.Bars[i];
+                if (FindStructMark(bar, isLong) != null) continue;
+                bool confirmed = i <= n - 2;
+                StructMark m = new StructMark { Tag = "MirSS_" + bar + (isLong ? "L" : "S"), Bar = bar, Time = _cpEngine.Times[i],
+                                                Price = _cpEngine.Prices[i], Level = lv.Price, LevelLabel = lv.Label,
+                                                IsLong = isLong, Confirmed = confirmed };
+                _ssMarks.Add(m);
+                DrawOneStruct(m);
+                added++;
+                StructLog("  -> CATCH-UP " + (confirmed ? "CONFIRMED " : "PROVISIONAL ") + m.Tag + " at " + lv.Label + "@" + lv.Price.ToString("F2")
+                          + " (level created " + (State == State.Historical ? "historical" : "realtime") + ", pivot " + m.Time.ToString("HH:mm:ss") + ")");
+            }
+            if (added > 0)
+            {
+                int cap = Math.Max(10, MaxCrossArrows);
+                while (_ssMarks.Count > cap)
+                {
+                    try { RemoveDrawObject(_ssMarks[0].Tag); } catch { }
+                    _ssMarks.RemoveAt(0);
+                }
+            }
+        }
+
+        private void PublishStruct(int agoIdx, StructMark m)
+        {
+            if (agoIdx < 0 || agoIdx >= 250 || agoIdx > CurrentBars[0]) return;
+            Values[PLOT_SS_SIGNAL][agoIdx] = (m.Confirmed ? 2 : 1) * (m.IsLong ? 1 : -1);
+            Values[PLOT_SS_PRICE][agoIdx]  = m.Level;
+        }
+
+        private void DrawOneStruct(StructMark m)
+        {
+            if (ExportMode || m == null) return;
+            if (!m.Confirmed && !StructShowProvisional)
+            {
+                try { RemoveDrawObject(m.Tag); } catch { }
+                return;
+            }
+            double off = 3 * TickSize;
+            string sym = m.IsLong ? SafeSymbol(StructLongSymbol, "\u25B2") : SafeSymbol(StructShortSymbol, "\u25BC");
+            Brush col = !m.Confirmed ? (StructProvisionalColor ?? Brushes.Khaki)
+                      : m.IsLong ? (StructLongColor ?? Brushes.Lime) : (StructShortColor ?? Brushes.OrangeRed);
+            Draw.Text(this, m.Tag, false, sym, m.Time, m.IsLong ? m.Price - off : m.Price + off, 0,
+                col, new SimpleFont("Arial", Math.Max(4, StructSymbolFontSize)), TextAlignment.Center,
+                Brushes.Transparent, Brushes.Transparent, 0);
+        }
+
+        private void RedrawStructMarks()
+        {
+            if (ExportMode || _ssMarks == null) return;
+            foreach (StructMark m in _ssMarks) DrawOneStruct(m);
+        }
+
+        private void StructAlert(StructMark m)
+        {
+            if (!StructSoundAlert || State != State.Realtime || ExportMode) return;
+
+            string key = "SS" + m.Bar + (m.IsLong ? "L" : "S") + (m.Confirmed ? "C" : "P");
+            if (!_ssAlerted.Add(key)) return;
+            if (_ssAlerted.Count > 500) _ssAlerted.Clear();
+
+            string file = m.IsLong ? StructLongSound : StructShortSound;
+            string path = string.IsNullOrWhiteSpace(file) ? ""
+                        : System.IO.Path.IsPathRooted(file) ? file
+                        : System.IO.Path.Combine(NinjaTrader.Core.Globals.InstallDir, "sounds", file);
+            if (path.Length > 0 && !System.IO.File.Exists(path))
+            {
+                Print(Name + ": structure alert sound not found: " + path);
+                path = "";
+            }
+            string msg = string.Format("{0} {1}: {2} {3} at {4} ({5})",
+                Instrument.FullName, BarsPeriod, m.IsLong ? "HIGHER LOW" : "LOWER HIGH",
+                m.Confirmed ? "confirmed" : "provisional", Instrument.MasterInstrument.FormatPrice(m.Level), m.LevelLabel);
+            try
+            {
+                Alert("MirSSAlert_" + key, m.Confirmed ? Priority.High : Priority.Medium, msg, path, 0,
+                      m.IsLong ? Brushes.DarkGreen : Brushes.DarkRed, Brushes.White);
+            }
+            catch (Exception ex) { Print(Name + ": structure alert failed: " + ex.Message); }
+        }
+
+        #endregion
+
+#region Cleanup Helpers
 
         // PERF: move levels that ended more than MirrorLookbackBars HTF bars ago out of
         // the per-tick tracked dictionaries. Their chart drawings remain; they are still
@@ -3858,9 +4397,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         // the whole object graph (tracked levels, zone sets, hosted sources) leaks with it.
         private RoutedEventHandler _hSettings, _hExport, _hClean;
 
-        private const string TB_SETTINGS_ID = "AlightenMirrorV0047SignalSettingsBtn";
-        private const string TB_EXPORT_ID   = "AlightenMirrorV0047SignalExportBtn";
-        private const string TB_CLEAN_ID    = "AlightenMirrorV0047SignalCleanBtn";
+        private const string TB_SETTINGS_ID = "AlightenMirrorV0053SignalSettingsBtn";
+        private const string TB_EXPORT_ID   = "AlightenMirrorV0053SignalExportBtn";
+        private const string TB_CLEAN_ID    = "AlightenMirrorV0053SignalCleanBtn";
 
         // A recompile discards this instance before the Terminated teardown - which is queued
         // on the chart Dispatcher - ever runs, so the PREVIOUS build's buttons stay parented to
@@ -3883,10 +4422,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 foreach (System.Windows.UIElement el in doomed) chartWindow.MainMenu.Remove(el);
                 if (doomed.Count > 0)
-                    Print("[AlightenMirrorV0047Signal] cleared " + doomed.Count
+                    Print("[AlightenMirrorV0053Signal] cleared " + doomed.Count
                         + " orphaned toolbar button(s) left by a previous build");
             }
-            catch (Exception ex) { Print("[AlightenMirrorV0047Signal] orphan sweep: " + ex.Message); }
+            catch (Exception ex) { Print("[AlightenMirrorV0053Signal] orphan sweep: " + ex.Message); }
         }
 
 		private void CreateToolbarButton()
@@ -3927,7 +4466,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 cleanButton.Margin = new Thickness(6, 3, 6, 3);
                 cleanButton.ToolTip = "Remove currently-active levels price has crossed, purge failed zones, and rebuild active zones (same as the modal's Clean Invalid)";
                 chartWindow.MainMenu.Add(cleanButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0047Signal] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0053Signal] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -4013,7 +4552,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0047Signal] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0053Signal] Export error: " + ex.Message);
             }
         }
 
@@ -4086,9 +4625,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             sb.AppendLine("  },");
 
-            sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0011\", \"AlightenMirrorPtBV0005\", \"AlightenMirrorPtGV0003\", \"AlightenMirrorPtHV0003\", \"AlightenMirrorPtFV0004\", \"AlightenMirrorPtJV0008\"],");
+            sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0012\", \"AlightenMirrorPtBV0006\", \"AlightenMirrorPtGV0004\", \"AlightenMirrorPtHV0004\", \"AlightenMirrorPtFV0005\", \"AlightenMirrorPtJV0008\"],");
             sb.AppendLine("  \"bar_timestamp\": \"close\",");
-            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0047Signal\"");
+            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0053Signal\"");
             sb.AppendLine("}");
 
             System.IO.File.WriteAllText(metaPath, sb.ToString());
@@ -4138,7 +4677,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0047Signal] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0053Signal] Failed to open settings: {ex.Message}");
 		    }
 		}
 
@@ -4271,6 +4810,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 RedrawDailyBiasLevels(); // RemoveDrawObjects() above cleared the level lines too
                 RedrawCrossArrows();     // signals survive a Clean - it cleans levels and zones, not signals
                 RedrawRetestMarks();     // ditto for the V0046 provisional/confirmed entry marks
+                RedrawStructMarks();     // V0051 marks survive a Clean too
                 if (ShowChartPivotDots) DrawChartPivotDots();   // the diagnostic must survive a Clean too
 
                 if (ChartControl != null) ChartControl.InvalidateVisual();
@@ -4336,3 +4876,4 @@ namespace NinjaTrader.NinjaScript.Indicators
 		#endregion
     }
 }
+

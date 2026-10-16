@@ -13,59 +13,53 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml)
+**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261015.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261015.xml)
 **Built on:** NQ 12-26, 30 Second, 3 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
-![The reference chart: NQ 12-26, 30-second, with the Mirror dashboard, Auto AVWAPs and their signals.](docs/reference-chart.jpg)
+![The reference chart: NQ 12-26, 30-second, with the Mirror dashboard, Auto AVWAPs and their signals (screenshot of the earlier 2026-10-06 template).](docs/reference-chart.jpg)
 
-The chart is a single price panel carrying eleven indicators. Reading it:
+The chart is a single price panel carrying ten indicators. Reading it:
 
 * **Auto AVWAPs** calculated on 5-minute bars — HOD/LOD, the previous session's HOPD/LOPD and
   Kris's TEST AVWAPs — with wick ▼▲, retest ▼▼ R / ▲▲ R and break ◆ markers on the 30-second bars.
   See [Auto AVWAP](#auto-avwap).
-* The **BnB session VWAP is loaded but hidden**, and the chart no longer carries a volume profile.
-* **Mirror levels and zones** as horizontal bands. Only the *inside* zone set is drawing on this
-  chart — long zones green (`#25D725`), short zones magenta (`#FF00FF`), filled at 5% opacity with a
-  50%-opacity outline, which is why they read as dark tints against the black background. Narrow
-  bright bands are individual pattern levels. A yellow zigzag traces the structure the pattern
-  engines are keyed to.
-* Small arrows, dots and check marks on the bars are **confirmed pattern signals**; triangles are the
-  Mirror's **zone-break retest** entries, which also play a sound.
+* **No VWAP and no volume profile.** The BnB session VWAP left the chart on 2026-10-15 (the file stays
+  in the repo); the chart has carried no volume profile since 2026-10-04.
+* **Mirror levels** as horizontal lines on every timeframe (Daily down to 5m) for Patterns A, B, G, H
+  and F, and Daily only for Pattern J. **No zone bands:** both zone sets are switched off on this
+  template. A yellow zigzag traces the structure the pattern engines are keyed to.
+* **Structure signals** (new in V0051–V0053, group *18. Lower-High / Higher-Low Signal*): ▲ marks a
+  **higher low** and ▼ a **lower high** whose bar wicks a level drawn on the chart. Khaki while the
+  pivot is still forming, then **aqua (long) / white (short)** once the next pivot confirms it. The
+  zone-break retest signal is off on this template.
 * Three toolbar buttons — **Mirror Settings**, **Export Levels**, **Clean Mirror** — drive the
   Mirror's live settings modal, its CSV export, and its zone teardown/redraw.
 
 ### How this chart is configured
 
-Two of these will surprise anyone reading the screenshot and assuming the Mirror is running wide
-open. Values below are read directly out of the template.
+Values below are read directly out of the template.
 
 | Setting | Value |
 |---|---|
 | Signal Groups (primary zones) | **disabled** — `EnableSignalGroups = false` |
-| Inside Zones | **enabled** — [`MirrorInsideZonesV0040.txt`](NinjaTrader/ZoneFiles/MirrorInsideZonesV0040.txt) |
+| Inside Zones | **disabled** — `EnableInsideZones = false` (the file names are still set, see [Zone rule files](#zone-rule-files)) |
 | Pattern engines computing | all six — A, B, G, H, F, J |
-| Levels actually drawn | **Daily, 240m and 60m**, and only for A, G, H and F |
-| Pattern B and Pattern J levels | computed, not drawn |
-| Daily Bias Levels | enabled — goldenrod above, deep sky blue below |
-| Zone breaks / retest signal | **14.1 Enable Zone Breaks** on; retest signal on with sound alerts; get-ready ★ hidden |
-| Logs | zone log on, written to `Documents\NinjaTrader 8\Mirror Logs\` |
+| Levels drawn | **every timeframe** for A, B, G, H and F; **Daily only** for J |
+| Structure signal (group 18) | **on** — any-side levels, 8-tick wick tolerance, grace 0, daily-bias lines count, provisional marks shown, sound off |
+| Daily Bias Levels | enabled, 7 levels — goldenrod above, deep sky blue below |
+| Zone breaks / retest signal | zone breaks on; **retest signal off** |
+| Logs | Mirror logs written to `Documents\NinjaTrader 8\Mirror Logs\`; the level and structure debug logs are **off** |
 | Research log | **disabled** — `EnableResearchLog = false` |
-| Drawing caps | 500 per zone set |
-| Zone merging | off for both sets |
 | Mirror source bars to process | 500 (`SrcBarsToProcess`) |
-| Volume profile | none — RedTail was removed from the chart on 2026-10-04 |
-| BnB VWAP | **loaded but hidden** (`IsVisible = false`); VWAP on, its own volume profile off (`ShowVP = false`) |
-| Auto AVWAP | 5-min data series, stock session, signals on *session high/low + TEST* AVWAPs, sound alerts on |
+| VWAP / volume profile | none on the chart |
+| Auto AVWAP | V0007, 5-min data series, futures session (`Use stock session` off), signals on *session high/low + TEST* AVWAPs, sound alerts on, developing AVWAP on |
 | Bias | V0004 with the 6 most recent levels (scored levels off), no containment box |
+| Chart Trader | account `Playback101` (Market Replay) — set your own after loading |
 
-So **every zone band on the chart is an inside zone** — the primary confluence set is switched off
-entirely. And although all six engines run and keep feeding the zone search, level *drawing* is
-restricted to the Daily, 240m and 60m timeframes for four of the six patterns; Pattern J, the densest
-source, is computing invisibly.
-
-This is worth knowing before you change anything: enabling Signal Groups or turning on more
-timeframes will not "fix" a sparse chart, it will bury it.
+So **there are no zone bands** on this chart: the Mirror is used for its levels and the structure
+signal. All six engines still run, and turning a zone set back on (group 12 or 13) brings the bands
+back without changing anything else.
 
 ### Files required to reproduce it
 
@@ -75,10 +69,9 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 
 | Indicator | Role on the chart |
 |---|---|
-| [`AlightenMirrorV0047Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0047Signal.cs) | The Mirror dashboard — levels, zones, zone-break retest signals with sound alerts, the three toolbar buttons |
-| [`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | Session VWAP + SD bands and prior-day H/L — its own volume profile is off on this chart |
+| [`AlightenMirrorV0053Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0053Signal.cs) | The Mirror dashboard — levels, zones, the structure signal (lower high / higher low at a level), zone-break retest signals, the three toolbar buttons |
 | [`AlightenBiasV0004.cs`](NinjaTrader/Indicators/AlightenBiasV0004.cs) | FTG/FTL structural bias, with recent and/or scored levels |
-| [`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs) | Auto anchored VWAPs calculated on 5-min bars, with wick / retest / break signals — see [Auto AVWAP](#auto-avwap) |
+| [`AutoAVWAPMTFV0007.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | Auto anchored VWAPs calculated on 5-min bars, with wick / retest / break signals — see [Auto AVWAP](#auto-avwap) |
 | [`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | Speed of tape, net speed of tape, trapped traders, stacked imbalance traps |
 | [`AlightenButtonPanelV0005.cs`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | On-chart order flow / execution controls |
 | [`AlightenVerticalLineAtIntervalV0001.cs`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | Vertical session/interval dividers |
@@ -96,17 +89,18 @@ and compiled even though you never add them to a chart:
 
 | Engine | Pattern |
 |---|---|
-| [`AlightenMirrorPtAV0011.cs`](NinjaTrader/Indicators/AlightenMirrorPtAV0011.cs) | A — ZigZag/level tracking, sequential wick-touch signals |
-| [`AlightenMirrorPtBV0005.cs`](NinjaTrader/Indicators/AlightenMirrorPtBV0005.cs) | B |
-| [`AlightenMirrorPtFV0004.cs`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs) | F — precise breakouts and immediate retests |
-| [`AlightenMirrorPtGV0003.cs`](NinjaTrader/Indicators/AlightenMirrorPtGV0003.cs) | G — level gained/lost arming with wick-retest |
-| [`AlightenMirrorPtHV0003.cs`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs) | H — "flipped G": a completed G whose level is then lost or gained |
+| [`AlightenMirrorPtAV0012.cs`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs) | A — ZigZag/level tracking, sequential wick-touch signals |
+| [`AlightenMirrorPtBV0006.cs`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs) | B |
+| [`AlightenMirrorPtFV0005.cs`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs) | F — precise breakouts and immediate retests |
+| [`AlightenMirrorPtGV0004.cs`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs) | G — level gained/lost arming with wick-retest |
+| [`AlightenMirrorPtHV0004.cs`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs) | H — "flipped G": a completed G whose level is then lost or gained |
 | [`AlightenMirrorPtJV0008.cs`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs) | J — paired pivots; the densest source by a wide margin |
 
 #### Zone rule files
 
 Read at runtime, **not** compiled — so they are plain text files you copy into place, not something
-you compile in the NinjaScript Editor.
+you compile in the NinjaScript Editor. Both zone sets are **off** on this template, so you only need
+these if you switch a zone set on; the template still names them.
 
 **Where to get them:** both live in this repo at
 **[`NinjaTrader/ZoneFiles/`](NinjaTrader/ZoneFiles/)**. Download them from there and copy them into
@@ -123,12 +117,12 @@ For the rule-file syntax and the silent-stub gotcha, see
 
 ### Installation order
 
-1. Copy all 15 `.cs` files above into `Documents\NinjaTrader 8\bin\Custom\Indicators\`.
+1. Copy all 14 `.cs` files above into `Documents\NinjaTrader 8\bin\Custom\Indicators\`.
 2. Copy both zone rule files from [`NinjaTrader/ZoneFiles/`](NinjaTrader/ZoneFiles/) into
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply [`AlightenMirror_20261006.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261006.xml) via
+4. Apply [`AlightenMirror_20261015.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261015.xml) via
    Chart → Templates → Load.
 
 ---
@@ -165,18 +159,18 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | [`AlightenMirrorV0047Signal`](NinjaTrader/Indicators/AlightenMirrorV0047Signal.cs) | same |
-| Pattern A source | [`AlightenMirrorPtAV0011`](NinjaTrader/Indicators/AlightenMirrorPtAV0011.cs) | same |
-| Pattern B source | [`AlightenMirrorPtBV0005`](NinjaTrader/Indicators/AlightenMirrorPtBV0005.cs) | same |
-| Pattern F source | [`AlightenMirrorPtFV0004`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs) | same |
-| Pattern G source | [`AlightenMirrorPtGV0003`](NinjaTrader/Indicators/AlightenMirrorPtGV0003.cs) | same |
-| Pattern H source | [`AlightenMirrorPtHV0003`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs) | same |
+| Mirror Dashboard | [`AlightenMirrorV0053Signal`](NinjaTrader/Indicators/AlightenMirrorV0053Signal.cs) | same |
+| Pattern A source | [`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs) | same |
+| Pattern B source | [`AlightenMirrorPtBV0006`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs) | same |
+| Pattern F source | [`AlightenMirrorPtFV0005`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs) | same |
+| Pattern G source | [`AlightenMirrorPtGV0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs) | same |
+| Pattern H source | [`AlightenMirrorPtHV0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs) | same |
 | Pattern J source | [`AlightenMirrorPtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs) | same |
-| VWAP | [`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | same — hidden, volume profile switched off |
+| VWAP | [`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | not on chart (removed 2026-10-15) |
 | Volume Profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | not on chart |
 | Order Flow Tools | [`AlightenOrderFlowToolsV0006`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | same |
 | Bias | [`AlightenBiasV0004`](NinjaTrader/Indicators/AlightenBiasV0004.cs) | same |
-| Auto AVWAP | [`AutoAVWAPMTFV0006`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs) | same |
+| Auto AVWAP | [`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | same |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
 | Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | not on chart |
 | Vertical Line at Interval | [`AlightenVerticalLineAtIntervalV0001`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | same |
@@ -185,11 +179,36 @@ promoted or retired.
 | Relative Delta | [`AlightenRelativeDeltaV0001`](NinjaTrader/Indicators/AlightenRelativeDeltaV0001.cs) | not on chart |
 | Relative Delta MultiTF | [`AlightenRelativeDeltaMultiTFV0002`](NinjaTrader/Indicators/AlightenRelativeDeltaMultiTFV0002.cs) (V0003 = abandoned experiment) | not on chart |
 
-**The chart and the table agree.** The Bar Timer and RedTail volume profile are no longer on the
-reference chart (2026-10-04); both stay in the repo.
+**The chart and the table agree.** The BnB VWAP left the reference chart on 2026-10-15, the Bar Timer
+and RedTail volume profile on 2026-10-04; all three stay in the repo.
+
+**Retired 2026-10-16.** `AlightenMirrorV0047Signal` was removed from this repo, superseded by
+[`AlightenMirrorV0053Signal`](NinjaTrader/Indicators/AlightenMirrorV0053Signal.cs). What changed, in
+order: **V0049** hosts the live-both-direction pattern sources
+([`PtA V0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs),
+[`PtB V0006`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs),
+[`PtF V0005`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs),
+[`PtG V0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs),
+[`PtH V0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs); PtJ V0008 unchanged), which replace
+`PtAV0011`, `PtBV0005`, `PtFV0004`, `PtGV0003` and `PtHV0003` (also removed). **V0050** rotates the
+level log (a new part every 50,000 lines or trading date). **V0051–V0053** add the **structure
+signal** (group 18): a chart-series pivot that is a **lower high** (short) or **higher low** (long)
+and whose own wick comes within the tolerance of a level drawn on the chart — pattern levels whose
+pattern and timeframe are switched on, plus the daily-bias lines. Provisional at the pivot bar's close,
+confirmed when the opposite pivot registers; on a chart reload, levels that a higher-timeframe source
+publishes only at its bar close back-fill the marks they would have produced live. Plots
+`StructSignal` (±1 provisional, ±2 confirmed) and `StructPrice`; optional sound alerts; a debug log
+(18.16) that explains every miss. Every other setting and plot index is unchanged from V0047.
+
+**Retired 2026-10-16.** `AutoAVWAPMTFV0006` was removed, superseded by
+[`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs): the same anchors, tests, signals
+and logs, made much faster — AVWAP segments are drawn in `OnRender` instead of as tens of thousands
+of `Draw.Line` objects, the developing level is computed once per tick, and the logs are buffered.
+The chart template `AlightenMirror_20261006.xml` was replaced by
+[`AlightenMirror_20261015.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261015.xml).
 
 **Retired 2026-10-04.** `AlightenMirrorV0045Signal` was removed from this repo, superseded by
-[`AlightenMirrorV0047Signal`](NinjaTrader/Indicators/AlightenMirrorV0047Signal.cs). It adds the
+`AlightenMirrorV0047Signal` (itself retired 2026-10-16). It adds the
 **zone-break retest entry signal**: a bar closes through a zone (a "get ready" ★ and a watch), a later
 bar's wick reaches that zone's projected level, and the signal is confirmed when that bar becomes a
 chart-series pivot. Every broken zone keeps its own watch, so stacked zones each arm. Also new:
@@ -312,10 +331,10 @@ behaviour and drawing caps:
 | **Primary** | `12. Signal Groups` | [`MirrorGroupsV0040.txt`](NinjaTrader/ZoneFiles/MirrorGroupsV0040.txt) | confluence stacks spanning 3+ timeframes |
 | **Inside** | `13. Inside Zones` | [`MirrorInsideZonesV0040.txt`](NinjaTrader/ZoneFiles/MirrorInsideZonesV0040.txt) | narrower pairs sitting between a primary zone and price |
 
-On the reference chart only the **Inside** set is enabled, so its zones are not in fact sitting
-between a primary zone and price — there are no primary zones drawn. That is legal, because the
-engine does not enforce the geometry (see below); it just means the set is being used on its own
-terms rather than as the inner half of a pair.
+On the current reference chart **both sets are off** (the earlier 2026-10-06 template ran the
+**Inside** set on its own). Using the Inside set without the primary one is legal, because the engine
+does not enforce the geometry (see below); it just means the set is used on its own terms rather than
+as the inner half of a pair.
 
 Draw tags are prefixed per set (`PRI_` / `INS_`) so the two can never fight over one chart object,
 merging never crosses sets, and each writes its own forensics trail — `MirrorZonesV0041_PRI.log`
@@ -375,12 +394,12 @@ version evaluated over nine million combinations per bar on the same file.
 
 ### Pattern engine notes
 
-* **[`AlightenMirrorPtAV0011`](NinjaTrader/Indicators/AlightenMirrorPtAV0011.cs)** — Pattern A: ZigZag/level tracking with sequential wick-touch signals
+* **[`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs)** — Pattern A: ZigZag/level tracking with sequential wick-touch signals
   (consecutive touch bars all signal until the sequence breaks).
-* **[`AlightenMirrorPtGV0003`](NinjaTrader/Indicators/AlightenMirrorPtGV0003.cs)** — Pattern G: level gained/lost arming with wick-retest signals.
-* **[`AlightenMirrorPtHV0003`](NinjaTrader/Indicators/AlightenMirrorPtHV0003.cs)** — Pattern H, the "flipped Pattern G": a completed G pattern whose
+* **[`AlightenMirrorPtGV0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs)** — Pattern G: level gained/lost arming with wick-retest signals.
+* **[`AlightenMirrorPtHV0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs)** — Pattern H, the "flipped Pattern G": a completed G pattern whose
   level is then lost or gained arms the opposite-direction retest.
-* **[`AlightenMirrorPtFV0004`](NinjaTrader/Indicators/AlightenMirrorPtFV0004.cs)** — Pattern F: precise breakouts and immediate retests of structure.
+* **[`AlightenMirrorPtFV0005`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs)** — Pattern F: precise breakouts and immediate retests of structure.
 * **[`AlightenMirrorPtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs)** — Pattern J (paired pivots), the densest source by a wide margin.
   Qualified zigzag pairs with minimum trend bars/ticks, levels at the pivot candle's body, endpoint
   gain/loss state machines with first-touch tests, triangle test markers, and optional
@@ -408,9 +427,10 @@ OrderFlow+ uses) rather than the true 1σ figure of 68%, so VAH/VAL line up with
 Exposes `VWAP_Curve`, `POC_Data`, `VAH_Data`, `VAL_Data`, `PDH_Data`, `PDL_Data` as series for
 strategies and Bloodhound.
 
-**On the reference chart BnB is loaded but hidden**, with its own profile switched off (`Show Volume
-Profile = false`); in V0002 that also skips the 1-tick series entirely, so it costs nothing. Since
-2026-10-04 the chart carries no volume profile — RedTail below is documented but not loaded.
+**BnB is no longer on the reference chart** (removed 2026-10-15; it was loaded but hidden on the
+earlier templates). With `Show Volume Profile = false`, V0002 skips the 1-tick series entirely, so it
+costs nothing when you do load it. The chart carries no volume profile either — RedTail below is
+documented but not loaded.
 
 ### RedTail volume profile
 
@@ -438,7 +458,7 @@ information about where volume traded inside each bar, so on larger bars the gap
 
 ## Auto AVWAP
 
-**[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — automatic anchored VWAPs
+**[`AutoAVWAPMTFV0007.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs)** — automatic anchored VWAPs
 (AVWAPs), built on Kris's AutoAVWAP (see [Attribution](#attribution)). It anchors VWAPs at the places
 the market makes decisions and turns price's interaction with them into signals.
 
@@ -471,6 +491,10 @@ forming, so on the 30-second chart you can see where every AVWAP will print befo
 When the 5-minute bar closes, the solid segment replaces it and a new dashed one starts. The HOD/LOD
 labels follow the developing level. It runs only in realtime and Playback (never on historical bars)
 and redraws in place at most every 250 ms. Settings: **Developing** group (D.1 – D.3).
+
+**Faster rendering (V0007).** Same anchors, tests and signals as V0006, but the AVWAP segments are
+kept as data and drawn in `OnRender` (only the visible bars), instead of one `Draw.Line` per anchor
+per 5-minute bar; the developing level is computed once per tick and shared; the logs are buffered.
 
 Sessions: **Day** resets at the start of the active session — **Use stock session** (default on,
 `0930-1600` New York) or the futures session (`1800-1700`) — and session high/low AVWAPs only form
@@ -513,7 +537,7 @@ A signal on an AVWAP born one bar earlier can be a 5-minute wick that was really
 ### Outputs
 
 * **Signal log** — every signal, break, cancel and its forward outcome (target or stop first, MFE,
-  MAE), appended to `Documents\NinjaTrader 8\Mirror Logs\AutoAVWAPSignalsV0006_<instrument>.log`.
+  MAE), appended to `Documents\NinjaTrader 8\Mirror Logs\AutoAVWAPSignalsV0007_<instrument>.log`.
 * **Market Analyzer plots** — `AVWAPSignal` (±1 wick, ±2 retest), `CrossSignal`, `TestSignal`,
   `BarsSince…`, `LiveTest`, `DistanceTicks` and `Bias`, listed in the Data Box.
 * The original test-bar colouring is still available, colouring every chart bar inside a test bar.
@@ -529,7 +553,7 @@ change the indicator's generated factory signature.
   structures to determine current market bias. Levels come from the newest pivots, from Kris's
   MidPoint Mania priority score (swing size against proximity), or both. The V0003 pivot rules also
   power the Mirror's Daily Bias Levels, ported inline.
-* **[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — automatic anchored VWAPs and their signals. See
+* **[`AutoAVWAPMTFV0007.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs)** — automatic anchored VWAPs and their signals. See
   [Auto AVWAP](#auto-avwap).
 * **[`AlightenOrderFlowToolsV0006.cs`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs)** — tape and imbalance analytics: speed of tape, net speed of
   tape and their running maxima, trapped traders, and stacked imbalance traps.
@@ -542,6 +566,8 @@ change the indicator's generated factory signature.
 
 ## Other indicators (not on the reference chart)
 
+* **[`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs)** — session VWAP with SD bands, volume profile and prior-day
+  H/L; on the reference chart until 2026-10-15. See [Volume profile and VWAP](#volume-profile-and-vwap).
 * **[`AlightenBarTimerV3.cs`](NinjaTrader/Indicators/AlightenBarTimerV3.cs)** — bar countdown rendered through the Direct2D `OnRender` pipeline,
   eliminating the flicker common to UI-based bar timers. ([`AlightenBarTimerV0004.cs`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) is the newer
   line; neither is on the reference chart.)
@@ -581,7 +607,7 @@ indicators construct — the callers stop compiling, and NinjaTrader only rewrit
 
 ## Attribution
 
-* **[`AutoAVWAPMTFV0006.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0006.cs)** — built on **Kris**'s AutoAVWAP (his TradingView
+* **[`AutoAVWAPMTFV0007.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs)** — built on **Kris**'s AutoAVWAP (his TradingView
   "Auto AVWAP" and its NinjaTrader v4 port): the anchoring rules, the test / gap / open AVWAPs, the
   session and 4-hour behaviours and the test-bar colouring are his. The multi-timeframe calculation,
   session fixes, signals and logging are by Alighten. Included with permission.

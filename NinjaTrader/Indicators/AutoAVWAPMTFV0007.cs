@@ -8,13 +8,14 @@ using System.Windows.Media;
 using System.Xml.Serialization;
 using NinjaTrader.Data;
 using NinjaTrader.Gui;
+using NinjaTrader.Gui.Chart;
 using NinjaTrader.Gui.Tools;
 using NinjaTrader.NinjaScript;
 using NinjaTrader.NinjaScript.DrawingTools;
 // NinjaTrader writes the bare nested enum names into its generated region; these aliases resolve them.
-using AAVMTFSessionMode = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0006.AAVMTFSessionMode;
-using AAVMTFAnchorTimeframe = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0006.AAVMTFAnchorTimeframe;
-using AAVMTFTimeZone = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0006.AAVMTFTimeZone;
+using AAVMTFSessionMode = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0007.AAVMTFSessionMode;
+using AAVMTFAnchorTimeframe = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0007.AAVMTFAnchorTimeframe;
+using AAVMTFTimeZone = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0007.AAVMTFTimeZone;
 #endregion
 
 // Auto AVWAP MTF v1 - AutoAVWAP v4 with a selectable calculation data series.
@@ -72,14 +73,37 @@ using AAVMTFTimeZone = NinjaTrader.NinjaScript.Indicators.AutoAVWAPMTFV0006.AAVM
 // (on a 30-sec chart you see where each 5-min AVWAP will print before the 5-min bar closes). Redrawn in place
 // (one drawing per AVWAP), throttled, never during the historical load - historical 5-min bars cost nothing.
 // Labels follow the developing level too. When the calc bar closes, the usual completed segment replaces it.
+//
+// V0007 = V0006 with the same anchors, tests, signals and logs, made faster:
+//   * AVWAP segments are no longer Draw.Line objects (one per anchor per calc bar = tens of thousands on a
+//     30-sec chart). They are kept as plain data on each anchor and drawn in OnRender with SharpDX, only the
+//     ones inside the visible bars (binary search). Removing an anchor no longer removes draw objects one by one.
+//   * The developing segment is drawn in the same render pass (no Draw.Line every update).
+//   * The developing level of every AVWAP is computed ONCE per chart tick and shared by the live test preview,
+//     the Market Analyzer plots, the price-scale boxes, the labels and the developing segment.
+//   * Time zone looked up once (was a registry lookup per conversion, two per calc bar).
+//   * 4 Hours: the session is looked up only when a bar leaves the cached session.
+//   * Debug and signal logs are buffered (were opened and closed for every line); flushed when the load ends,
+//     on every realtime line, and closed on termination. Still appended, still shareable between charts.
+//   * Price-scale slots: no 24 transparent brush writes per chart bar; reset only on a re-entered bar.
+//   * New high/low lookback: lookbacks above 32 bars use MAX/MIN (full window) or the running session
+//     high/low (partial window) instead of a loop per bar (Hour4 on 5-min = 960 bars per bar in V0006).
 namespace NinjaTrader.NinjaScript.Indicators
 {
-    public class AutoAVWAPMTFV0006 : Indicator
+    public class AutoAVWAPMTFV0007 : Indicator
     {
         public enum AAVMTFSessionMode { Day, Week, Month, Quarter, Year, FourHours }
         public enum AAVMTFAnchorTimeframe { Minute1, Minute3, Minute5, Minute15, Minute30, Hour1, Hour4, Day, Week, Month }
         public enum AAVMTFTimeZone { Chicago, NewYork, LosAngeles, UTC }
         public enum AAVMTFSignalAnchors { SessionHighLow, AllAVWAPs, SessionHighLowAndTests }
+
+        // V0007: one completed AVWAP segment, between two calc-bar closes.
+        private struct Seg
+        {
+            public DateTime T0, T1;
+            public double Y0, Y1;
+            public bool Bull;
+        }
 
         private class Anchor
         {
@@ -90,8 +114,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             public int BreakDir, BreakBar = -1;   // V0005: last close-through direction (arms a retest)
             public int ClearSide;                 // V0005: side of the last close clearly away from the line (beyond the close margin)
             public string LabelTag;
-            public bool DevDrawn;                 // V0006: the developing segment is on the chart
-            public List<string> DrawTags = new List<string>();
+            public double DevLevel;               // V0007: level including the forming calc bar, computed once per chart tick
+            public List<Seg> Segs = new List<Seg>();   // V0007: completed segments, rendered in OnRender
         }
 
         // A successful test bar, applied to the chart bars it spans on the next primary update.
@@ -145,7 +169,22 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string signalLogPath, loadId = "L?";
         private Brush sigLongBrush, sigShortBrush, sigWeakBrush;
         private SimpleFont sigFont;
-        private DateTime lastDevDraw = DateTime.MinValue;   // V0006: developing-segment throttle (PC clock)
+        private DateTime lastDevDraw = DateTime.MinValue;   // V0006: developing-segment throttle (PC clock); V0007: labels only
+
+        // ---- V0007 ----
+        private readonly object renderLock = new object();   // anchors / segments are read by OnRender on the UI thread
+        private bool devActive;                               // draw developing segments in OnRender
+        private DateTime devTime;                             // current chart bar (developing segment end)
+        private double devClose;
+        private SharpDX.Direct2D1.Brush bullDx, bearDx;
+        private SharpDX.Direct2D1.StrokeStyle devStroke;
+        private TimeZoneInfo selectedTz, platformTz;
+        private System.IO.StreamWriter debugWriter, signalWriter;
+        private double runHigh = double.NegativeInfinity, runLow = double.PositiveInfinity;   // session so far (prior bars)
+        private MAX lookbackMax;
+        private MIN lookbackMin;
+        private DateTime cachedSessBegin = DateTime.MaxValue, cachedSessEnd = DateTime.MinValue;
+        private const int LookbackLoopMax = 32;   // lookbacks up to this many bars keep V0006's loop
 
         // Hosted (e.g. by a Market Analyzer column) the indicator has no chart: compute, never draw.
         private bool CanDraw { get { return ChartControl != null; } }
@@ -154,8 +193,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AutoAVWAPMTFV0006";
-                Description = "AutoAVWAP v4 calculated on a selectable minute data series and displayed on any chart. v2: open anchor and day reset fire on the bar containing their time. v3: 4 Hours session behavior. V0004: stock/futures sessions, complete first session, no partial bar at load. V0005: wick and break-retest signals on the chart. V0006: developing (live) AVWAP segments.";
+                Name = "AutoAVWAPMTFV0007";
+                Description = "AutoAVWAP v4 calculated on a selectable minute data series and displayed on any chart. v2: open anchor and day reset fire on the bar containing their time. v3: 4 Hours session behavior. V0004: stock/futures sessions, complete first session, no partial bar at load. V0005: wick and break-retest signals on the chart. V0006: developing (live) AVWAP segments. V0007: performance (SharpDX AVWAP rendering, one level pass per tick, cached time zone and session, buffered logs).";
                 IsOverlay = true;
                 Calculate = Calculate.OnEachTick;
                 IsSuspendedWhileInactive = true;
@@ -272,10 +311,23 @@ namespace NinjaTrader.NinjaScript.Indicators
                         AddDataSeries(BarsPeriodType.Minute, DataSeriesMinutes);   // the chart's date range
                 }
             }
-            else if (State == State.Realtime && debugPath != null)
+            else if (State == State.Transition)
             {
-                Dbg("--- REALTIME: anchors ---");
-                foreach (Anchor a in anchors) Dbg("  " + AnchorText(a));
+                FlushLogs();
+            }
+            else if (State == State.Realtime)
+            {
+                if (debugPath != null)
+                {
+                    Dbg("--- REALTIME: anchors ---");
+                    foreach (Anchor a in anchors) Dbg("  " + AnchorText(a));
+                }
+                FlushLogs();
+            }
+            else if (State == State.Terminated)
+            {
+                CloseLogs();
+                if (devStroke != null) { devStroke.Dispose(); devStroke = null; }
             }
             else if (State == State.DataLoaded)
             {
@@ -286,6 +338,13 @@ namespace NinjaTrader.NinjaScript.Indicators
                 bearTestBrush = CloneBrush(BearishTestBarColor);
                 labelFont = new SimpleFont("Arial", 10);
                 sessionIter = new SessionIterator(BarsArray[s]);
+                cachedSessBegin = DateTime.MaxValue; cachedSessEnd = DateTime.MinValue;
+                platformTz = Core.Globals.GeneralOptions.TimeZoneInfo;
+                try { selectedTz = TimeZoneInfo.FindSystemTimeZoneById(TimeZoneId()); } catch { selectedTz = null; }
+                runHigh = double.NegativeInfinity; runLow = double.PositiveInfinity;
+                int lb = GetExtremeLookback();
+                if (lb > LookbackLoopMax) { lookbackMax = MAX(Highs[s], lb); lookbackMin = MIN(Lows[s], lb); }
+                CloseLogs();
                 sessionStartBar = 0;
                 seenSessionStart = false;
                 if (!ParseSession(StockSession, out stockStart, out stockEnd)) { stockStart = 570; stockEnd = 960; }
@@ -303,14 +362,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                     try
                     {
                         BarsPeriod cp = BarsArray[0].BarsPeriod;
-                        signalLogPath = LogFile("AutoAVWAPSignalsV0006_" + Instrument.MasterInstrument.Name + ".log");
-                        System.IO.File.AppendAllText(signalLogPath, string.Format(
+                        signalLogPath = LogFile("AutoAVWAPSignalsV0007_" + Instrument.MasterInstrument.Name + ".log");
+                        (signalWriter = OpenLog(signalLogPath)).Write(string.Format(
                             "# LOAD {0} {1:yyyy-MM-dd HH:mm:ss} chart={2} {3} series={4}m tol={5}t minAge={6} anchors={7} retest={8} wick={9} bias={10} stopBuf={11}t minRR={12}\n",
                             loadId, DateTime.Now, cp.Value, cp.BarsPeriodType, DataSeriesMinutes, SignalWickToleranceTicks,
                             SignalMinAnchorAgeBars, SignalAnchors, EnableRetestSignals, EnableWickSignals, SignalBiasFilter,
                             StopBufferTicks, MinRewardRisk));
                     }
-                    catch { signalLogPath = null; }
+                    catch { signalLogPath = null; CloseWriter(ref signalWriter); }
                 }
                 debugPath = null;
                 if (DebugLog)
@@ -318,14 +377,14 @@ namespace NinjaTrader.NinjaScript.Indicators
                     try
                     {
                         BarsPeriod cp = BarsArray[0].BarsPeriod;
-                        debugPath = LogFile("AutoAVWAPMTFV0006_" + Instrument.MasterInstrument.Name + "_chart" + cp.Value + cp.BarsPeriodType + ".log");
+                        debugPath = LogFile("AutoAVWAPMTFV0007_" + Instrument.MasterInstrument.Name + "_chart" + cp.Value + cp.BarsPeriodType + ".log");
                         // Appended, not overwritten: a reload must not destroy the session it recorded.
-                        System.IO.File.AppendAllText(debugPath, string.Format("# " + loadId + " {0:yyyy-MM-dd HH:mm:ss} chart={1} {2} series={3}m barsToLoad={4} tradingHours={5} calcBars={6} session={7} {8}\n",
+                        (debugWriter = OpenLog(debugPath)).Write(string.Format("# " + loadId + " {0:yyyy-MM-dd HH:mm:ss} chart={1} {2} series={3}m barsToLoad={4} tradingHours={5} calcBars={6} session={7} {8}\n",
                             DateTime.Now, cp.Value, cp.BarsPeriodType, DataSeriesMinutes, DataSeriesBarsToLoad,
                             BarsArray[s].TradingHours != null ? BarsArray[s].TradingHours.Name : "?", BarsArray[s].Count,
                             UseStockSession ? "stock" : "futures", UseStockSession ? StockSession : FuturesSession));
                     }
-                    catch { debugPath = null; }
+                    catch { debugPath = null; CloseWriter(ref debugWriter); }
                 }
             }
         }
@@ -361,6 +420,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 return;
 
             bool live = State == State.Realtime;
+            if (live) ComputeDevLevels();   // V0007: one pass, shared by everything below
             int liveTest = live ? PreviewDirection() : 0;
             if (CanDraw)
             {
@@ -372,9 +432,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                     else if (liveTest == -1) BarBrushes[0] = bearTestBrush;
                 }
                 bool devNow = live && ShowDevelopingAVWAP && DevelopingReady();
+                devTime = Times[0][0]; devClose = Closes[0][0]; devActive = devNow;   // OnRender draws the developing segments
                 if (devNow && (IsFirstTickOfBar || (DateTime.UtcNow - lastDevDraw).TotalMilliseconds >= DevelopingUpdateMs))
                 {
-                    DrawDeveloping();
                     UpdateLabels(true);
                     lastDevDraw = DateTime.UtcNow;
                 }
@@ -407,13 +467,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             Values[PlotLiveTest][0]       = liveTest;
 
             double price = Closes[0][0];
-            double v = Math.Max(0, Volumes[s][0]);
-            double pv = ((Highs[s][0] + Lows[s][0] + Closes[s][0]) / 3.0) * v;
             double nearest = double.NaN;
             int above = 0, below = 0;
             foreach (Anchor a in anchors)
             {
-                double level = live && v > 0 ? (a.Pv + pv) / (a.Vol + v) : a.Level;
+                double level = live ? a.DevLevel : a.Level;
                 if (double.IsNaN(nearest) || Math.Abs(price - level) < Math.Abs(price - nearest)) nearest = level;
                 if (level < price) below++;
                 else if (level > price) above++;
@@ -496,6 +554,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (resetEvent)
             {
                 sessionStartBar = barIndex;
+                runHigh = double.NegativeInfinity; runLow = double.PositiveInfinity;
                 // Keep exactly the just-completed session's H/L pair as prior H/L.
                 for (int i = anchors.Count - 1; i >= 0; i--)
                 {
@@ -531,7 +590,15 @@ namespace NinjaTrader.NinjaScript.Indicators
             int lookback = GetExtremeLookback();
             double priorHigh = double.NegativeInfinity, priorLow = double.PositiveInfinity;
             int scanMax = Math.Min(lookback, Math.Max(0, barIndex - sessionStartBar));
-            for (int k = 1; k <= scanMax; k++)
+            // V0007: long lookbacks without a loop. A partial window (session younger than the lookback) is the
+            // session so far; a full window is MAX/MIN over the lookback. Same bars as the loop, which stays for short ones.
+            bool fastScan = false;
+            if (scanMax > LookbackLoopMax && barsAgo + scanMax <= CurrentBars[s])
+            {
+                if (scanMax < lookback) { priorHigh = runHigh; priorLow = runLow; fastScan = true; }
+                else if (lookbackMax != null) { priorHigh = lookbackMax[barsAgo + 1]; priorLow = lookbackMin[barsAgo + 1]; fastScan = true; }
+            }
+            for (int k = 1; !fastScan && k <= scanMax; k++)
             {
                 int ago = barsAgo + k;
                 if (ago > CurrentBars[s]) break;
@@ -753,6 +820,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // the old LO AVWAP was replaced before the loop and the signal used to report "target none").
             if (emitA != null) EmitSignal(emitDir, emitStr, emitA, emitLvl, barIndex, barTime, h, l, c, mixedBar);
 
+            runHigh = Math.Max(runHigh, h); runLow = Math.Min(runLow, l);
             lastProcessedBar = barIndex;
         }
 
@@ -761,9 +829,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             double level = pv / v;
             Anchor a = new Anchor { Id = nextId++, Kind = kind, Side = c >= level ? 1 : -1, StartBar = barIndex, LastBar = barIndex,
                 LastTime = barTime, Pv = pv, Vol = v, Level = level, Extreme = kind == 1 ? h : kind == -1 ? l : double.NaN,
-                LabelTag = "AutoAVWAPMTFV0006_Label_" + nextId.ToString() };
+                LabelTag = "AutoAVWAPMTFV0007_Label_" + nextId.ToString() };
             a.StartTime = barTime;
-            anchors.Add(a);
+            lock (renderLock) anchors.Add(a);
             if (debugPath != null) Dbg("  ADD  " + AnchorText(a));
         }
 
@@ -771,9 +839,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void DrawAnchorSegment(Anchor a, int barIndex, DateTime barTime, double oldLevel, double newLevel, Brush brush)
         {
             if (!CanDraw || CurrentBars[0] < 0) return;   // no chart bars yet: segment is off-chart anyway
-            string tag = "AutoAVWAPMTFV0006_Line_" + a.Id + "_" + barIndex;
-            Draw.Line(this, tag, false, a.LastTime, oldLevel, barTime, newLevel, brush, DashStyleHelper.Solid, AVWAPLineWidth);
-            a.DrawTags.Add(tag);
+            // V0007: data only; OnRender draws it.
+            Seg sg = new Seg { T0 = a.LastTime, T1 = barTime, Y0 = oldLevel, Y1 = newLevel, Bull = ReferenceEquals(brush, bullBrush) };
+            lock (renderLock) a.Segs.Add(sg);
         }
 
         // Chart series only: color every chart bar inside each successful calculation test bar.
@@ -798,7 +866,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             double close = Closes[0][0];
             foreach (Anchor a in anchors)
             {
-                double lvl = developing ? DevelopingLevel(a) : a.Level;
+                double lvl = developing ? a.DevLevel : a.Level;
                 if (!ShowSessionLabels || !IsExtreme(a.Kind))
                 {
                     if (a.LabelDrawn) { RemoveDrawObject(a.LabelTag); a.LabelDrawn = false; }
@@ -819,19 +887,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void RemoveAnchor(Anchor a)
         {
-            if (CanDraw)
-            {
-                for (int i = 0; i < a.DrawTags.Count; i++) RemoveDrawObject(a.DrawTags[i]);
-                if (a.LabelTag != null) RemoveDrawObject(a.LabelTag);
-                if (a.DevDrawn) RemoveDrawObject(DevTag(a));
-            }
-            anchors.Remove(a);
+            // V0007: segments go with the anchor; only the label is a draw object.
+            if (CanDraw && a.LabelDrawn && a.LabelTag != null) RemoveDrawObject(a.LabelTag);
+            lock (renderLock) anchors.Remove(a);
             if (debugPath != null) Dbg("  DEL  " + AnchorText(a));
         }
 
         // ======================= V0006 developing AVWAP =========================================
-
-        private string DevTag(Anchor a) { return "AutoAVWAPMTFV0006_Dev_" + a.Id; }
 
         // Only once every completed calc bar is processed: on the tick that closes a 5-min bar the chart series
         // can update before the calc series has folded that bar into the anchors (stale level for one tick).
@@ -840,28 +902,87 @@ namespace NinjaTrader.NinjaScript.Indicators
             return CurrentBars[s] >= 0 && lastProcessedBar == CurrentBars[s] - 1 && anchors.Count > 0;
         }
 
-        // The AVWAP including the calc bar still forming (same formula as the closed-bar update).
-        private double DevelopingLevel(Anchor a)
+        // The AVWAP including the calc bar still forming (same formula as the closed-bar update), once per chart tick.
+        // Used by the preview, the analyzer plots, the price-scale boxes, the labels and the developing segment.
+        private void ComputeDevLevels()
         {
-            double v = Math.Max(0, Volumes[s][0]);
-            if (v <= 0) return a.Level;
-            double pv = ((Highs[s][0] + Lows[s][0] + Closes[s][0]) / 3.0) * v;
-            return (a.Pv + pv) / (a.Vol + v);
+            double v = CurrentBars[s] >= 0 ? Math.Max(0, Volumes[s][0]) : 0;
+            double pv = v > 0 ? ((Highs[s][0] + Lows[s][0] + Closes[s][0]) / 3.0) * v : 0;
+            foreach (Anchor a in anchors)
+                a.DevLevel = v > 0 ? (a.Pv + pv) / (a.Vol + v) : a.Level;
         }
 
-        // One line per AVWAP, redrawn in place (same tag): last completed close -> the current chart bar.
-        private void DrawDeveloping()
+        // ======================= V0007 rendering ===============================================
+
+        protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
         {
-            if (!CanDraw || CurrentBars[0] < 0) return;
-            DateTime now = Times[0][0];
-            double close = Closes[0][0];
-            foreach (Anchor a in anchors)
+            base.OnRender(chartControl, chartScale);   // plots (price-scale boxes)
+            if (ChartBars == null || RenderTarget == null || bullBrush == null || anchors.Count == 0) return;
+            if (bullDx == null) bullDx = bullBrush.ToDxBrush(RenderTarget);
+            if (bearDx == null) bearDx = bearBrush.ToDxBrush(RenderTarget);
+            if (devStroke == null)
+                devStroke = new SharpDX.Direct2D1.StrokeStyle(Core.Globals.D2DFactory,
+                    new SharpDX.Direct2D1.StrokeStyleProperties { DashStyle = ToDxDash(DevelopingDashStyle) });
+
+            int fromIdx = Math.Max(0, ChartBars.FromIndex), toIdx = Math.Max(fromIdx, ChartBars.ToIndex);
+            DateTime visFrom = ChartBars.GetTimeByBarIdx(chartControl, fromIdx);
+            DateTime visTo = ChartBars.GetTimeByBarIdx(chartControl, toIdx);
+            float w = AVWAPLineWidth;
+            bool dev = devActive;
+            DateTime dTime = devTime; double dClose = devClose;
+
+            SharpDX.Direct2D1.AntialiasMode oldAa = RenderTarget.AntialiasMode;
+            RenderTarget.AntialiasMode = SharpDX.Direct2D1.AntialiasMode.PerPrimitive;
+            lock (renderLock)
             {
-                if (a.LastTime >= now) continue;
-                double lvl = DevelopingLevel(a);
-                Draw.Line(this, DevTag(a), false, a.LastTime, a.Level, now, lvl,
-                    close >= lvl ? bullBrush : bearBrush, DevelopingDashStyle, AVWAPLineWidth);
-                a.DevDrawn = true;
+                foreach (Anchor a in anchors)
+                {
+                    List<Seg> segs = a.Segs;
+                    // Segments are in time order: binary search the first one that ends inside the view.
+                    int lo = 0, hi = segs.Count;
+                    while (lo < hi) { int mid = (lo + hi) >> 1; if (segs[mid].T1 < visFrom) lo = mid + 1; else hi = mid; }
+                    for (int i = lo; i < segs.Count; i++)
+                    {
+                        Seg sg = segs[i];
+                        if (sg.T0 > visTo) break;
+                        RenderLine(chartControl, chartScale, sg.T0, sg.Y0, sg.T1, sg.Y1, sg.Bull ? bullDx : bearDx, w, null);
+                    }
+                    // Developing: last completed close -> the current chart bar (as V0006's dashed Draw.Line).
+                    if (dev && a.LastTime < dTime && a.LastTime <= visTo && dTime >= visFrom)
+                    {
+                        double lvl = a.DevLevel;
+                        RenderLine(chartControl, chartScale, a.LastTime, a.Level, dTime, lvl, dClose >= lvl ? bullDx : bearDx, w, devStroke);
+                    }
+                }
+            }
+            RenderTarget.AntialiasMode = oldAa;
+        }
+
+        private void RenderLine(ChartControl cc, ChartScale cs, DateTime t0, double y0, DateTime t1, double y1,
+                                SharpDX.Direct2D1.Brush brush, float width, SharpDX.Direct2D1.StrokeStyle style)
+        {
+            SharpDX.Vector2 p0 = new SharpDX.Vector2(cc.GetXByTime(t0), cs.GetYByValue(y0));
+            SharpDX.Vector2 p1 = new SharpDX.Vector2(cc.GetXByTime(t1), cs.GetYByValue(y1));
+            if (style == null) RenderTarget.DrawLine(p0, p1, brush, width);
+            else RenderTarget.DrawLine(p0, p1, brush, width, style);
+        }
+
+        public override void OnRenderTargetChanged()
+        {
+            base.OnRenderTargetChanged();
+            if (bullDx != null) { bullDx.Dispose(); bullDx = null; }
+            if (bearDx != null) { bearDx.Dispose(); bearDx = null; }
+        }
+
+        private static SharpDX.Direct2D1.DashStyle ToDxDash(DashStyleHelper d)
+        {
+            switch (d)
+            {
+                case DashStyleHelper.Dash: return SharpDX.Direct2D1.DashStyle.Dash;
+                case DashStyleHelper.DashDot: return SharpDX.Direct2D1.DashStyle.DashDot;
+                case DashStyleHelper.DashDotDot: return SharpDX.Direct2D1.DashStyle.DashDotDot;
+                case DashStyleHelper.Dot: return SharpDX.Direct2D1.DashStyle.Dot;
+                default: return SharpDX.Direct2D1.DashStyle.Solid;
             }
         }
 
@@ -1143,7 +1264,51 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void SigLog(string line)
         {
-            try { System.IO.File.AppendAllText(signalLogPath, loadId + " [" + State + "] " + line + "\n"); } catch { }
+            if (signalWriter == null) return;
+            try
+            {
+                signalWriter.Write(loadId + " [" + State + "] " + line + "\n");
+                if (State == State.Realtime) signalWriter.Flush();
+            }
+            catch { }
+        }
+
+        // V0007: logs stay open for the load. AppendData rights make every write an atomic append at the end of the
+        // file, so two charts on the same instrument can still share the signal log as they did with AppendAllText.
+        private static System.IO.StreamWriter OpenLog(string path)
+        {
+            System.IO.FileStream fs;
+            try
+            {
+                fs = new System.IO.FileStream(path, System.IO.FileMode.Append, System.Security.AccessControl.FileSystemRights.AppendData,
+                    System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete, 4096, System.IO.FileOptions.None);
+            }
+            catch
+            {
+                fs = new System.IO.FileStream(path, System.IO.FileMode.Append, System.IO.FileAccess.Write,
+                    System.IO.FileShare.ReadWrite | System.IO.FileShare.Delete);
+            }
+            return new System.IO.StreamWriter(fs, new System.Text.UTF8Encoding(false), 65536);
+        }
+
+        private void FlushLogs()
+        {
+            try { if (debugWriter != null) debugWriter.Flush(); } catch { }
+            try { if (signalWriter != null) signalWriter.Flush(); } catch { }
+        }
+
+        private void CloseLogs()
+        {
+            CloseWriter(ref debugWriter);
+            CloseWriter(ref signalWriter);
+        }
+
+        private static void CloseWriter(ref System.IO.StreamWriter w)
+        {
+            if (w == null) return;
+            try { w.Flush(); } catch { }
+            try { w.Dispose(); } catch { }
+            w = null;
         }
 
         private Anchor FindAnchor(int id)
@@ -1160,7 +1325,14 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void Dbg(string line)
         {
-            try { System.IO.File.AppendAllText(debugPath, line + "\n"); } catch { }
+            if (debugWriter == null) return;
+            try
+            {
+                debugWriter.Write(line);
+                debugWriter.Write('\n');
+                if (State == State.Realtime) debugWriter.Flush();
+            }
+            catch { }
         }
 
         private bool IsExtreme(int kind) { return kind == 1 || kind == -1 || kind == 4 || kind == -4; }
@@ -1175,7 +1347,6 @@ namespace NinjaTrader.NinjaScript.Indicators
             double fo = Opens[s][0], fh = Highs[s][0], fl = Lows[s][0], fc = Closes[s][0];
             double v = Math.Max(0, Volumes[s][0]);
             if (v <= 0) return 0;
-            double pv = ((fh + fl + fc) / 3.0) * v;
             bool bull = false, bear = false;
             int direction = 0;
             int openTestCount = 0;
@@ -1185,8 +1356,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             for (int i = anchors.Count - 1; i >= 0; i--)
             {
                 Anchor a = anchors[i];
-                double vol = a.Vol + v;
-                double level = vol > 0 ? (a.Pv + pv) / vol : a.Level;
+                double level = a.DevLevel;   // V0007: computed once per tick (v > 0 here)
                 int side = a.Side;
                 bool extreme = IsExtreme(a.Kind);
                 bool flipped = extreme && ((side == -1 && fc > level) || (side == 1 && fc < level));
@@ -1213,23 +1383,20 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
         // Chart series only. Live levels include the forming calculation bar.
+        // V0007: a bar's first pass has no values yet, so only a re-entered bar (realtime / Tick Replay) is reset,
+        // and unfilled slots keep the plot's own transparent brush (no 24 brush writes per chart bar).
         private void UpdatePriceScaleSlots(bool live)
         {
-            for (int i = 0; i < PriceScaleSlots; i++)
-            {
-                Values[i].Reset(0);   // no value: no price box, no Data Box row
-                PlotBrushes[i][0] = Brushes.Transparent;
-            }
+            if (!IsFirstTickOfBar)
+                for (int i = 0; i < PriceScaleSlots; i++) Values[i].Reset(0);
             if (anchors.Count == 0) return;
             double allowed = PriceScaleLabelToleranceTicks * TickSize;
             double current = Closes[0][0];
-            double v = Math.Max(0, Volumes[s][0]);
-            double pv = ((Highs[s][0] + Lows[s][0] + Closes[s][0]) / 3.0) * v;
             int slot = 0;
             for (int i = anchors.Count - 1; i >= 0 && slot < PriceScaleSlots; i--)
             {
                 Anchor a = anchors[i];
-                double level = live && v > 0 ? (a.Pv + pv) / (a.Vol + v) : a.Level;
+                double level = live ? a.DevLevel : a.Level;
                 if (Math.Abs(current - level) <= allowed)
                 {
                     Values[slot][0] = level;
@@ -1241,15 +1408,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private DateTime ToSelectedTime(DateTime t)
         {
-            string id = TimeZoneSetting == AAVMTFTimeZone.NewYork ? "Eastern Standard Time" :
-                        TimeZoneSetting == AAVMTFTimeZone.LosAngeles ? "Pacific Standard Time" :
-                        TimeZoneSetting == AAVMTFTimeZone.UTC ? "UTC" : "Central Standard Time";
-            try
-            {
-                DateTime unspecified = DateTime.SpecifyKind(t, DateTimeKind.Unspecified);
-                return TimeZoneInfo.ConvertTime(unspecified, Core.Globals.GeneralOptions.TimeZoneInfo, TimeZoneInfo.FindSystemTimeZoneById(id));
-            }
+            // V0007: zones resolved once in DataLoaded (V0006 looked the zone up on every call).
+            if (selectedTz == null || platformTz == null) return t;
+            try { return TimeZoneInfo.ConvertTime(DateTime.SpecifyKind(t, DateTimeKind.Unspecified), platformTz, selectedTz); }
             catch { return t; }
+        }
+
+        private string TimeZoneId()
+        {
+            return TimeZoneSetting == AAVMTFTimeZone.NewYork ? "Eastern Standard Time" :
+                   TimeZoneSetting == AAVMTFTimeZone.LosAngeles ? "Pacific Standard Time" :
+                   TimeZoneSetting == AAVMTFTimeZone.UTC ? "UTC" : "Central Standard Time";
         }
 
         // NinjaTrader stamps a bar with its CLOSE time, so the bar holding clock time T is the one
@@ -1273,8 +1442,14 @@ namespace NinjaTrader.NinjaScript.Indicators
         private bool FourHourBlockChanged(DateTime barClose, int barIndex)
         {
             DateTime barOpen = barClose.AddMinutes(-GetSeriesMinutes());
-            sessionIter.GetNextSession(barClose, true);
-            DateTime sessionBegin = sessionIter.ActualSessionBegin;
+            // V0007: only look the session up when the bar leaves the cached one.
+            if (barClose > cachedSessEnd || barClose < cachedSessBegin)
+            {
+                sessionIter.GetNextSession(barClose, true);
+                cachedSessBegin = sessionIter.ActualSessionBegin;
+                cachedSessEnd = sessionIter.ActualSessionEnd;
+            }
+            DateTime sessionBegin = cachedSessBegin;
             long block = (long)Math.Floor(Math.Max(0, (barOpen - sessionBegin).TotalMinutes) / 240.0);
             long key = sessionBegin.Ticks / TimeSpan.TicksPerMinute * 100 + block;
             bool changed = barIndex > 0 && lastBlockKey != long.MinValue && key != lastBlockKey;
@@ -1373,7 +1548,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="Data series bars to load (0 = chart's range)", Description="How many bars of the data series to load. 0 loads the same date range as the chart. Set it when the chart loads only a few days but the session (Week, Month, Quarter, Year) or a large data series needs more history - e.g. 2000 bars of 5 minutes is about 7 trading days. Ignored when Data series minutes is 0.", GroupName="Data Series", Order=1)]
         public int DataSeriesBarsToLoad { get; set; }
 
-        [Display(Name="Write debug log (diagnostic)", Description="Writes every calculation bar (OHLCV), session reset and anchor add/remove/promote to Documents\\NinjaTrader 8\\AutoAVWAPMTFV0006_<instrument>_chart<period>.log, one file per chart period, for comparing two charts. Leave off in normal use.", GroupName="Data Series", Order=2)]
+        [Display(Name="Write debug log (diagnostic)", Description="Writes every calculation bar (OHLCV), session reset and anchor add/remove/promote to Documents\\NinjaTrader 8\\AutoAVWAPMTFV0007_<instrument>_chart<period>.log, one file per chart period, for comparing two charts. Leave off in normal use.", GroupName="Data Series", Order=2)]
         public bool DebugLog { get; set; }
 
         [NinjaScriptProperty]
@@ -1588,7 +1763,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="S.19 Short sound file", GroupName="Signals", Order=19)]
         public string SignalShortSound { get; set; }
 
-        [Display(Name="S.20 Write signal log", Description="Every signal and its forward outcome (target/stop first, MFE, MAE) appended to Documents\\NinjaTrader 8\\Mirror Logs\\AutoAVWAPSignalsV0006_<instrument>.log.", GroupName="Signals", Order=20)]
+        [Display(Name="S.20 Write signal log", Description="Every signal and its forward outcome (target/stop first, MFE, MAE) appended to Documents\\NinjaTrader 8\\Mirror Logs\\AutoAVWAPSignalsV0007_<instrument>.log.", GroupName="Signals", Order=20)]
         public bool WriteSignalLog { get; set; }
 
         [Range(1, 500)]
