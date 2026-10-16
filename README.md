@@ -21,7 +21,16 @@ instrument comes from whatever chart you apply it to).
 
 **The companion 5-minute chart** carries the Bias zigzag and its recent pivot levels, plus the pattern
 triangles. The 5-minute (or hourly) chart is where a *gain* or *loss* of a recent level is read; the
-30-second Mirror chart above is where the entry is taken. Its template will be added here.
+30-second Mirror chart above is where the entry is taken. Template:
+[`NinjaTrader/Templates/Chart/AlightenMinute_20261015.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261015.xml)
+(5 Minute). It needs [`AlightenBiasV0004`](NinjaTrader/Indicators/AlightenBiasV0004.cs) (Recent Levels = 6),
+[`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs),
+[`AlightenMirrorPtGV0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs) and
+[`AlightenMirrorPtHV0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs) drawn on the chart itself,
+[`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs),
+[`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs),
+[`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) and
+[`LabelRemover`](NinjaTrader/Indicators/LabelRemover.cs) - all in this repo.
 
 ![The 5-minute companion chart: NQ 12-26 with the Bias zigzag, recent pivot levels and pattern triangles.](docs/minute-chart.jpg)
 
@@ -178,7 +187,7 @@ promoted or retired.
 | Bias | [`AlightenBiasV0004`](NinjaTrader/Indicators/AlightenBiasV0004.cs) | same |
 | Auto AVWAP | [`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | same |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
-| Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | not on chart |
+| Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | on the 5-minute chart |
 | Vertical Line at Interval | [`AlightenVerticalLineAtIntervalV0001`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | same |
 | Footprint OrderFlow | [`AlightenFootprintOrderFlowV00021`](NinjaTrader/Indicators/AlightenFootprintOrderFlowV00021.cs) | not on chart |
 | HTF Volume Profile | [`AlightenHTFVPV0004`](NinjaTrader/Indicators/AlightenHTFVPV0004.cs) | not on chart |
@@ -574,9 +583,10 @@ change the indicator's generated factory signature.
 
 * **[`BnBTraderVPVWAPV0002.cs`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs)** — session VWAP with SD bands, volume profile and prior-day
   H/L; on the reference chart until 2026-10-15. See [Volume profile and VWAP](#volume-profile-and-vwap).
-* **[`AlightenBarTimerV3.cs`](NinjaTrader/Indicators/AlightenBarTimerV3.cs)** — bar countdown rendered through the Direct2D `OnRender` pipeline,
-  eliminating the flicker common to UI-based bar timers. ([`AlightenBarTimerV0004.cs`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) is the newer
-  line; neither is on the reference chart.)
+* **[`AlightenBarTimerV0004.cs`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs)** — bar countdown drawn in `OnRender` and refreshed by a
+  1-second timer: no flashing, and it keeps counting when no trades print. On the 5-minute chart.
+  ([`AlightenBarTimerV3.cs`](NinjaTrader/Indicators/AlightenBarTimerV3.cs) is the older version: it redraws a text
+  object on every tick, which flashes and only updates when a trade prints.)
 * **[`AlightenFootprintOrderFlowV00021.cs`](NinjaTrader/Indicators/AlightenFootprintOrderFlowV00021.cs)** — footprint indicator aggregating bid, ask, delta,
   volume, POC and value area natively. Emits clean arrays for Bloodhound/strategies.
 * **[`AlightenHTFVPV0004.cs`](NinjaTrader/Indicators/AlightenHTFVPV0004.cs)** — higher-timeframe volume profile, projecting an HTF bar's POC and
