@@ -17,7 +17,7 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 **Built on:** NQ 12-26, 30 Second, 3 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
-![The reference chart: NQ 12-26, 30-second, with the Mirror dashboard, Auto AVWAPs and their signals (screenshot of the earlier 2026-10-06 template).](docs/reference-chart.jpg)
+![The reference chart: NQ 12-26, 30-second, with the Mirror levels, structure signals, Auto AVWAPs and their signals.](docs/reference-chart.jpg)
 
 The chart is a single price panel carrying ten indicators. Reading it:
 
