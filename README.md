@@ -50,7 +50,7 @@ The chart is a single price panel carrying nine indicator instances. Reading it:
   zone-break retest signal is off on this template.
 * **Pattern POC boxes** (new in V0056, group *19. Pattern POC*): when a 1-, 5- or 10-minute pivot bar
   has its largest-delta footprint row in the wick, the Mirror draws that row as a box the width of the
-  bar: magenta for a pivot high (short), lime for a pivot low (long). Dashed and faint while the pivot
+  bar: white for a pivot high (look short), cyan for a pivot low (look long). Dashed and faint while the pivot
   can still move, solid once the opposite pivot confirms it. The idea: the next bar or two tend to move
   away from the POC.
 * **Bias V0006 diamonds**: the same POC-in-the-wick read on the chart's own 30-second pivots, plus the

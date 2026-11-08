@@ -1,5 +1,8 @@
-// BUILD V0056-2026-11-07f  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0056.log)
-/* V0056Signal build 2026-11-07f: defaults = the user's 2026-11-07 AlightenMirrorV0056Signal_Default.xml (the ten
+// BUILD V0056-2026-11-08g  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0056.log)
+/* V0056Signal build 2026-11-08g: the last four defaults that differed from the user's AlightenMirrorV0056Signal_Default.xml
+   (build f's check covered only the script parameters): POC boxes white (short) / cyan (long), Write Structure Debug
+   Log and Write Level Log on.
+   build 2026-11-07f: defaults = the user's 2026-11-07 AlightenMirrorV0056Signal_Default.xml (the ten
    Show 15m / 10m switches of patterns A/B/G/H/F are now true; every other default already matched).
    build 2026-11-07e: the Pattern POC timeframes get the same split: 19.2-19.4 Enable 1m/5m/10m decide
    which engines are created at load (default all), 19.5-19.7 Show 1m/5m/10m only draw and work live (the later
@@ -1723,7 +1726,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 EnablePocTF1m = true; EnablePocTF5m = true; EnablePocTF10m = true;   // build e: Enable = loaded; Show = drawn
                 PocSessionsToProcess = 1; PocCellTicks = 4; PocAlignToSessionOpen = true; PocExtremeMode = 0; PocRowMode = 1;
                 PocMinWickTicks = 10; PocExtremeFraction = 0.5; PocBarsAfterPivot = 0; ShowPocProvisional = true;
-                PocShortColor = Brushes.Magenta; PocLongColor = Brushes.Lime; PocFillOpacity = 35; PocProvisionalOpacity = 12;
+                PocShortColor = Brushes.White; PocLongColor = Brushes.Cyan;   // build g: the user's template colours
+                PocFillOpacity = 35; PocProvisionalOpacity = 12;
                 PocOutlineWidth = 2; ShowPocLabels = false; PocLogHistorical = true;
 
 
@@ -1838,7 +1842,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 StructShortSound         = "Alert4.wav";
                 StructIncludeDailyBias   = true;      // V0052
                 StructIncludeHtfBias     = true;      // V0054
-                DebugStructLog           = false;
+                DebugStructLog           = true;    // build g: the user's template (the published chart template turns it off)
                 StructLookbackHours      = 5;      // build k
                 LogFolder                = "Mirror Logs";
                 WriteZoneLog             = false;
@@ -1851,7 +1855,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowGetReadySymbol       = true;
                 DebugRetestLog           = false;
 
-                DebugLevelLog       = false;  // diagnostic only; tick "Write Level Log" to enable
+                DebugLevelLog       = true;   // build g: the user's template (the published chart template turns it off)
 
 
                 AddPlot(Brushes.Transparent, "PtAD");
@@ -4478,7 +4482,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public bool     IsLong;
             public bool     Confirmed;
         }
-        private const string BUILD_ID = "V0056-2026-11-07f";
+        private const string BUILD_ID = "V0056-2026-11-08g";
         private List<StructMark> _ssMarks;
         private int _ssLastBar = -1;
         private DateTime _ssCutoff = DateTime.MinValue;   // build k: historical bars before this are skipped
