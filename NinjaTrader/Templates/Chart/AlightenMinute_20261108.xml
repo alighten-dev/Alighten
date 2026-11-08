@@ -1413,8 +1413,8 @@
           <PriceType>Close</PriceType>
         </Input>
       </Indicator>
-      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenBiasV0004" Panel="-1" DisplayName="AlightenBiasV0004(500,4,#FF2F4F4F,False,25,#FFFFA500,#FF1E90FF,#FF32CD32,#FF1E90FF,#FF006400,#FFDC143C,Solid,2,#FFFF0000,2,6,300,14,4,Dash,2,1000,RelevantPlusNearby,False,False,False,65,True,False,#FFFFFF00)">
-        <AlightenBiasV0004 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <Indicator BarsIndex="0" Instrument="NQ 12-26 Globex" Name="NinjaTrader.NinjaScript.Indicators.AlightenBiasV0006" Panel="-1" DisplayName="AlightenBiasV0006(500,4,#FF2F4F4F,False,25,#FFFFA500,#FF1E90FF,#FF32CD32,#FF1E90FF,#FF006400,#FFDC143C,Solid,2,#FFFF0000,2,6,300,14,4,Dash,2,1000,RelevantPlusNearby,False,False,False,65,True,False,#FFFFFF00)">
+        <AlightenBiasV0006 xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
           <IsVisible>true</IsVisible>
           <calculate2>OnBarClose</calculate2>
           <AreLinesConfigurable>true</AreLinesConfigurable>
@@ -1454,6 +1454,19 @@
               <Name>Bias</Name>
               <PlotStyle>Line</PlotStyle>
             </Plot>
+            <Plot>
+              <IsOpacityVisible>false</IsOpacityVisible>
+              <IsColorDisabled>false</IsColorDisabled>
+              <BrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#00FFFFFF&lt;/SolidColorBrush&gt;</BrushSerialize>
+              <DashStyleHelper>Solid</DashStyleHelper>
+              <Opacity>100</Opacity>
+              <Width>1</Width>
+              <AutoWidth>true</AutoWidth>
+              <Max>1.7976931348623157E+308</Max>
+              <Min>-1.7976931348623157E+308</Min>
+              <Name>PocSignal</Name>
+              <PlotStyle>Line</PlotStyle>
+            </Plot>
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
@@ -1469,10 +1482,11 @@
           <DrawOnPricePanel>true</DrawOnPricePanel>
           <ChartHashCodeDeserialized>0</ChartHashCodeDeserialized>
           <IndicatorId>29021</IndicatorId>
+          <InstrumentDeserialized>NQ 12-26 Globex</InstrumentDeserialized>
           <MaxSerialized>0</MaxSerialized>
           <MinSerialized>0</MinSerialized>
           <ZOrder>101065</ZOrder>
-          <BarsToProcess>500</BarsToProcess>
+          <SessionsToProcess>1</SessionsToProcess>
           <DrawZigZags>true</DrawZigZags>
           <NumberOfLevels>6</NumberOfLevels>
           <RelevanceFactor>300</RelevanceFactor>
@@ -1490,22 +1504,28 @@
           <FailedLossColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF1E90FF&lt;/SolidColorBrush&gt;</FailedLossColorSerialize>
           <ShowGainLoss>false</ShowGainLoss>
           <ShowFTGFTL>false</ShowFTGFTL>
-          <UseRecentLevels>true</UseRecentLevels>
-          <UseScoredLevels>false</UseScoredLevels>
-          <ScoreMode>RelevantPlusNearby</ScoreMode>
-          <ScoredLevelCount>4</ScoredLevelCount>
-          <ScoredLookbackBars>1000</ScoredLookbackBars>
-          <SizeWeightPct>65</SizeWeightPct>
-          <ScoreAtrLength>14</ScoreAtrLength>
-          <NearbyWindowAtr>2</NearbyWindowAtr>
-          <ExitExtraPct>25</ExitExtraPct>
-          <ClusterTicks>4</ClusterTicks>
-          <ScoredLineDashStyle>Dash</ScoredLineDashStyle>
-          <ScoredLineWidth>2</ScoredLineWidth>
-          <ScoredLongColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FFFF&lt;/SolidColorBrush&gt;</ScoredLongColorSerialize>
-          <ScoredShortColorSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFFFFFF&lt;/SolidColorBrush&gt;</ScoredShortColorSerialize>
+          <EnablePocSignal>false</EnablePocSignal>
+          <PocCellTicks>4</PocCellTicks>
+          <PocAlignToSessionOpen>true</PocAlignToSessionOpen>
+          <PocExtremeMode>0</PocExtremeMode>
+          <PocRowMode>1</PocRowMode>
+          <PocMinWickTicks>15</PocMinWickTicks>
+          <PocExtremeFraction>0.6</PocExtremeFraction>
+          <PocBarsAfterPivot>0</PocBarsAfterPivot>
+          <DrawPocMarkers>true</DrawPocMarkers>
+          <PocMarkerOffsetTicks>12</PocMarkerOffsetTicks>
+          <PocShortBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFFF00FF&lt;/SolidColorBrush&gt;</PocShortBrushSerialize>
+          <PocLongBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FF00FF00&lt;/SolidColorBrush&gt;</PocLongBrushSerialize>
+          <ShowPocProvisional>true</ShowPocProvisional>
+          <PocProvisionalBrushSerialize>&lt;SolidColorBrush xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"&gt;#FFF0E68C&lt;/SolidColorBrush&gt;</PocProvisionalBrushSerialize>
+          <PocAlertOnProvisional>true</PocAlertOnProvisional>
+          <EnablePocSoundAlerts>false</EnablePocSoundAlerts>
+          <PocShortSound>Alert2.wav</PocShortSound>
+          <PocLongSound>Alert1.wav</PocLongSound>
+          <LogFolder>Mirror Logs</LogFolder>
+          <LogHistoricalPivots>false</LogHistoricalPivots>
           <DebugPrints>false</DebugPrints>
-        </AlightenBiasV0004>
+        </AlightenBiasV0006>
         <Input>
           <PriceType>Close</PriceType>
         </Input>
