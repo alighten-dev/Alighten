@@ -1,5 +1,8 @@
-// BUILD V0057-2026-11-08a  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0057.log)
-/* AlightenMirrorV0057Signal (2026-11-08): V0056Signal build i as a version, at the user's request. What is new since the
+// BUILD V0057-2026-11-09b  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0057.log)
+/* V0057Signal build 2026-11-09b: 19.23-19.29 POC sound alerts (the Bias's 4.15-4.18 for the boxes): enable, per timeframe
+   (1m off by default), also on provisional, long / short .wav; medium priority for a dashed box, high once confirmed; one
+   alert per box and stage; realtime only. Same Alert() path as the structure signal.
+   AlightenMirrorV0057Signal (2026-11-08): V0056Signal build i as a version, at the user's request. What is new since the
    V0056 promotion (build f, 2026-11-08 morning): 19.12 POC Row 3 = either the volume POC or the |delta| row, whichever is in
    the wick (both -> the more extreme); the DEFAULT POC Row is now 2 = largest delta against the pivot (the user's pick after
    trying it live); the Pattern POC engines are fed one bar behind in history as well, so a bar still forming when the chart
@@ -1649,6 +1652,20 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int PocOutlineWidth { get; set; }
         [Display(Name="19.22 Show Labels", Description="'POC 5m S' at the box.", Order=22, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocLabels { get; set; }
+        [Display(Name="19.23 Sound Alert", Description="Play a sound and post to the Alerts window when a POC box appears (medium priority while provisional, high once the pivot confirms). Realtime only; one alert per box and stage.", Order=23, GroupName="19. Pattern POC (V0057)")]
+        public bool PocSoundAlert { get; set; }
+        [Display(Name="19.24 Alert 1m", Description="Alert on the 1-minute boxes.", Order=24, GroupName="19. Pattern POC (V0057)")]
+        public bool PocAlert1m { get; set; }
+        [Display(Name="19.25 Alert 5m", Description="Alert on the 5-minute boxes.", Order=25, GroupName="19. Pattern POC (V0057)")]
+        public bool PocAlert5m { get; set; }
+        [Display(Name="19.26 Alert 10m", Description="Alert on the 10-minute boxes.", Order=26, GroupName="19. Pattern POC (V0057)")]
+        public bool PocAlert10m { get; set; }
+        [Display(Name="19.27 Also Alert on Provisional", Description="Alert when the dashed box first appears, not only when the pivot confirms (earlier; some of these are later removed).", Order=27, GroupName="19. Pattern POC (V0057)")]
+        public bool PocAlertProvisional { get; set; }
+        [Display(Name="19.28 Long Sound File", Description="Pivot-low (cyan) box. A file name from the NinjaTrader 8\\sounds folder, or a full path to any .wav.", Order=28, GroupName="19. Pattern POC (V0057)")]
+        public string PocLongSound { get; set; }
+        [Display(Name="19.29 Short Sound File", Description="Pivot-high (white) box. A file name from the NinjaTrader 8\\sounds folder, or a full path to any .wav.", Order=29, GroupName="19. Pattern POC (V0057)")]
+        public string PocShortSound { get; set; }
         [Display(Name="17.10 Log POC Reads", Description="One line per read into Mirror Logs\\MirrorPocV0057.log (BiasPocV0006.log format, tf=1m/5m/10m): realtime always, history too when on.", Order=10, GroupName="17. Logging & Diagnostics")]
         public bool PocLogHistorical { get; set; }
 
@@ -1742,6 +1759,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 PocShortColor = Brushes.White; PocLongColor = Brushes.Cyan;   // build g: the user's template colours
                 PocFillOpacity = 35; PocProvisionalOpacity = 12;
                 PocOutlineWidth = 2; ShowPocLabels = false; PocLogHistorical = true;
+                // build b (2026-11-09): POC sound alerts, the Bias's 4.15-4.18 for the boxes; 1m off by default (too many)
+                PocSoundAlert = true; PocAlert1m = false; PocAlert5m = true; PocAlert10m = true; PocAlertProvisional = true;
+                PocLongSound = "Alert1.wav"; PocShortSound = "Alert2.wav";
 
 
                 ColorTF1 = Brushes.White;
@@ -2285,6 +2305,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 lv.Dirty = false;
                 string tag = PocTag(k, lv);
                 if (lv.Removed || !shown) { RemoveDrawObject(tag); RemoveDrawObject(tag + "_lbl"); continue; }
+                PocAlert(k, lv);                                   // build b: once per box and stage, realtime only
                 Brush b = lv.IsHigh ? PocShortColor : PocLongColor;
                 if (b == null) b = lv.IsHigh ? Brushes.Magenta : Brushes.Lime;
                 // b: a time anchor sits on the CENTRE of the chart bar holding that time; half a primary bar later puts the
@@ -2300,6 +2321,39 @@ namespace NinjaTrader.NinjaScript.Indicators
                 else
                     RemoveDrawObject(tag + "_lbl");
             }
+        }
+
+        // build b (2026-11-09): sound + Alerts-window entry for a POC box, the structure signal's mechanism (StructAlert)
+        private HashSet<string> _pocAlerted = new HashSet<string>();
+        private void PocAlert(int k, AlightenPtPocLevelV0001 lv)
+        {
+            if (!PocSoundAlert || State != State.Realtime || ExportMode) return;
+            if (k == 0 ? !PocAlert1m : k == 1 ? !PocAlert5m : !PocAlert10m) return;
+            if (!lv.Confirmed && !PocAlertProvisional) return;
+
+            string key = "POC" + _pocLabel[k] + "_" + lv.Key + (lv.Confirmed ? "C" : "P");
+            if (!_pocAlerted.Add(key)) return;
+            if (_pocAlerted.Count > 500) _pocAlerted.Clear();
+
+            string file = lv.IsHigh ? PocShortSound : PocLongSound;
+            string path = string.IsNullOrWhiteSpace(file) ? ""
+                        : System.IO.Path.IsPathRooted(file) ? file
+                        : System.IO.Path.Combine(NinjaTrader.Core.Globals.InstallDir, "sounds", file);
+            if (path.Length > 0 && !System.IO.File.Exists(path))
+            {
+                Print(Name + ": POC alert sound not found: " + path);
+                path = "";
+            }
+            string msg = string.Format("{0} {1}: POC {2} {3} {4} at {5}-{6} (pivot {7})",
+                Instrument.FullName, BarsPeriod, _pocLabel[k], lv.IsHigh ? "S" : "L", lv.Confirmed ? "confirmed" : "provisional",
+                Instrument.MasterInstrument.FormatPrice(lv.PocLo), Instrument.MasterInstrument.FormatPrice(lv.PocHi),
+                Instrument.MasterInstrument.FormatPrice(lv.Pivot));
+            try
+            {
+                Alert("MirPocAlert_" + key, lv.Confirmed ? Priority.High : Priority.Medium, msg, path, 0,
+                      lv.IsHigh ? Brushes.DarkRed : Brushes.DarkGreen, Brushes.White);
+            }
+            catch (Exception ex) { Print(Name + ": POC alert failed: " + ex.Message); }
         }
 
         private double PrimaryBarSeconds()
@@ -4500,7 +4554,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public bool     IsLong;
             public bool     Confirmed;
         }
-        private const string BUILD_ID = "V0057-2026-11-08a";
+        private const string BUILD_ID = "V0057-2026-11-09b";
         private List<StructMark> _ssMarks;
         private int _ssLastBar = -1;
         private DateTime _ssCutoff = DateTime.MinValue;   // build k: historical bars before this are skipped

@@ -53,7 +53,9 @@ The chart is a single price panel carrying nine indicator instances. Reading it:
   bar: white for a pivot high (look short), cyan for a pivot low (look long). Dashed and faint while the pivot
   can still move, solid once the opposite pivot confirms it. The idea: the next bar or two tend to move
   away from the POC. *19.12 POC Row* picks the row: **2, the default since V0057**, is the row with the largest
-  delta *against* the pivot; 0 is the heaviest row, 1 the largest |delta| row, 3 either 0 or 1.
+  delta *against* the pivot; 0 is the heaviest row, 1 the largest |delta| row, 3 either 0 or 1. *19.23–19.29* add
+  **sound alerts** for the boxes (5- and 10-minute on by default, 1-minute off, also on the provisional box), the
+  same mechanism as the structure signal's.
 * **Bias V0007 diamonds**: the same POC-in-the-wick read on the chart's own 30-second pivots, plus the
   Bias zigzag and its six most recent pivot levels.
 * Three toolbar buttons — **Mirror Settings**, **Export Levels**, **Clean Mirror** — drive the
@@ -225,7 +227,7 @@ POC read: *19.12* / *4.5 POC Row* gains **3 = either** (the heaviest row or the 
 wick; both &rarr; the more extreme), the **default POC Row is now 2** (largest delta *against* the pivot: net buying into a
 pivot high, net selling into a pivot low), and the Mirror feeds its POC engines **one bar behind in history** as well as
 live, so a bar still forming when the chart (re)loads mid-bar is never read as a closed pivot bar (engine build
-`PtPoc-2026-11-08e`). Logs move to `MirrorStructV0057.log`, `MirrorPocV0057.log`, `MirrorPatternPrintsV0057.log` and
+`PtPoc-2026-11-08e`). Build 2026-11-09b adds the POC sound alerts (*19.23–19.29*). Logs move to `MirrorStructV0057.log`, `MirrorPocV0057.log`, `MirrorPatternPrintsV0057.log` and
 `BiasPocV0007.log`. The chart templates `AlightenMirror_20261108.xml` / `AlightenMinute_20261108.xml` were replaced by
 [`AlightenMirror_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml) and
 [`AlightenMinute_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261109.xml).
