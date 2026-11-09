@@ -67,7 +67,7 @@
             <CandleStyle>
               <CandleStyle xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
                 <IsVisible>true</IsVisible>
-                <BarWidth>4.80953617744934</BarWidth>
+                <BarWidth>4.4364829857634751</BarWidth>
                 <ChartStyleTypeSerialize>1</ChartStyleTypeSerialize>
                 <DownBrushSerialize>DEFAULT</DownBrushSerialize>
                 <UpBrushSerialize>DEFAULT</UpBrushSerialize>
@@ -105,7 +105,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -114,7 +114,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -173,7 +173,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -182,7 +182,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -243,7 +243,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -252,7 +252,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -307,7 +307,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>false</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -316,7 +316,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -371,7 +371,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -380,7 +380,7 @@
           <Plots />
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -422,7 +422,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>false</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -471,7 +471,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -516,7 +516,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -955,7 +955,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>false</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1066,7 +1066,7 @@
           <Calculate>OnBarClose</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>Infinite</MaximumBarsLookBack>
@@ -1102,7 +1102,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -1182,7 +1182,7 @@
           <Calculate>OnEachTick</Calculate>
           <Displacement>0</Displacement>
           <DisplayInDataBox>true</DisplayInDataBox>
-          <From>2026-11-05T00:00:00</From>
+          <From>2026-11-06T00:00:00</From>
           <IsAutoScale>true</IsAutoScale>
           <Lines />
           <MaximumBarsLookBack>TwoHundredFiftySix</MaximumBarsLookBack>
@@ -1816,7 +1816,7 @@
           </Plots>
           <ScaleJustification>Right</ScaleJustification>
           <ShowTransparentPlotsInDataBox>true</ShowTransparentPlotsInDataBox>
-          <To>2026-11-08T00:00:00</To>
+          <To>2026-11-09T00:00:00</To>
           <IsDataSeriesRequired>true</IsDataSeriesRequired>
           <IsOverlay>true</IsOverlay>
           <SelectedValueSeries>0</SelectedValueSeries>
@@ -2013,6 +2013,13 @@
           <PocProvisionalOpacity>12</PocProvisionalOpacity>
           <PocOutlineWidth>2</PocOutlineWidth>
           <ShowPocLabels>false</ShowPocLabels>
+          <PocSoundAlert>true</PocSoundAlert>
+          <PocAlert1m>false</PocAlert1m>
+          <PocAlert5m>true</PocAlert5m>
+          <PocAlert10m>true</PocAlert10m>
+          <PocAlertProvisional>true</PocAlertProvisional>
+          <PocLongSound>Alert1.wav</PocLongSound>
+          <PocShortSound>Alert2.wav</PocShortSound>
           <PocLogHistorical>false</PocLogHistorical>
           <RetestAlertProvisional>false</RetestAlertProvisional>
           <DebugLevelLog>false</DebugLevelLog>
@@ -2046,7 +2053,7 @@
           <Size>11</Size>
         </LabelFont>
         <DataSeriesWatermark>@INSTRUMENT_FULL_ALL</DataSeriesWatermark>
-        <BarDistance>22.897541</BarDistance>
+        <BarDistance>21.1214886</BarDistance>
         <BarMarginRightUser>8</BarMarginRightUser>
         <ChartTimeFormat>TwentyfourHour</ChartTimeFormat>
         <ChartTraderVisibility>Visible</ChartTraderVisibility>
@@ -2179,8 +2186,8 @@
             <AutoScaleMarginLower>6</AutoScaleMarginLower>
             <AutoScaleMarginUpper>6</AutoScaleMarginUpper>
             <YAxisScalingType>Linear</YAxisScalingType>
-            <FixedScaleMaxSerialize>29677.75</FixedScaleMaxSerialize>
-            <FixedScaleMinSerialize>29494.5</FixedScaleMinSerialize>
+            <FixedScaleMaxSerialize>29687.75</FixedScaleMaxSerialize>
+            <FixedScaleMinSerialize>29532.25</FixedScaleMinSerialize>
             <IsInverted>false</IsInverted>
           </ChartScaleProperties>
         </Right>
