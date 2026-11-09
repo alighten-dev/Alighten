@@ -13,7 +13,7 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 
 ## The reference chart
 
-**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261108.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261108.xml)
+**Template:** [`NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml)
 **Built on:** NQ 12-26, 30 Second, 3 days back (the template stores the period and days-back; the
 instrument comes from whatever chart you apply it to).
 
@@ -22,8 +22,8 @@ instrument comes from whatever chart you apply it to).
 **The companion 5-minute chart** carries the Bias zigzag and its recent pivot levels, plus the pattern
 triangles. The 5-minute (or hourly) chart is where a *gain* or *loss* of a recent level is read; the
 30-second Mirror chart above is where the entry is taken. Template:
-[`NinjaTrader/Templates/Chart/AlightenMinute_20261108.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261108.xml)
-(5 Minute). It needs [`AlightenBiasV0006`](NinjaTrader/Indicators/AlightenBiasV0006.cs) (Recent Levels = 6; its POC read is off on this chart),
+[`NinjaTrader/Templates/Chart/AlightenMinute_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261109.xml)
+(5 Minute). It needs [`AlightenBiasV0007`](NinjaTrader/Indicators/AlightenBiasV0007.cs) (Recent Levels = 6; its POC read is on, POC Row 2),
 [`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs),
 [`AlightenMirrorPtGV0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs) and
 [`AlightenMirrorPtHV0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs) drawn on the chart itself,
@@ -49,11 +49,12 @@ The chart is a single price panel carrying nine indicator instances. Reading it:
   pivot is still forming, then **aqua (long) / white (short)** once the next pivot confirms it. The
   zone-break retest signal is off on this template.
 * **Pattern POC boxes** (new in V0056, group *19. Pattern POC*): when a 1-, 5- or 10-minute pivot bar
-  has its largest-delta footprint row in the wick, the Mirror draws that row as a box the width of the
+  has its POC footprint row in the wick, the Mirror draws that row as a box the width of the
   bar: white for a pivot high (look short), cyan for a pivot low (look long). Dashed and faint while the pivot
   can still move, solid once the opposite pivot confirms it. The idea: the next bar or two tend to move
-  away from the POC.
-* **Bias V0006 diamonds**: the same POC-in-the-wick read on the chart's own 30-second pivots, plus the
+  away from the POC. *19.12 POC Row* picks the row: **2, the default since V0057**, is the row with the largest
+  delta *against* the pivot; 0 is the heaviest row, 1 the largest |delta| row, 3 either 0 or 1.
+* **Bias V0007 diamonds**: the same POC-in-the-wick read on the chart's own 30-second pivots, plus the
   Bias zigzag and its six most recent pivot levels.
 * Three toolbar buttons — **Mirror Settings**, **Export Levels**, **Clean Mirror** — drive the
   Mirror's live settings modal, its CSV export, and its zone teardown/redraw.
@@ -78,7 +79,7 @@ Values below are read directly out of the template.
 | Mirror source bars to process | 500 (`SrcBarsToProcess`) |
 | VWAP / volume profile | none on the chart |
 | Auto AVWAP | V0007, 5-min data series, futures session (`Use stock session` off), signals on *session high/low + TEST* AVWAPs, sound alerts on, developing AVWAP on |
-| Bias | V0006 with the 6 most recent levels, no containment box, POC diamonds on (wick at least 15 ticks, outer 40% of the wick) with sound alerts |
+| Bias | V0007 with the 6 most recent levels, no containment box, POC diamonds on (POC Row 2; wick at least 8 ticks, or the row in the outer half of the wick) with sound alerts |
 | Chart Trader | account `Playback101` (Market Replay) — set your own after loading |
 
 So **there are no zone bands** on this chart: the Mirror is used for its levels and the structure
@@ -93,8 +94,8 @@ Load the template and NinjaTrader will look for all of the following. Every one 
 
 | Indicator | Role on the chart |
 |---|---|
-| [`AlightenMirrorV0056Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0056Signal.cs) | The Mirror dashboard — levels, zones, the structure signal (lower high / higher low at a level), the Pattern POC boxes, zone-break retest signals, the three toolbar buttons |
-| [`AlightenBiasV0006.cs`](NinjaTrader/Indicators/AlightenBiasV0006.cs) | FTG/FTL structural bias with recent levels, and the POC-in-the-wick read at each pivot |
+| [`AlightenMirrorV0057Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) | The Mirror dashboard — levels, zones, the structure signal (lower high / higher low at a level), the Pattern POC boxes, zone-break retest signals, the three toolbar buttons |
+| [`AlightenBiasV0007.cs`](NinjaTrader/Indicators/AlightenBiasV0007.cs) | FTG/FTL structural bias with recent levels, and the POC-in-the-wick read at each pivot |
 | [`AutoAVWAPMTFV0007.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | Auto anchored VWAPs calculated on 5-min bars, with wick / retest / break signals — see [Auto AVWAP](#auto-avwap) |
 | [`AlightenButtonPanelV0005.cs`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | On-chart order flow / execution controls |
 | [`AlightenVerticalLineAtIntervalV0001.cs`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | Vertical session/interval dividers |
@@ -149,13 +150,13 @@ For the rule-file syntax and the silent-stub gotcha, see
 ### Installation order
 
 1. Copy all 14 `.cs` files above into `Documents\NinjaTrader 8\bin\Custom\Indicators\`.
-   The Mirror and Bias V0006 load **1-tick data** for the footprint reads, so your data feed needs tick history
+   The Mirror and Bias V0007 load **1-tick data** for the footprint reads, so your data feed needs tick history
    (one session by default: *19.8* on the Mirror, *1.1* on the Bias).
 2. Copy both zone rule files from [`NinjaTrader/ZoneFiles/`](NinjaTrader/ZoneFiles/) into
    `Documents\NinjaTrader 8\` — **not** into `bin\Custom\`.
 3. Compile in the NinjaScript Editor (**F5**). Compile *before* applying the template — a template
    referencing an uncompiled indicator drops it silently.
-4. Apply [`AlightenMirror_20261108.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261108.xml) via
+4. Apply [`AlightenMirror_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml) via
    Chart → Templates → Load.
 
 ---
@@ -192,7 +193,7 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | [`AlightenMirrorV0056Signal`](NinjaTrader/Indicators/AlightenMirrorV0056Signal.cs) | same |
+| Mirror Dashboard | [`AlightenMirrorV0057Signal`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) | same |
 | Pattern POC engine | [`AlightenMirrorPtPocV0001`](NinjaTrader/Indicators/AlightenMirrorPtPocV0001.cs) | compiled into the Mirror |
 | Pattern A source | [`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs) | same |
 | Pattern B source | [`AlightenMirrorPtBV0006`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs) | same |
@@ -203,7 +204,7 @@ promoted or retired.
 | VWAP | [`BnBTraderVPVWAPV0002`](NinjaTrader/Indicators/BnBTraderVPVWAPV0002.cs) | not on chart (removed 2026-10-15) |
 | Volume Profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | not on chart |
 | Order Flow Tools | [`AlightenOrderFlowToolsV0006`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | not on chart (removed 2026-11-08) |
-| Bias | [`AlightenBiasV0006`](NinjaTrader/Indicators/AlightenBiasV0006.cs) | same |
+| Bias | [`AlightenBiasV0007`](NinjaTrader/Indicators/AlightenBiasV0007.cs) | same |
 | Auto AVWAP | [`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | same |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
 | Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | on the 5-minute chart |
@@ -217,8 +218,20 @@ promoted or retired.
 the BnB VWAP on 2026-10-15, the Bar Timer and RedTail volume profile on 2026-10-04; all of them stay in
 the repo.
 
-**Retired 2026-11-08.** `AlightenMirrorV0053Signal` was removed from this repo, superseded by
-[`AlightenMirrorV0056Signal`](NinjaTrader/Indicators/AlightenMirrorV0056Signal.cs). What changed, in order: **V0054** adds the seven most recent **4-hour and 1-hour
+**Retired 2026-11-08 (evening).** `AlightenMirrorV0056Signal` and `AlightenBiasV0006` were removed, superseded by
+[`AlightenMirrorV0057Signal`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) and
+[`AlightenBiasV0007`](NinjaTrader/Indicators/AlightenBiasV0007.cs). Same engines, same settings, three changes to the
+POC read: *19.12* / *4.5 POC Row* gains **3 = either** (the heaviest row or the largest-|delta| row, whichever lies in the
+wick; both &rarr; the more extreme), the **default POC Row is now 2** (largest delta *against* the pivot: net buying into a
+pivot high, net selling into a pivot low), and the Mirror feeds its POC engines **one bar behind in history** as well as
+live, so a bar still forming when the chart (re)loads mid-bar is never read as a closed pivot bar (engine build
+`PtPoc-2026-11-08e`). Logs move to `MirrorStructV0057.log`, `MirrorPocV0057.log`, `MirrorPatternPrintsV0057.log` and
+`BiasPocV0007.log`. The chart templates `AlightenMirror_20261108.xml` / `AlightenMinute_20261108.xml` were replaced by
+[`AlightenMirror_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml) and
+[`AlightenMinute_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261109.xml).
+
+**Retired 2026-11-08 (morning).** `AlightenMirrorV0053Signal` was removed from this repo, superseded by
+`AlightenMirrorV0056Signal` (itself superseded the same evening, see above). What changed, in order: **V0054** adds the seven most recent **4-hour and 1-hour
 bias levels** next to the daily ones (the daily pivot rules applied to 240- and 60-minute bars), and the
 structure signal counts them. **V0055** hosts Pattern J on the **Daily only** (its intraday timeframes
 were too noisy to use) and drops the hosted Nebula and *Require Nebula Bright*. **V0056** adds the
@@ -228,11 +241,11 @@ the bar, provisional (dashed) until the pivot is confirmed, logged to `Mirror Lo
 Also new: **1.7–1.13 Enable &lt;timeframe&gt;** (computed at load) separate from the *Show* switches (drawn,
 and live in the Mirror Settings window), the same split for the POC timeframes (19.2–19.7), and every
 log and diagnostic switch gathered in group 17. The chart template `AlightenMirror_20261015.xml` was
-replaced by [`AlightenMirror_20261108.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261108.xml) and
-`AlightenMinute_20261015.xml` by
-[`AlightenMinute_20261108.xml`](NinjaTrader/Templates/Chart/AlightenMinute_20261108.xml).
+replaced by `AlightenMirror_20261108.xml` and `AlightenMinute_20261015.xml` by `AlightenMinute_20261108.xml`
+(both replaced again that evening by the 20261109 templates).
 
-**Retired 2026-11-08.** `AlightenBiasV0004` was removed, superseded by [`AlightenBiasV0006`](NinjaTrader/Indicators/AlightenBiasV0006.cs). It keeps
+**Retired 2026-11-08 (morning).** `AlightenBiasV0004` was removed, superseded by `AlightenBiasV0006` (itself superseded
+the same evening, see above). It keeps
 the pivot and FTG/FTL engine with the newest-N levels and adds the **POC-in-the-wick read**: at each
 pivot it bins the bar's ticks into footprint rows (anchored at the session open, as the footprint
 indicator does), picks the heaviest, largest-|delta| or largest opposing-delta row, and marks the pivot
@@ -608,7 +621,7 @@ change the indicator's generated factory signature.
 
 ## Other indicators on the chart
 
-* **[`AlightenBiasV0006.cs`](NinjaTrader/Indicators/AlightenBiasV0006.cs)** — evaluates multi-level FTG (Failed To Go) and FTL (Failed To Lower)
+* **[`AlightenBiasV0007.cs`](NinjaTrader/Indicators/AlightenBiasV0007.cs)** — evaluates multi-level FTG (Failed To Go) and FTL (Failed To Lower)
   structures to determine current market bias from the newest pivots, and reads each pivot bar's
   footprint: a POC row in the wick draws a diamond (the same read the Mirror's Pattern POC runs on
   1-, 5- and 10-minute bars). The V0003 pivot rules also power the Mirror's Daily / 4-hour / 1-hour

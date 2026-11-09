@@ -1,3 +1,7 @@
+// AlightenBiasV0007 (2026-11-08): AlightenBiasV0006 build l as a version, at the user's request. New since the V0006 promotion
+// (build k): 4.5 POC Row 3 = either the volume POC or the |delta| row, whichever is in the wick (both -> the more extreme), and the
+// DEFAULT POC Row is 2 = largest delta against the pivot (net buying into a pivot high / net selling into a pivot low), the user's
+// pick after trying it live. Log: Mirror Logs\BiasPocV0007.log (same line format). Everything below is V0006 build l renamed.
 #region Using declarations
 using System;
 using System.IO;
@@ -29,7 +33,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //   starts mid-session; before, the first processed bar's open anchored a grid shifted vs the footprint's, which
     //   split the 14:06 11/06 -19 row into -17 + rest and let a +18 body row win the Delta read). '1.1 Sessions To
     //   Process' (default 1) replaces Bars To Process: the window starts at a session's first bar.
-    // AlightenBiasV0006 (build 2026-11-05d) = AlightenBiasV0004 + the user's POC-at-the-extreme read (moved here from
+    // AlightenBiasV0007 (build 2026-11-05d) = AlightenBiasV0004 + the user's POC-at-the-extreme read (moved here from
     // AlightenZigZagv7 build b, which shared V4's pivot rules; the user wanted it in the Bias, 2026-11-05).
     //   A 1-tick series is added (as AlightenFootprintOrderFlowV00022 does) and every tick is binned per primary bar into
     //   "Cell Size (ticks)" rows anchored at the session open (or the bar low), ask = traded at/above the L1 ask, bid =
@@ -41,7 +45,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //   Signal = in the wick AND the "extreme" test (mode: 0 wick >= min OR pocF >= fraction, 1 both, 2 pocF only,
     //   3 wick only). The first qualifying bar wins: a diamond on that bar, PocSignal plot (Values[1]) = +1 (low pivot) /
     //   -1 (high pivot) on the bar of the read, optional sound, and one log line per read bar (hit or not) in
-    //   Mirror Logs\BiasPocV0006.log - realtime always, history only with "Log Historical Pivots". The pivotBar time is
+    //   Mirror Logs\BiasPocV0007.log - realtime always, history only with "Log Historical Pivots". The pivotBar time is
     //   the merge key against the Mirror's structure / retest logs.
     //   Build f (2026-11-06) - 'POC Row' option: 0 = heaviest row (volume POC, as before); 1 = the row with the largest
     //   |delta| (what the footprint's yellow box marks in Delta visual mode - the 15:15 5-min bar that looked like a
@@ -70,7 +74,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     //   Scored line style/colours, Use Recent Levels) is REMOVED at the user's request - never used. Levels are the V0003
     //   recent set only. Every property is numbered group.item in the dialog.
     // V0004 (history): added that scoring as a second, combinable way of choosing the pivots the bias is evaluated against.
-    public class AlightenBiasV0006 : Indicator
+    public class AlightenBiasV0007 : Indicator
     {
         private class LevelInfo
         {
@@ -101,7 +105,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string          loadId           = "";
         private string          tfTag            = "";   // chart bar period for the log (30s, 5m, ...)
         private bool            pocLogOn         = true;
-        private const string    pocMarkerPrefix  = "BiasV6_Poc_";
+        private const string    pocMarkerPrefix  = "BiasV7_Poc_";
         private Dictionary<string, string> pocProv = new Dictionary<string, string>();   // provisional marks: pivot key -> tag
         private int             pocProvDir       = 0;                  // +1 long / -1 short while the newest pivot's provisional stands
         #endregion
@@ -249,54 +253,54 @@ namespace NinjaTrader.NinjaScript.Indicators
         public bool ShowFTGFTL { get; set; } = false;
 
         [NinjaScriptProperty]
-        [Display(Name = "4.1 Enable POC Signal", Description = "Read the footprint of each confirmed pivot bar: POC row in the wick and at the extreme.", GroupName = "4. POC Signal (V0006)", Order = 1)]
+        [Display(Name = "4.1 Enable POC Signal", Description = "Read the footprint of each confirmed pivot bar: POC row in the wick and at the extreme.", GroupName = "4. POC Signal (V0007)", Order = 1)]
         public bool EnablePocSignal { get; set; } = true;
 
         [NinjaScriptProperty]
         [Range(1, 50)]
-        [Display(Name = "4.2 Cell Size (ticks)", Description = "Footprint row height, as FootprintV0022's Aggregation Interval.", GroupName = "4. POC Signal (V0006)", Order = 2)]
+        [Display(Name = "4.2 Cell Size (ticks)", Description = "Footprint row height, as FootprintV0022's Aggregation Interval.", GroupName = "4. POC Signal (V0007)", Order = 2)]
         public int PocCellTicks { get; set; } = 4;
 
         [NinjaScriptProperty]
-        [Display(Name = "4.3 Align Cells To Session Open", Description = "Rows start at the session open price (FootprintV0022's Align Aggregation To Session Open); off = each bar's low.", GroupName = "4. POC Signal (V0006)", Order = 3)]
+        [Display(Name = "4.3 Align Cells To Session Open", Description = "Rows start at the session open price (FootprintV0022's Align Aggregation To Session Open); off = each bar's low.", GroupName = "4. POC Signal (V0007)", Order = 3)]
         public bool PocAlignToSessionOpen { get; set; } = true;
 
         [NinjaScriptProperty]
         [Range(0, 3)]
-        [Display(Name = "4.4 Extreme Mode: 0 Wick OR Position, 1 Both, 2 Position only, 3 Wick only", GroupName = "4. POC Signal (V0006)", Order = 4)]
+        [Display(Name = "4.4 Extreme Mode: 0 Wick OR Position, 1 Both, 2 Position only, 3 Wick only", GroupName = "4. POC Signal (V0007)", Order = 4)]
         public int PocExtremeMode { get; set; } = 0;
 
         [NinjaScriptProperty]
-        [Range(0, 2)]
-        [Display(Name = "4.5 POC Row: 0 Heaviest row (volume POC), 1 Largest |delta| row (footprint Delta box), 2 Largest delta against the pivot", Description = "Build f: which row the in-wick read uses. All three rows are logged on every line.", GroupName = "4. POC Signal (V0006)", Order = 5)]
-        public int PocRowMode { get; set; } = 0;
+        [Range(0, 3)]
+        [Display(Name = "4.5 POC Row: 0 Heaviest row (volume POC), 1 Largest |delta| row (footprint Delta box), 2 Largest delta against the pivot, 3 Either 0 or 1", Description = "Build f: which row the in-wick read uses. All three rows are logged on every line. Build l: 3 = the volume POC or the |delta| row, whichever lies in the wick (both -> the more extreme one).", GroupName = "4. POC Signal (V0007)", Order = 5)]
+        public int PocRowMode { get; set; } = 2;
 
         [NinjaScriptProperty]
         [Range(0, 200)]
-        [Display(Name = "4.6 Min Wick (ticks)", Description = "Pivot extreme to body extreme.", GroupName = "4. POC Signal (V0006)", Order = 6)]
+        [Display(Name = "4.6 Min Wick (ticks)", Description = "Pivot extreme to body extreme.", GroupName = "4. POC Signal (V0007)", Order = 6)]
         public int PocMinWickTicks { get; set; } = 8;
 
         [NinjaScriptProperty]
         [Range(0.0, 1.0)]
-        [Display(Name = "4.7 POC Position In Wick (0 body .. 1 extreme)", Description = "Where the POC row centre sits in the wick; 0.5 = nearer the extreme than the body, 0.75 = top quarter.", GroupName = "4. POC Signal (V0006)", Order = 7)]
+        [Display(Name = "4.7 POC Position In Wick (0 body .. 1 extreme)", Description = "Where the POC row centre sits in the wick; 0.5 = nearer the extreme than the body, 0.75 = top quarter.", GroupName = "4. POC Signal (V0007)", Order = 7)]
         public double PocExtremeFraction { get; set; } = 0.5;
 
         [NinjaScriptProperty]
         [Range(0, 5)]
-        [Display(Name = "4.8 Bars After Pivot (also read)", Description = "0 = pivot bar only (default since build i); 1 = the bar after the pivot may also supply the read.", GroupName = "4. POC Signal (V0006)", Order = 8)]
+        [Display(Name = "4.8 Bars After Pivot (also read)", Description = "0 = pivot bar only (default since build i); 1 = the bar after the pivot may also supply the read.", GroupName = "4. POC Signal (V0007)", Order = 8)]
         public int PocBarsAfterPivot { get; set; } = 0;   // build i: default 0 (the bar after the pivot gave more false positives than it caught)
 
         [NinjaScriptProperty]
-        [Display(Name = "4.9 Draw POC Diamonds", GroupName = "4. POC Signal (V0006)", Order = 9)]
+        [Display(Name = "4.9 Draw POC Diamonds", GroupName = "4. POC Signal (V0007)", Order = 9)]
         public bool DrawPocMarkers { get; set; } = true;
 
         [NinjaScriptProperty]
         [Range(0, 50)]
-        [Display(Name = "4.10 Diamond Offset (ticks)", GroupName = "4. POC Signal (V0006)", Order = 10)]
+        [Display(Name = "4.10 Diamond Offset (ticks)", GroupName = "4. POC Signal (V0007)", Order = 10)]
         public int PocMarkerOffsetTicks { get; set; } = 12;
 
         [XmlIgnore]
-        [Display(Name = "4.11 Short Diamond Color (high pivot)", GroupName = "4. POC Signal (V0006)", Order = 11)]
+        [Display(Name = "4.11 Short Diamond Color (high pivot)", GroupName = "4. POC Signal (V0007)", Order = 11)]
         public Brush PocShortBrush { get; set; } = Brushes.Magenta;
 
         [Browsable(false)]
@@ -307,7 +311,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
         [XmlIgnore]
-        [Display(Name = "4.12 Long Diamond Color (low pivot)", GroupName = "4. POC Signal (V0006)", Order = 12)]
+        [Display(Name = "4.12 Long Diamond Color (low pivot)", GroupName = "4. POC Signal (V0007)", Order = 12)]
         public Brush PocLongBrush { get; set; } = Brushes.Lime;
 
         [Browsable(false)]
@@ -318,11 +322,11 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "4.13 Show Provisional Diamonds", Description = "Draw the faint diamond as soon as the newest pivot's bar closes with the read, before the opposite pivot confirms it. Removed if a more extreme bar replaces the pivot.", GroupName = "4. POC Signal (V0006)", Order = 13)]
+        [Display(Name = "4.13 Show Provisional Diamonds", Description = "Draw the faint diamond as soon as the newest pivot's bar closes with the read, before the opposite pivot confirms it. Removed if a more extreme bar replaces the pivot.", GroupName = "4. POC Signal (V0007)", Order = 13)]
         public bool ShowPocProvisional { get; set; } = true;
 
         [XmlIgnore]
-        [Display(Name = "4.14 Provisional Diamond Color", GroupName = "4. POC Signal (V0006)", Order = 14)]
+        [Display(Name = "4.14 Provisional Diamond Color", GroupName = "4. POC Signal (V0007)", Order = 14)]
         public Brush PocProvisionalBrush { get; set; } = Brushes.Khaki;
 
         [Browsable(false)]
@@ -333,27 +337,27 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
         [NinjaScriptProperty]
-        [Display(Name = "4.15 Also Alert on Provisional", Description = "Medium-priority alert when the provisional diamond appears (the confirmed one is high priority).", GroupName = "4. POC Signal (V0006)", Order = 15)]
+        [Display(Name = "4.15 Also Alert on Provisional", Description = "Medium-priority alert when the provisional diamond appears (the confirmed one is high priority).", GroupName = "4. POC Signal (V0007)", Order = 15)]
         public bool PocAlertOnProvisional { get; set; } = true;
 
         [NinjaScriptProperty]
-        [Display(Name = "4.16 Enable POC Sound Alerts", GroupName = "4. POC Signal (V0006)", Order = 16)]
+        [Display(Name = "4.16 Enable POC Sound Alerts", GroupName = "4. POC Signal (V0007)", Order = 16)]
         public bool EnablePocSoundAlerts { get; set; } = false;
 
         [NinjaScriptProperty]
-        [Display(Name = "4.17 POC Short Sound", GroupName = "4. POC Signal (V0006)", Order = 17)]
+        [Display(Name = "4.17 POC Short Sound", GroupName = "4. POC Signal (V0007)", Order = 17)]
         public string PocShortSound { get; set; } = "Alert2.wav";
 
         [NinjaScriptProperty]
-        [Display(Name = "4.18 POC Long Sound", GroupName = "4. POC Signal (V0006)", Order = 18)]
+        [Display(Name = "4.18 POC Long Sound", GroupName = "4. POC Signal (V0007)", Order = 18)]
         public string PocLongSound { get; set; } = "Alert1.wav";
 
         [NinjaScriptProperty]
-        [Display(Name = "4.19 Log Folder", Description = "Relative to Documents\\NinjaTrader 8, or an absolute path. The Mirror's logs live here too.", GroupName = "4. POC Signal (V0006)", Order = 19)]
+        [Display(Name = "4.19 Log Folder", Description = "Relative to Documents\\NinjaTrader 8, or an absolute path. The Mirror's logs live here too.", GroupName = "4. POC Signal (V0007)", Order = 19)]
         public string LogFolder { get; set; } = "Mirror Logs";
 
         [NinjaScriptProperty]
-        [Display(Name = "4.20 Log Historical Pivots", Description = "Also log the pivots read while history loads (otherwise realtime only).", GroupName = "4. POC Signal (V0006)", Order = 20)]
+        [Display(Name = "4.20 Log Historical Pivots", Description = "Also log the pivots read while history loads (otherwise realtime only).", GroupName = "4. POC Signal (V0007)", Order = 20)]
         public bool LogHistoricalPivots { get; set; } = false;
 
         [NinjaScriptProperty]
@@ -374,8 +378,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Description               = "AlightenBiasV0006: V0004 plus the POC-at-the-extreme footprint read at each confirmed pivot (diamonds, PocSignal plot, Mirror Logs\\BiasPocV0006.log; build f: POC Row = volume / |delta| / delta-against-pivot) - build k 2026-11-07 01:55";
-                Name                      = "AlightenBiasV0006";
+                Description               = "AlightenBiasV0007: V0006 build l as a version - the POC-at-the-extreme footprint read at each confirmed pivot (diamonds, PocSignal plot, Mirror Logs\\BiasPocV0007.log); POC Row 0 volume / 1 |delta| / 2 delta against the pivot (DEFAULT since V0007) / 3 either 0 or 1 - build a 2026-11-08 23:40";
+                Name                      = "AlightenBiasV0007";
                 Calculate                 = Calculate.OnBarClose;
                 IsOverlay                 = true;
                 DrawOnPricePanel          = true;
@@ -391,7 +395,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             else if (State == State.Configure)
             {
                 AddDataSeries(BarsPeriodType.Tick, 1);   // V0006: footprint rows, as AlightenFootprintOrderFlowV00022
-                instanceId = $"BiasV6_{Instrument.FullName}_{BarsPeriod.BarsPeriodType}_{BarsPeriod.Value}_{Guid.NewGuid()}";
+                instanceId = $"BiasV7_{Instrument.FullName}_{BarsPeriod.BarsPeriodType}_{BarsPeriod.Value}_{Guid.NewGuid()}";
             }
             else if (State == State.DataLoaded)
             {
@@ -969,6 +973,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 case 1:  bestStart = startD; inWick = inD; pocF = fD; break;
                 case 2:  bestStart = startS; inWick = inS; pocF = fS; break;
+                case 3:  // either row: the one in the wick; both in the wick -> the more extreme (larger pocF), ties -> |delta|
+                    if (inD && (!inV || fD >= fV)) { bestStart = startD; inWick = inD; pocF = fD; }
+                    else if (inV)                  { bestStart = startV; inWick = inV; pocF = fV; }
+                    else                           { bestStart = startD; inWick = false; pocF = fD; }
+                    break;
                 default: bestStart = startV; inWick = inV; pocF = fV; break;
             }
             pocLo = bestStart;
@@ -1065,7 +1074,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (!EnablePocSoundAlerts || State != State.Realtime) return;
             if (!confirmed && !PocAlertOnProvisional) return;
             string id  = Name + "_" + (confirmed ? "Poc" : "PocProv") + (isHigh ? "Short" : "Long") + "_" + CurrentBar + "_" + pivotPrice.ToString("0.#####");
-            string msg = "AlightenBiasV0006: POC at the extreme, " + (confirmed ? "CONFIRMED " : "provisional ") + (isHigh ? "short" : "long") + " @ " + pivotPrice.ToString("0.#####");
+            string msg = "AlightenBiasV0007: POC at the extreme, " + (confirmed ? "CONFIRMED " : "provisional ") + (isHigh ? "short" : "long") + " @ " + pivotPrice.ToString("0.#####");
             Alert(id, confirmed ? Priority.High : Priority.Medium, msg, ResolveSoundPath(isHigh ? PocShortSound : PocLongSound), 0, Brushes.Black, Brushes.White);
         }
 
@@ -1197,7 +1206,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         private void PocLog(string text)
         {
             if (!pocLogOn) return;
-            try { File.AppendAllText(LogFile("BiasPocV0006.log"), text + Environment.NewLine); }
+            try { File.AppendAllText(LogFile("BiasPocV0007.log"), text + Environment.NewLine); }
             catch { pocLogOn = false; }
         }
 

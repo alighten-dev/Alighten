@@ -1,4 +1,4 @@
-// BUILD PtPoc-2026-11-07c  (the first line of this file; the engine stamps it into its log) - c: historical->realtime handoff re-evaluates the last historical bar; b: wrapper boxes span the full bar width
+// BUILD PtPoc-2026-11-08e  (the first line of this file; the engine stamps it into its log) - e: RowMode 3 = either the volume POC or the |delta| row, whichever is in the wick (Bias build l); d: callers stay one bar behind in history so a bar forming at load time is never read as closed; c: historical->realtime handoff re-evaluates the last historical bar; b: wrapper boxes span the full bar width
 /* AlightenMirrorPtPocV0001 - "Pattern POC": the POC-at-the-extreme pivot read of AlightenBiasV0006 (build k) cut down
    to what drives a Mirror level, at the user's request (2026-11-07, "a new version of the Bias indicator that will act
    as a new Pattern indicator for use in a new Mirror ... get rid of everything that is not needed to drive the levels").
@@ -60,7 +60,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int    CellTicks           = 4;      // footprint row height
         public bool   AlignToSessionOpen  = true;   // rows start at the session open price; off = each bar's low
         public int    ExtremeMode         = 0;      // 0 wick OR position, 1 both, 2 position only, 3 wick only
-        public int    RowMode             = 1;      // 0 volume POC, 1 largest |delta|, 2 largest delta against the pivot
+        public int    RowMode             = 1;      // 0 volume POC, 1 largest |delta|, 2 largest delta against the pivot, 3 either 0 or 1 (the one in the wick; both -> the more extreme)
         public int    MinWickTicks        = 10;     // pivot extreme to body extreme
         public double ExtremeFraction     = 0.5;    // row centre position in the wick, 0 body .. 1 extreme
         public int    BarsAfterPivot      = 0;      // 0 = pivot bar only
@@ -89,7 +89,7 @@ namespace NinjaTrader.NinjaScript.Indicators
     /// <summary>The Pattern POC engine: Bias V0006's pivot + footprint read on one bar series, fed by its owner.</summary>
     public class AlightenPtPocEngineV0001
     {
-        public const string BUILD = "PtPoc-2026-11-07c";
+        public const string BUILD = "PtPoc-2026-11-08e";
 
         public readonly List<AlightenPtPocLevelV0001> Levels = new List<AlightenPtPocLevelV0001>();
         public readonly List<string> PendingLog = new List<string>();   // one line per bar read; the owner drains it
@@ -172,6 +172,8 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // just-due confirmed read deferred); its rows are complete, so evaluate it once more without slack
                 // before the first new bar. Without this a pivot on the bar before a Market Replay 'Go To' time (or
                 // a live chart's load time) got no provisional level and only appeared on its confirmed read.
+                // build d: "complete" holds only because the callers now pass CurrentBars - 1 in history too, so the
+                // bar forming at load time is never _lastBar here; it is processed by the loop below once it closes.
                 _handoff = true;
                 if (_lastBar >= 2 && _lastBar >= Cutoff()) Evaluate(_lastBar, 0);
             }
@@ -309,6 +311,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             {
                 case 1:  bestStart = startD; inWick = inD; pocF = fD; break;
                 case 2:  bestStart = startS; inWick = inS; pocF = fS; break;
+                case 3:  // either row: the one in the wick; both in the wick -> the more extreme (larger pocF), ties -> |delta|
+                    if (inD && (!inV || fD >= fV)) { bestStart = startD; inWick = inD; pocF = fD; }
+                    else if (inV)                  { bestStart = startV; inWick = inV; pocF = fV; }
+                    else                           { bestStart = startD; inWick = false; pocF = fD; }
+                    break;
                 default: bestStart = startV; inWick = inV; pocF = fV; break;
             }
             pocLo = bestStart;
@@ -483,8 +490,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "1.4 Extreme Mode: 0 Wick OR Position, 1 Both, 2 Position only, 3 Wick only", GroupName = "1. Pattern POC", Order = 4)]
         public int PocExtremeMode { get; set; } = 0;
 
-        [NinjaScriptProperty] [Range(0, 2)]
-        [Display(Name = "1.5 POC Row: 0 Heaviest row, 1 Largest |delta| row, 2 Largest delta against the pivot", GroupName = "1. Pattern POC", Order = 5)]
+        [NinjaScriptProperty] [Range(0, 3)]
+        [Display(Name = "1.5 POC Row: 0 Heaviest row, 1 Largest |delta| row, 2 Largest delta against the pivot, 3 Either 0 or 1", GroupName = "1. Pattern POC", Order = 5)]
         public int PocRowMode { get; set; } = 1;
 
         [NinjaScriptProperty] [Range(0, 200)]
@@ -581,7 +588,9 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             if (BarsInProgress != 0) return;
 
-            int lastComplete = State == State.Historical || Calculate == Calculate.OnBarClose ? CurrentBar : CurrentBar - 1;
+            // build d: history stays one bar behind - the last historical bar is the bar forming at load time when the
+            // chart (re)loads mid-bar, and the engine must not read it as closed (see the Mirror V0056 build h note).
+            int lastComplete = State == State.Realtime && Calculate == Calculate.OnBarClose ? CurrentBar : CurrentBar - 1;
             _engine.ProcessTo(lastComplete, State == State.Realtime);
             DrawLevels();
             FlushLog();

@@ -1,8 +1,21 @@
-// BUILD V0056-2026-11-08g  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0056.log)
-/* V0056Signal build 2026-11-08g: the last four defaults that differed from the user's AlightenMirrorV0056Signal_Default.xml
+// BUILD V0057-2026-11-08a  (the first line of this file; the indicator prints it at DataLoaded and at the top of MirrorStructV0057.log)
+/* AlightenMirrorV0057Signal (2026-11-08): V0056Signal build i as a version, at the user's request. What is new since the
+   V0056 promotion (build f, 2026-11-08 morning): 19.12 POC Row 3 = either the volume POC or the |delta| row, whichever is in
+   the wick (both -> the more extreme); the DEFAULT POC Row is now 2 = largest delta against the pivot (the user's pick after
+   trying it live); the Pattern POC engines are fed one bar behind in history as well, so a bar still forming when the chart
+   (re)loads mid-bar is never read as a closed pivot bar (engine file build PtPoc-2026-11-08e); POC boxes white / cyan and
+   the structure / level logs on by default (build g). Logs: MirrorStructV0057.log, MirrorPocV0057.log,
+   MirrorPatternPrintsV0057.log. Same hosted pattern sources as V0056 (PtA V0012, PtB V0006, PtF V0005, PtG V0004, PtH V0004,
+   PtJ V0008 on the Daily).
+   V0056Signal build 2026-11-08i: 19.12 POC Row gains 3 = either the volume POC or the |delta| row (the user's idea,
+   matched by Bias V0006 build l 4.5 and engine build PtPoc-2026-11-08e).
+   build 2026-11-08h: Pattern POC engines are fed one bar behind in history too (PocOnBar), so a bar still
+   forming when the chart (re)loads mid-bar is never read as a closed pivot bar (09:56 replay reload drew the 09:55-10:00
+   5-min short box at 09:57 from a half-built bar). Engine file build PtPoc-2026-11-08d carries the matching note.
+   build 2026-11-08g: the last four defaults that differed from the user's AlightenMirrorV0057Signal_Default.xml
    (build f's check covered only the script parameters): POC boxes white (short) / cyan (long), Write Structure Debug
    Log and Write Level Log on.
-   build 2026-11-07f: defaults = the user's 2026-11-07 AlightenMirrorV0056Signal_Default.xml (the ten
+   build 2026-11-07f: defaults = the user's 2026-11-07 AlightenMirrorV0057Signal_Default.xml (the ten
    Show 15m / 10m switches of patterns A/B/G/H/F are now true; every other default already matched).
    build 2026-11-07e: the Pattern POC timeframes get the same split: 19.2-19.4 Enable 1m/5m/10m decide
    which engines are created at load (default all), 19.5-19.7 Show 1m/5m/10m only draw and work live (the later
@@ -32,8 +45,8 @@
    19.1 is on. The engine's tuning (sessions, cell size, alignment, extreme mode, POC row, min wick, position,
    bars after pivot, provisional) is carried as group-19 properties, defaults = the user's BiasV0006 template.
    The boxes are drawings only for now: they do not enter the tracked levels, zones, retest or structure signal.
-   Reads are logged to Mirror Logs\MirrorPocV0056.log in the BiasPocV0006.log line format (tf=1m/5m/10m).
-   Everything else is V0055 build c unchanged (logs MirrorPatternPrintsV0056.log / MirrorStructV0056.log).
+   Reads are logged to Mirror Logs\MirrorPocV0057.log in the BiasPocV0006.log line format (tf=1m/5m/10m).
+   Everything else is V0055 build c unchanged (logs MirrorPatternPrintsV0057.log / MirrorStructV0057.log).
 /* V0055Signal build 2026-11-07c: the quick-settings modal's Pt J row shows the Daily box only (the six removed
    timeframes no longer get dead checkboxes). Nothing else changed.
    build 2026-11-06b: HOST ONLY WHAT IS SHOWN. A pattern source (PtA/B/G/H/F/J) is constructed for a
@@ -52,10 +65,10 @@
       the retest log's neb= field are gone; retest stage 1 is the wick touch alone (which it already was with the
       switch off, its default). The Mirror never wrote BarBrushes; any candle colouring comes from another
       indicator on the chart.
-   Logs: Mirror Logs\MirrorPatternPrintsV0056.log and MirrorStructV0056.log (the rule-4H ledger reads V0054 + V0055).
+   Logs: Mirror Logs\MirrorPatternPrintsV0057.log and MirrorStructV0057.log (the rule-4H ledger reads V0054 + V0055).
    Nothing else differs from V0054Signal build 2026-11-05d. - By Alighten */
 /* V0054Signal build 2026-11-05d: PATTERN PRINT LOG - one line per CREATE of a 60m / 240m pattern level (J excluded)
-   into Mirror Logs\MirrorPatternPrintsV0056.log: market time, pattern, timeframe, side, level, the chart close at the print.
+   into Mirror Logs\MirrorPatternPrintsV0057.log: market time, pattern, timeframe, side, level, the chart close at the print.
    Always on (about a hundred lines a day). Feeds the user's 4H-colour signal ledger (research\s3_ledger_01_rule4h.py).
    Nothing else differs from build 2026-11-03c.
    build 2026-11-03c: 1-hour bias levels default to width 2 (dotted); width 1 was too hard to see.
@@ -103,7 +116,7 @@
    The debug log also lists the visible-level counts per pattern/timeframe the instance saw. - By Alighten */
 /* V0052Signal = V0051Signal + (a) the DAILY BIAS LEVEL lines count as "levels visible on the chart" for the
    structure signal (18.15, default on; they have no side, so they qualify either direction), and (b) a structure
-   debug log (17.9): one line per closed bar per side into Mirror Logs\MirrorStructV0056.log - the pivot under
+   debug log (17.9): one line per closed bar per side into Mirror Logs\MirrorStructV0057.log - the pivot under
    test, the lower-high / higher-low verdict, the bar's range, the level matched or the nearest visible level and
    why it did not match. Found from the 2026-10-15 screenshot where the 23:42 lower high at the A 10m S and two
    lower highs at daily-bias lines printed nothing. Nothing else differs from V0051Signal. - By Alighten */
@@ -266,7 +279,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 {
 
 
-    public class AlightenMirrorV0056Signal : Indicator
+    public class AlightenMirrorV0057Signal : Indicator
     {
 		#region Class Variables
         private const int NUM_TF  = 7;
@@ -359,7 +372,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
 
         // build 2026-11-05d: one line per CREATE of a 60m / 240m pattern level, J excluded, into
-        // Mirror Logs\MirrorPatternPrintsV0056.log - the 4H-colour ledger (research\s3_ledger_01_rule4h.py) reads it.
+        // Mirror Logs\MirrorPatternPrintsV0057.log - the 4H-colour ledger (research\s3_ledger_01_rule4h.py) reads it.
         // Always on (about a hundred lines a day); a write error switches it off for the rest of the load.
         private bool _ppLogOn = true;
         private void PatternPrintLog(TrackedLevel tl, int barsAgoOnHtf)
@@ -368,7 +381,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             try
             {
                 double close = (CurrentBars != null && CurrentBars.Length > 0 && CurrentBars[0] >= 0) ? Closes[0][0] : double.NaN;
-                System.IO.File.AppendAllText(LogFile("MirrorPatternPrintsV0056.log"),
+                System.IO.File.AppendAllText(LogFile("MirrorPatternPrintsV0057.log"),
                     LogStamp() + " PRINT " + tl.PatternType + " " + _tfLabels[tl.TfIndex] + " " + (tl.IsLong ? "L" : "S")
                     + " level=" + tl.Price.ToString("F2") + " close=" + close.ToString("F2")
                     + " ago=" + barsAgoOnHtf + " live=" + tl.IsLive + Environment.NewLine);
@@ -1567,7 +1580,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name="18.15 Include Daily Bias Levels", Description="The Daily Bias Level lines (group 10) count as levels visible on the chart. They carry no side, so they qualify a short and a long alike.", Order=15, GroupName="18. Lower-High / Higher-Low Signal")]
         public bool StructIncludeDailyBias { get; set; }
 
-        [Display(Name="17.9 Write Structure Debug Log", Description="One line per closed bar per side into Mirror Logs\\MirrorStructV0056.log: the pivot under test, the structure verdict, the bar range, the level matched or the nearest visible level and why it did not match.", Order=9, GroupName="17. Logging & Diagnostics")]
+        [Display(Name="17.9 Write Structure Debug Log", Description="One line per closed bar per side into Mirror Logs\\MirrorStructV0057.log: the pivot under test, the structure verdict, the bar range, the level matched or the nearest visible level and why it did not match.", Order=9, GroupName="17. Logging & Diagnostics")]
         public bool DebugStructLog { get; set; }
 
         [Range(0, 720)]
@@ -1578,65 +1591,65 @@ namespace NinjaTrader.NinjaScript.Indicators
         public bool StructIncludeHtfBias { get; set; }
 
         // ===== V0056: Pattern POC =====
-        [Display(Name="19.1 Enable Pattern POC", Description="Adds a 1-minute and a 1-tick series and runs the Bias V0006 POC-at-the-extreme pivot read on the 1-, 5- and 10-minute bars. Needs a reload to take effect.", Order=1, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.1 Enable Pattern POC", Description="Adds a 1-minute and a 1-tick series and runs the Bias V0006 POC-at-the-extreme pivot read on the 1-, 5- and 10-minute bars. Needs a reload to take effect.", Order=1, GroupName="19. Pattern POC (V0057)")]
         public bool EnablePatternPoc { get; set; }
-        [Display(Name="19.2 Enable 1m", Description="LOAD the 1-minute POC engine (needs a reload). 19.5 only hides/shows its boxes.", Order=2, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.2 Enable 1m", Description="LOAD the 1-minute POC engine (needs a reload). 19.5 only hides/shows its boxes.", Order=2, GroupName="19. Pattern POC (V0057)")]
         public bool EnablePocTF1m { get; set; }
-        [Display(Name="19.3 Enable 5m", Description="LOAD the 5-minute POC engine (needs a reload). 19.6 only hides/shows its boxes.", Order=3, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.3 Enable 5m", Description="LOAD the 5-minute POC engine (needs a reload). 19.6 only hides/shows its boxes.", Order=3, GroupName="19. Pattern POC (V0057)")]
         public bool EnablePocTF5m { get; set; }
-        [Display(Name="19.4 Enable 10m", Description="LOAD the 10-minute POC engine (needs a reload). 19.7 only hides/shows its boxes.", Order=4, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.4 Enable 10m", Description="LOAD the 10-minute POC engine (needs a reload). 19.7 only hides/shows its boxes.", Order=4, GroupName="19. Pattern POC (V0057)")]
         public bool EnablePocTF10m { get; set; }
-        [Display(Name="19.5 Show 1m", Description="Draw the 1-minute boxes (live; the engine must be loaded, 19.2).", Order=5, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.5 Show 1m", Description="Draw the 1-minute boxes (live; the engine must be loaded, 19.2).", Order=5, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocTF1m { get; set; }
-        [Display(Name="19.6 Show 5m", Description="Draw the 5-minute boxes (live; the engine must be loaded, 19.3).", Order=6, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.6 Show 5m", Description="Draw the 5-minute boxes (live; the engine must be loaded, 19.3).", Order=6, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocTF5m { get; set; }
-        [Display(Name="19.7 Show 10m", Description="Draw the 10-minute boxes (live; the engine must be loaded, 19.4).", Order=7, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.7 Show 10m", Description="Draw the 10-minute boxes (live; the engine must be loaded, 19.4).", Order=7, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocTF10m { get; set; }
         [Range(0, int.MaxValue)]
-        [Display(Name="19.8 Sessions To Process (0 = all)", Description="The read runs from the first bar of the Nth most recent session of each source series (1 = the current session), so the row grid anchors at a real session open.", Order=8, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.8 Sessions To Process (0 = all)", Description="The read runs from the first bar of the Nth most recent session of each source series (1 = the current session), so the row grid anchors at a real session open.", Order=8, GroupName="19. Pattern POC (V0057)")]
         public int PocSessionsToProcess { get; set; }
         [Range(1, 50)]
-        [Display(Name="19.9 Cell Size (ticks)", Description="Footprint row height (the footprint's Aggregation Interval). The box is one row high.", Order=9, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.9 Cell Size (ticks)", Description="Footprint row height (the footprint's Aggregation Interval). The box is one row high.", Order=9, GroupName="19. Pattern POC (V0057)")]
         public int PocCellTicks { get; set; }
-        [Display(Name="19.10 Align Cells To Session Open", Description="Rows start at the session open price; off = each bar's low.", Order=10, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.10 Align Cells To Session Open", Description="Rows start at the session open price; off = each bar's low.", Order=10, GroupName="19. Pattern POC (V0057)")]
         public bool PocAlignToSessionOpen { get; set; }
         [Range(0, 3)]
-        [Display(Name="19.11 Extreme Mode: 0 Wick OR Position, 1 Both, 2 Position only, 3 Wick only", Order=11, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.11 Extreme Mode: 0 Wick OR Position, 1 Both, 2 Position only, 3 Wick only", Order=11, GroupName="19. Pattern POC (V0057)")]
         public int PocExtremeMode { get; set; }
-        [Range(0, 2)]
-        [Display(Name="19.12 POC Row: 0 Heaviest row, 1 Largest |delta| row, 2 Largest delta against the pivot", Order=12, GroupName="19. Pattern POC (V0056)")]
+        [Range(0, 3)]
+        [Display(Name="19.12 POC Row: 0 Heaviest row, 1 Largest |delta| row, 2 Largest delta against the pivot, 3 Either 0 or 1", Description="3 = the volume POC or the |delta| row, whichever lies in the wick (both -> the more extreme one). Engine build PtPoc-2026-11-08e.", Order=12, GroupName="19. Pattern POC (V0057)")]
         public int PocRowMode { get; set; }
         [Range(0, 200)]
-        [Display(Name="19.13 Min Wick (ticks)", Description="Pivot extreme to body extreme.", Order=13, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.13 Min Wick (ticks)", Description="Pivot extreme to body extreme.", Order=13, GroupName="19. Pattern POC (V0057)")]
         public int PocMinWickTicks { get; set; }
         [Range(0.0, 1.0)]
-        [Display(Name="19.14 POC Position In Wick (0 body .. 1 extreme)", Order=14, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.14 POC Position In Wick (0 body .. 1 extreme)", Order=14, GroupName="19. Pattern POC (V0057)")]
         public double PocExtremeFraction { get; set; }
         [Range(0, 5)]
-        [Display(Name="19.15 Bars After Pivot (also read)", Description="0 = pivot bar only.", Order=15, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.15 Bars After Pivot (also read)", Description="0 = pivot bar only.", Order=15, GroupName="19. Pattern POC (V0057)")]
         public int PocBarsAfterPivot { get; set; }
-        [Display(Name="19.16 Show Provisional Levels", Description="A box as soon as the pivot bar closes with the read (dashed, fainter); it goes if a more extreme same-side bar replaces the pivot, and turns solid when the opposite pivot confirms it.", Order=16, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.16 Show Provisional Levels", Description="A box as soon as the pivot bar closes with the read (dashed, fainter); it goes if a more extreme same-side bar replaces the pivot, and turns solid when the opposite pivot confirms it.", Order=16, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocProvisional { get; set; }
         [XmlIgnore]
-        [Display(Name="19.17 Short Box Color (pivot high)", Order=17, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.17 Short Box Color (pivot high)", Order=17, GroupName="19. Pattern POC (V0057)")]
         public Brush PocShortColor { get; set; }
         [Browsable(false)] public string PocShortColorSerialize { get { return Serialize.BrushToString(PocShortColor); } set { PocShortColor = Serialize.StringToBrush(value); } }
         [XmlIgnore]
-        [Display(Name="19.18 Long Box Color (pivot low)", Order=18, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.18 Long Box Color (pivot low)", Order=18, GroupName="19. Pattern POC (V0057)")]
         public Brush PocLongColor { get; set; }
         [Browsable(false)] public string PocLongColorSerialize { get { return Serialize.BrushToString(PocLongColor); } set { PocLongColor = Serialize.StringToBrush(value); } }
         [Range(0, 100)]
-        [Display(Name="19.19 Fill Opacity (confirmed)", Order=19, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.19 Fill Opacity (confirmed)", Order=19, GroupName="19. Pattern POC (V0057)")]
         public int PocFillOpacity { get; set; }
         [Range(0, 100)]
-        [Display(Name="19.20 Fill Opacity (provisional)", Order=20, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.20 Fill Opacity (provisional)", Order=20, GroupName="19. Pattern POC (V0057)")]
         public int PocProvisionalOpacity { get; set; }
         [Range(1, 10)]
-        [Display(Name="19.21 Outline Width", Order=21, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.21 Outline Width", Order=21, GroupName="19. Pattern POC (V0057)")]
         public int PocOutlineWidth { get; set; }
-        [Display(Name="19.22 Show Labels", Description="'POC 5m S' at the box.", Order=22, GroupName="19. Pattern POC (V0056)")]
+        [Display(Name="19.22 Show Labels", Description="'POC 5m S' at the box.", Order=22, GroupName="19. Pattern POC (V0057)")]
         public bool ShowPocLabels { get; set; }
-        [Display(Name="17.10 Log POC Reads", Description="One line per read into Mirror Logs\\MirrorPocV0056.log (BiasPocV0006.log format, tf=1m/5m/10m): realtime always, history too when on.", Order=10, GroupName="17. Logging & Diagnostics")]
+        [Display(Name="17.10 Log POC Reads", Description="One line per read into Mirror Logs\\MirrorPocV0057.log (BiasPocV0006.log format, tf=1m/5m/10m): realtime always, history too when on.", Order=10, GroupName="17. Logging & Diagnostics")]
         public bool PocLogHistorical { get; set; }
 
         [Display(Name="16.4 Also Alert on Provisional", Description="Also alert at stage 1, when a wick first touches the level - earlier, but many of these never confirm. Fires whether or not provisional marks are shown.", Order=4, GroupName="16. Retest Alerts")]
@@ -1657,7 +1670,7 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             if (State == State.SetDefaults)
             {
-                Name = "AlightenMirrorV0056Signal";
+                Name = "AlightenMirrorV0057Signal";
                 Description = "SIGNAL branch of the Multi-Timeframe Mirror (Patterns A, B, G, H, F, J) - clean copy of V0041, no signal work. v32: draws the last N Daily levels from the AlightenBiasV0003 pivot engine (ported inline, group 11 settings) — plain levels, no pattern requirement. Includes v31 research logging and the v30 perf work.";
                 Calculate = Calculate.OnEachTick;
                 IsOverlay = true;
@@ -1721,10 +1734,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 ShowPatternFTF6_10m = true;    // build f: the user's 2026-11-07 template
                 ShowPatternFTF7_5m = true;
                 ShowPatternJTF1_Daily = true;
-                // V0056: Pattern POC defaults = the user's BiasV0006 template (2026-11-07)
+                // V0056: Pattern POC defaults = the user's BiasV0006 template (2026-11-07); V0057: POC Row 2 (the user's pick, 2026-11-08)
                 EnablePatternPoc = true; ShowPocTF1m = true; ShowPocTF5m = true; ShowPocTF10m = true;
                 EnablePocTF1m = true; EnablePocTF5m = true; EnablePocTF10m = true;   // build e: Enable = loaded; Show = drawn
-                PocSessionsToProcess = 1; PocCellTicks = 4; PocAlignToSessionOpen = true; PocExtremeMode = 0; PocRowMode = 1;
+                PocSessionsToProcess = 1; PocCellTicks = 4; PocAlignToSessionOpen = true; PocExtremeMode = 0; PocRowMode = 2;
                 PocMinWickTicks = 10; PocExtremeFraction = 0.5; PocBarsAfterPivot = 0; ShowPocProvisional = true;
                 PocShortColor = Brushes.White; PocLongColor = Brushes.Cyan;   // build g: the user's template colours
                 PocFillOpacity = 35; PocProvisionalOpacity = 12;
@@ -2161,7 +2174,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     for (int t = 0; t < NUM_TF; t++)
                         hosted += (_srcA[t] != null ? 1 : 0) + (_srcB[t] != null ? 1 : 0) + (_srcG[t] != null ? 1 : 0)
                                 + (_srcH[t] != null ? 1 : 0) + (_srcF[t] != null ? 1 : 0) + (_srcJ[t] != null ? 1 : 0);
-                    Print("[AlightenMirrorV0056Signal] " + BUILD_ID + ": hosting " + hosted + " pattern source(s) of " + (NUM_PAT * NUM_TF)
+                    Print("[AlightenMirrorV0057Signal] " + BUILD_ID + ": hosting " + hosted + " pattern source(s) of " + (NUM_PAT * NUM_TF)
                           + " (enabled patterns 1.1-1.6 x enabled timeframes 1.7-1.13; the Show switches only hide/show these)"
                           + "; Pattern POC engines: " + (_poc[0] != null ? "1m " : "") + (_poc[1] != null ? "5m " : "") + (_poc[2] != null ? "10m" : ""));
                 }
@@ -2246,7 +2259,12 @@ namespace NinjaTrader.NinjaScript.Indicators
             for (int k = 0; k < POC_NTF; k++)
             {
                 if (_poc[k] == null || _pocBip[k] != bip) continue;
-                int lastComplete = State == State.Historical ? CurrentBars[bip] : CurrentBars[bip] - 1;
+                // build h: one bar behind in BOTH states. The last historical bar is the bar FORMING at load time whenever
+                // the chart (re)loads mid-bar (2026-11-08 09:56 replay reload: the 09:55-10:00 5-min bar arrived as history
+                // with ticks to 09:56:30, the engine read it as closed and drew a short box three minutes early). Leaving
+                // it unprocessed costs nothing: the first realtime event of this series hands it over complete (engine
+                // hand-off, build c) or, if it is still forming, the tick feed keeps filling its rows until it closes.
+                int lastComplete = CurrentBars[bip] - 1;
                 _poc[k].ProcessTo(lastComplete, State == State.Realtime);
                 PocSyncDrawings(k, false);
                 PocFlushLog(k);
@@ -2307,7 +2325,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (eng == null || eng.PendingLog.Count == 0) return;
             if (_pocLogOn && (State == State.Realtime || PocLogHistorical))
             {
-                try { System.IO.File.AppendAllText(LogFile("MirrorPocV0056.log"), string.Join(Environment.NewLine, eng.PendingLog) + Environment.NewLine); }
+                try { System.IO.File.AppendAllText(LogFile("MirrorPocV0057.log"), string.Join(Environment.NewLine, eng.PendingLog) + Environment.NewLine); }
                 catch { _pocLogOn = false; }
             }
             eng.PendingLog.Clear();
@@ -2398,12 +2416,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    // V0056: Pattern POC - BIP 9 feeds the ticks to every engine; BIP 8/7/6 close the engines' bars
 		    if (EnablePatternPoc && BarsInProgress == POC_TICK_BIP)
 		    {
-		        try { PocFeedTick(); } catch (Exception ex) { Print("[AlightenMirrorV0056Signal] POC tick: " + ex.Message); }
+		        try { PocFeedTick(); } catch (Exception ex) { Print("[AlightenMirrorV0057Signal] POC tick: " + ex.Message); }
 		        return;
 		    }
 		    if (EnablePatternPoc && (BarsInProgress == POC_1M_BIP || BarsInProgress == 7 || BarsInProgress == 6))
 		    {
-		        try { PocOnBar(BarsInProgress); } catch (Exception ex) { Print("[AlightenMirrorV0056Signal] POC bar: " + ex.Message); }
+		        try { PocOnBar(BarsInProgress); } catch (Exception ex) { Print("[AlightenMirrorV0057Signal] POC bar: " + ex.Message); }
 		        return;
 		    }
 
@@ -2427,7 +2445,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		            int bip = BarsInProgress;
 		            PivotCatchUp(bip == H4_BIP ? _h4Engine : _h1Engine, bip, State == State.Historical ? CurrentBars[bip] : CurrentBars[bip] - 1, true);
 		        }
-		        catch (Exception ex) { Print("[AlightenMirrorV0056Signal] 4H / 1H bias engine: " + ex.Message); }
+		        catch (Exception ex) { Print("[AlightenMirrorV0057Signal] 4H / 1H bias engine: " + ex.Message); }
 		        return;
 		    }
 
@@ -3150,7 +3168,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             // from a broken one -- that ambiguity cost a debugging session, so both sets report
             // their state to the Output window whether they run or not.
             NinjaTrader.Code.Output.Process(string.Format(
-                "[AlightenMirrorV0056Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
+                "[AlightenMirrorV0057Signal] zone sets: PRIMARY {0} ({1})   INSIDE {2} ({3})",
                 _zsPri.Enabled ? "ON" : "OFF", _zsPri.FileName,
                 _zsIns.Enabled ? "ON" : "OFF", _zsIns.FileName), PrintTo.OutputTab1);
         }
@@ -3177,7 +3195,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (!System.IO.File.Exists(path))
                 {
                     System.IO.File.WriteAllText(path,
-                        "# AlightenMirrorV0056Signal signal groups\r\n" +
+                        "# AlightenMirrorV0057Signal signal groups\r\n" +
                         "# One rule per row:  <signal>, <signal>, ... ; <max zone spread in ticks>T\r\n" +
                         "# Signal = Pattern letter (A B G H F J) + timeframe (D 240 60 30 15 10 5) + direction (S or L)\r\n" +
                         "# Optional extra flag: ; ANCHORED   (others on the highest-TF member's protected side)\r\n" +
@@ -3185,7 +3203,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         "# Example: the triple J short stack within 100 ticks:\r\n" +
                         "J15S, J30S, J60S; 100T\r\n" +
                         "J15L, J30L, J60L; 100T\r\n");
-                    Print("[AlightenMirrorV0056Signal] created groups file with examples: " + path);
+                    Print("[AlightenMirrorV0057Signal] created groups file with examples: " + path);
                 }
 
                 foreach (string raw in System.IO.File.ReadAllLines(path))
@@ -3197,7 +3215,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     string[] segs = line.Split(';');
                     if (segs.Length < 2)
                     {
-                        Print("[AlightenMirrorV0056Signal] groups file: missing '; <ticks>T' in row: " + line);
+                        Print("[AlightenMirrorV0057Signal] groups file: missing '; <ticks>T' in row: " + line);
                         continue;
                     }
 
@@ -3205,7 +3223,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     int maxTicks;
                     if (!int.TryParse(tickPart, out maxTicks) || maxTicks <= 0)
                     {
-                        Print("[AlightenMirrorV0056Signal] groups file: bad tick spread in row: " + line);
+                        Print("[AlightenMirrorV0057Signal] groups file: bad tick spread in row: " + line);
                         continue;
                     }
 
@@ -3219,7 +3237,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                         else if (flag == "ORDERED")
                             rule.Ordered = true;
                         else if (flag.Length > 0)
-                            Print("[AlightenMirrorV0056Signal] groups file: unknown flag '" + flag + "' in row: " + line);
+                            Print("[AlightenMirrorV0057Signal] groups file: unknown flag '" + flag + "' in row: " + line);
                     }
 
                     bool ok = true;
@@ -3238,7 +3256,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
                         if (p < 0 || t < 0 || (dirKey != "L" && dirKey != "S"))
                         {
-                            Print("[AlightenMirrorV0056Signal] groups file: bad signal token '" + tok + "' in row: " + line);
+                            Print("[AlightenMirrorV0057Signal] groups file: bad signal token '" + tok + "' in row: " + line);
                             ok = false;
                             break;
                         }
@@ -3261,7 +3279,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                     }
                 }
 
-                Print("[AlightenMirrorV0056Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
+                Print("[AlightenMirrorV0057Signal] loaded " + zs.Rules.Count + " signal-group rule(s) from " + path);
 
                 zs.LogPath = LogFile("MirrorZonesV0046Signal_" + zs.Name + ".log");
                 GrpLog(zs, "======== LOAD " + _logLoadId + " " + (Instrument != null ? Instrument.FullName : "?")
@@ -3270,7 +3288,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0056Signal] groups file error: " + ex.Message);
+                Print("[AlightenMirrorV0057Signal] groups file error: " + ex.Message);
             }
         }
 
@@ -4482,7 +4500,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public bool     IsLong;
             public bool     Confirmed;
         }
-        private const string BUILD_ID = "V0056-2026-11-08g";
+        private const string BUILD_ID = "V0057-2026-11-08a";
         private List<StructMark> _ssMarks;
         private int _ssLastBar = -1;
         private DateTime _ssCutoff = DateTime.MinValue;   // build k: historical bars before this are skipped
@@ -4502,7 +4520,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (!DebugStructLog) return;
             try
             {
-                string p = LogFile("MirrorStructV0056.log");
+                string p = LogFile("MirrorStructV0057.log");
                 System.IO.File.AppendAllText(p, LogStamp() + " " + line + Environment.NewLine);
             }
             catch { }
@@ -4924,9 +4942,9 @@ namespace NinjaTrader.NinjaScript.Indicators
         // the whole object graph (tracked levels, zone sets, hosted sources) leaks with it.
         private RoutedEventHandler _hSettings, _hExport, _hClean;
 
-        private const string TB_SETTINGS_ID = "AlightenMirrorV0056SignalSettingsBtn";
-        private const string TB_EXPORT_ID   = "AlightenMirrorV0056SignalExportBtn";
-        private const string TB_CLEAN_ID    = "AlightenMirrorV0056SignalCleanBtn";
+        private const string TB_SETTINGS_ID = "AlightenMirrorV0057SignalSettingsBtn";
+        private const string TB_EXPORT_ID   = "AlightenMirrorV0057SignalExportBtn";
+        private const string TB_CLEAN_ID    = "AlightenMirrorV0057SignalCleanBtn";
 
         // A recompile discards this instance before the Terminated teardown - which is queued
         // on the chart Dispatcher - ever runs, so the PREVIOUS build's buttons stay parented to
@@ -4949,10 +4967,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
                 foreach (System.Windows.UIElement el in doomed) chartWindow.MainMenu.Remove(el);
                 if (doomed.Count > 0)
-                    Print("[AlightenMirrorV0056Signal] cleared " + doomed.Count
+                    Print("[AlightenMirrorV0057Signal] cleared " + doomed.Count
                         + " orphaned toolbar button(s) left by a previous build");
             }
-            catch (Exception ex) { Print("[AlightenMirrorV0056Signal] orphan sweep: " + ex.Message); }
+            catch (Exception ex) { Print("[AlightenMirrorV0057Signal] orphan sweep: " + ex.Message); }
         }
 
 		private void CreateToolbarButton()
@@ -4993,7 +5011,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 cleanButton.Margin = new Thickness(6, 3, 6, 3);
                 cleanButton.ToolTip = "Remove currently-active levels price has crossed, purge failed zones, and rebuild active zones (same as the modal's Clean Invalid)";
                 chartWindow.MainMenu.Add(cleanButton);
-            } catch (Exception ex) { Print("[AlightenMirrorV0056Signal] toolbar error: " + ex.Message); }
+            } catch (Exception ex) { Print("[AlightenMirrorV0057Signal] toolbar error: " + ex.Message); }
         }
 
         private void TryRemoveToolbarButton()
@@ -5079,7 +5097,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
             catch (Exception ex)
             {
-                Print("[AlightenMirrorV0056Signal] Export error: " + ex.Message);
+                Print("[AlightenMirrorV0057Signal] Export error: " + ex.Message);
             }
         }
 
@@ -5154,7 +5172,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
             sb.AppendLine("  \"source_indicators\": [\"AlightenMirrorPtAV0012\", \"AlightenMirrorPtBV0006\", \"AlightenMirrorPtGV0004\", \"AlightenMirrorPtHV0004\", \"AlightenMirrorPtFV0005\", \"AlightenMirrorPtJV0008\"],");
             sb.AppendLine("  \"bar_timestamp\": \"close\",");
-            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0056Signal\"");
+            sb.AppendLine("  \"exported_by\": \"AlightenMirrorV0057Signal\"");
             sb.AppendLine("}");
 
             System.IO.File.WriteAllText(metaPath, sb.ToString());
@@ -5204,7 +5222,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 		    }
 		    catch (Exception ex)
 		    {
-		        Print($"[AlightenMirrorV0056Signal] Failed to open settings: {ex.Message}");
+		        Print($"[AlightenMirrorV0057Signal] Failed to open settings: {ex.Message}");
 		    }
 		}
 
