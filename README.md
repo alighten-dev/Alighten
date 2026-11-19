@@ -18,7 +18,9 @@ catalogued under [Other indicators](#other-indicators-not-on-the-reference-chart
 instrument comes from whatever chart you apply it to). The same layout for the Dow:
 [the YM chart](#the-ym-chart-2026-11-18).
 
-![The reference chart: NQ 12-26, 30-second, with the Mirror levels, structure signals, Auto AVWAPs and their signals.](docs/reference-chart.jpg)
+![The reference chart: NQ 12-26, 30-second, 2026-11-19 01:07-02:13, with the Mirror levels, structure signals, Pattern POC boxes, large-trade bubbles and the Auto AVWAP cloud.](docs/reference-chart.jpg)
+
+*Screenshot of 2026-11-19, 01:07-02:13. The solid cyan "Put Wall" line at 27,580 comes from a third-party GEX indicator that is not part of this template or this repo.*
 
 **The companion 5-minute chart** carries the Bias zigzag and its recent pivot levels, plus the pattern
 triangles. The 5-minute (or hourly) chart is where a *gain* or *loss* of a recent level is read; the
