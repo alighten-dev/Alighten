@@ -1447,7 +1447,7 @@
           <StructLongSound>Alert2.wav</StructLongSound>
           <StructShortSound>Alert4.wav</StructShortSound>
           <StructIncludeDailyBias>true</StructIncludeDailyBias>
-          <DebugStructLog>true</DebugStructLog>
+          <DebugStructLog>false</DebugStructLog>
           <StructLookbackHours>5</StructLookbackHours>
           <StructIncludeHtfBias>true</StructIncludeHtfBias>
           <EnablePatternPoc>true</EnablePatternPoc>
@@ -1492,9 +1492,9 @@
           <ShareMessage>{text}</ShareMessage>
           <ShareMinSeconds>5</ShareMinSeconds>
           <ShareInPlayback>true</ShareInPlayback>
-          <PocLogHistorical>true</PocLogHistorical>
+          <PocLogHistorical>false</PocLogHistorical>
           <RetestAlertProvisional>false</RetestAlertProvisional>
-          <DebugLevelLog>true</DebugLevelLog>
+          <DebugLevelLog>false</DebugLevelLog>
           <LogFolder>Mirror Logs</LogFolder>
           <WriteZoneLog>false</WriteZoneLog>
         </AlightenMirrorV0058Signal>
@@ -2091,7 +2091,7 @@
           <ZOrder>0</ZOrder>
           <DataSeriesMinutes>5</DataSeriesMinutes>
           <DataSeriesBarsToLoad>0</DataSeriesBarsToLoad>
-          <DebugLog>true</DebugLog>
+          <DebugLog>false</DebugLog>
           <CalcTimeframe>Minute5</CalcTimeframe>
           <SessionBehavior>Day</SessionBehavior>
           <KeepPreviousSessionHL>true</KeepPreviousSessionHL>
