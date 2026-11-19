@@ -160,6 +160,54 @@ For the rule-file syntax and the silent-stub gotcha, see
    referencing an uncompiled indicator drops it silently.
 4. Apply [`AlightenMirror_20261109.xml`](NinjaTrader/Templates/Chart/AlightenMirror_20261109.xml) via
    Chart → Templates → Load.
+5. Optional: copy the two POC alert sounds from [`NinjaTrader/Sounds/`](NinjaTrader/Sounds/)
+   (`AlightenPocLong.wav`, `AlightenPocShort.wav`) into the `sounds` folder of the NinjaTrader program
+   folder (`C:\Program Files\NinjaTrader 8\sounds\`). Without them the POC box alerts are silent.
+
+---
+
+## The YM chart (2026-11-18)
+
+**Template:** [`NinjaTrader/Templates/Chart/AlightenMirrorYM_20261118.xml`](NinjaTrader/Templates/Chart/AlightenMirrorYM_20261118.xml)
+**Built on:** YM 12-26, 30 Second, 3 days back. Like every template it carries no instrument, so it
+works on any chart; it was tuned on the Dow.
+
+The newest layout of the same suite. Compared with the NQ reference chart above:
+
+* **Mirror V0058** instead of V0057 — the same levels, structure signal and POC boxes, plus
+  *19.30 Keep All POC Boxes* (on here: a box that a later bar replaced stays on the chart, faint and
+  dotted) and group *20. Phone Notifications* (off in this copy — point *20.2* at your own NinjaTrader
+  share service if you want them).
+* **Mirror levels from the Daily down to the 30-minute only** for A, B, G, H and F (15, 10 and 5 minutes
+  hidden); J on the Daily. Source bars to process 200.
+* **Auto AVWAP V0008** instead of V0007 — kept lines (an AVWAP stays drawn until a 5-minute bar closes
+  through it), the shaded cloud between the two newest AVWAPs, failed-break and break-spawned test
+  AVWAPs. Its signals are **off** on this template.
+* **[`AlightenLargeTradesV0001`](NinjaTrader/Indicators/AlightenLargeTradesV0001.cs)** is new: large-trade
+  bubbles in **Sweep** mode (same-side prints within 4 ms, price moving one way = one aggressive order;
+  25 contracts and up), no zones, no alerts.
+* Bias V0007 (6 recent levels, POC diamonds, no sound), Button Panel, two vertical-line indicators,
+  Label Remover, and the built-ins `CurrentDayOHL` and `DrawingToolTile`, as on the NQ chart.
+* Chart Trader account `Playback101` — set your own after loading.
+
+**Files needed** (all in this repo, all into `Documents\NinjaTrader 8\bin\Custom\Indicators\`):
+
+| File | Placed on the chart / needed by |
+|---|---|
+| [`AlightenMirrorV0058Signal.cs`](NinjaTrader/Indicators/AlightenMirrorV0058Signal.cs) | on the chart |
+| [`AutoAVWAPMTFV0008.cs`](NinjaTrader/Indicators/AutoAVWAPMTFV0008.cs) | on the chart |
+| [`AlightenLargeTradesV0001.cs`](NinjaTrader/Indicators/AlightenLargeTradesV0001.cs) | on the chart |
+| [`AlightenBiasV0007.cs`](NinjaTrader/Indicators/AlightenBiasV0007.cs) | on the chart |
+| [`AlightenButtonPanelV0005.cs`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | on the chart |
+| [`AlightenVerticalLineAtIntervalV0001.cs`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | on the chart (twice) |
+| [`LabelRemover.cs`](NinjaTrader/Indicators/LabelRemover.cs) | on the chart |
+| [`AlightenMirrorPtAV0012.cs`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs), [`PtBV0006`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs), [`PtFV0005`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs), [`PtGV0004`](NinjaTrader/Indicators/AlightenMirrorPtGV0004.cs), [`PtHV0004`](NinjaTrader/Indicators/AlightenMirrorPtHV0004.cs), [`PtJV0008`](NinjaTrader/Indicators/AlightenMirrorPtJV0008.cs) | hosted by the Mirror |
+| [`AlightenMirrorPtPocV0001.cs`](NinjaTrader/Indicators/AlightenMirrorPtPocV0001.cs) | the Mirror's POC engine — **must be build `PtPoc-2026-11-13f` or later** (V0058 uses its Keep All option; the 11-08 build does not compile with V0058) |
+| [`IndicatorVisualStyleHelper.cs`](NinjaTrader/Indicators/IndicatorVisualStyleHelper.cs) | the Mirror Settings window |
+
+Compile (**F5**) before loading the template, then copy the two POC sounds from
+[`NinjaTrader/Sounds/`](NinjaTrader/Sounds/) as in step 5 above. Both zone sets are off, so the zone
+rule files are not needed.
 
 ---
 
@@ -195,8 +243,8 @@ promoted or retired.
 
 | Indicator family | Production version | On the reference chart |
 |---|---|---|
-| Mirror Dashboard | [`AlightenMirrorV0057Signal`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) | same |
-| Pattern POC engine | [`AlightenMirrorPtPocV0001`](NinjaTrader/Indicators/AlightenMirrorPtPocV0001.cs) | compiled into the Mirror |
+| Mirror Dashboard | [`AlightenMirrorV0058Signal`](NinjaTrader/Indicators/AlightenMirrorV0058Signal.cs) | YM chart; the NQ 20261109 templates still use [`V0057Signal`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) (kept) |
+| Pattern POC engine | [`AlightenMirrorPtPocV0001`](NinjaTrader/Indicators/AlightenMirrorPtPocV0001.cs) (build `PtPoc-2026-11-13f`) | compiled into the Mirror |
 | Pattern A source | [`AlightenMirrorPtAV0012`](NinjaTrader/Indicators/AlightenMirrorPtAV0012.cs) | same |
 | Pattern B source | [`AlightenMirrorPtBV0006`](NinjaTrader/Indicators/AlightenMirrorPtBV0006.cs) | same |
 | Pattern F source | [`AlightenMirrorPtFV0005`](NinjaTrader/Indicators/AlightenMirrorPtFV0005.cs) | same |
@@ -207,7 +255,8 @@ promoted or retired.
 | Volume Profile | [`RedTailVolumeProfile`](NinjaTrader/Indicators/RedTailVolumeProfile.cs) | not on chart |
 | Order Flow Tools | [`AlightenOrderFlowToolsV0006`](NinjaTrader/Indicators/AlightenOrderFlowToolsV0006.cs) | not on chart (removed 2026-11-08) |
 | Bias | [`AlightenBiasV0007`](NinjaTrader/Indicators/AlightenBiasV0007.cs) | same |
-| Auto AVWAP | [`AutoAVWAPMTFV0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) | same |
+| Auto AVWAP | [`AutoAVWAPMTFV0008`](NinjaTrader/Indicators/AutoAVWAPMTFV0008.cs) | YM chart; the NQ 20261109 templates still use [`V0007`](NinjaTrader/Indicators/AutoAVWAPMTFV0007.cs) (kept) |
+| Large Trades | [`AlightenLargeTradesV0001`](NinjaTrader/Indicators/AlightenLargeTradesV0001.cs) | YM chart |
 | Button Panel | [`AlightenButtonPanelV0005`](NinjaTrader/Indicators/AlightenButtonPanelV0005.cs) | same |
 | Bar Timer | [`AlightenBarTimerV0004`](NinjaTrader/Indicators/AlightenBarTimerV0004.cs) (V3 also in repo) | on the 5-minute chart |
 | Vertical Line at Interval | [`AlightenVerticalLineAtIntervalV0001`](NinjaTrader/Indicators/AlightenVerticalLineAtIntervalV0001.cs) | same |
@@ -219,6 +268,16 @@ promoted or retired.
 **The chart and the table agree.** Order Flow Tools and Nebula left the reference chart on 2026-11-08,
 the BnB VWAP on 2026-10-15, the Bar Timer and RedTail volume profile on 2026-10-04; all of them stay in
 the repo.
+
+**Promoted 2026-11-19.** [`AlightenMirrorV0058Signal`](NinjaTrader/Indicators/AlightenMirrorV0058Signal.cs) (V0057 build b +
+group 20 phone notifications through a NinjaTrader share service, off by default; build b stops a full redraw re-alerting
+old POC boxes; build c adds *19.30 Keep All POC Boxes*), [`AutoAVWAPMTFV0008`](NinjaTrader/Indicators/AutoAVWAPMTFV0008.cs)
+(kept lines, cloud, failed-break and break-spawn tests), the new
+[`AlightenLargeTradesV0001`](NinjaTrader/Indicators/AlightenLargeTradesV0001.cs) (the Large Trades bubbles and zones of
+Order Flow Tools V0006 on their own, plus a Sweep mode modelled on Whisky's whiskysBigTrades, logging and alerts), and Pattern
+POC engine build `PtPoc-2026-11-13f`, all for the new
+[`AlightenMirrorYM_20261118.xml`](NinjaTrader/Templates/Chart/AlightenMirrorYM_20261118.xml) template. Nothing was
+retired: the NQ 20261109 templates still use Mirror V0057 and AVWAP V0007 (the new engine build is backward compatible).
 
 **Retired 2026-11-08 (evening).** `AlightenMirrorV0056Signal` and `AlightenBiasV0006` were removed, superseded by
 [`AlightenMirrorV0057Signal`](NinjaTrader/Indicators/AlightenMirrorV0057Signal.cs) and

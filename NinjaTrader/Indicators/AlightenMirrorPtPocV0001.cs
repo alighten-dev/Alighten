@@ -65,6 +65,8 @@ namespace NinjaTrader.NinjaScript.Indicators
         public double ExtremeFraction     = 0.5;    // row centre position in the wick, 0 body .. 1 extreme
         public int    BarsAfterPivot      = 0;      // 0 = pivot bar only
         public bool   Provisional         = true;   // stage 1 levels (at the pivot bar's close) are reported too
+        public bool   KeepAll             = false;  // 2026-11-13: never remove a level - a replaced pivot's box, a failed
+                                                    // confirmation and a moved read stay in Levels, flagged Superseded
     }
 
     /// <summary>One Pattern POC level: the POC row of a pivot bar whose read passed.</summary>
@@ -83,13 +85,14 @@ namespace NinjaTrader.NinjaScript.Indicators
         public int      WickTicks;
         public bool     Confirmed;    // false = provisional (stage 1)
         public bool     Removed;      // the pivot was replaced or the complete read disagreed - caller erases it
+        public bool     Superseded;   // KeepAll only: would have been removed / moved; kept, Key unchanged (caller restyles it)
         public bool     Dirty;        // changed since the caller last drew it
     }
 
     /// <summary>The Pattern POC engine: Bias V0006's pivot + footprint read on one bar series, fed by its owner.</summary>
     public class AlightenPtPocEngineV0001
     {
-        public const string BUILD = "PtPoc-2026-11-08e";
+        public const string BUILD = "PtPoc-2026-11-13f";   // f: KeepAll (Superseded levels)
 
         public readonly List<AlightenPtPocLevelV0001> Levels = new List<AlightenPtPocLevelV0001>();
         public readonly List<string> PendingLog = new List<string>();   // one line per bar read; the owner drains it
@@ -396,9 +399,12 @@ namespace NinjaTrader.NinjaScript.Indicators
         {
             AlightenPtPocLevelV0001 lv;
             if (!_byKey.TryGetValue(key, out lv)) return;
+            if (_cfg.KeepAll) { lv.Superseded = true; lv.Dirty = true; _byKey.Remove(key); return; }   // kept, restyled
             lv.Removed = true; lv.Dirty = true;
             _byKey.Remove(key);
         }
+        private int _supSeq;
+        private readonly HashSet<string> _usedKeys = new HashSet<string>();   // KeepAll: every Key handed out (tags stay unique)
 
         private void DropReplaced(bool isHigh, string keepKey)
         {
@@ -415,15 +421,24 @@ namespace NinjaTrader.NinjaScript.Indicators
             AlightenPtPocLevelV0001 lv;
             if (_byKey.TryGetValue(key, out lv))
             {
-                if (lv.BarIndex != read.BarIndex || lv.PocLo != read.PocLo || lv.PocHi != read.PocHi || lv.Confirmed != confirmed)
+                bool moved = lv.BarIndex != read.BarIndex || lv.PocLo != read.PocLo || lv.PocHi != read.PocHi;
+                if (_cfg.KeepAll && moved)
+                {
+                    // the old box stays where it was (Superseded); the new read becomes a new level under a fresh Key
+                    lv.Superseded = true; lv.Dirty = true; _byKey.Remove(key);
+                }
+                else if (moved || lv.Confirmed != confirmed)
                 {
                     lv.BarIndex = read.BarIndex; lv.BarStart = read.BarStart; lv.BarEnd = read.BarEnd;
                     lv.PocLo = read.PocLo; lv.PocHi = read.PocHi; lv.PocF = read.PocF; lv.WickTicks = read.WickTicks;
                     lv.Confirmed = confirmed; lv.Dirty = true;
+                    return;
                 }
-                return;
+                else return;
             }
-            read.Key = key; read.Confirmed = confirmed; read.Dirty = true;
+            read.Key = (_cfg.KeepAll && _usedKeys.Contains(key)) ? key + "~" + (++_supSeq) : key;
+            if (_cfg.KeepAll) _usedKeys.Add(read.Key);
+            read.Confirmed = confirmed; read.Dirty = true;
             _byKey[key] = read;
             Levels.Add(read);
         }
@@ -652,3 +667,4 @@ namespace NinjaTrader.NinjaScript.Indicators
         }
     }
 }
+
